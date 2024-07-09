@@ -1,0 +1,4 @@
+name = "MATFrostHelloWorld"
+uuid = "1fdb97f8-9608-4c45-a498-84afa8a7a94b"
+authors = ["Joris Belier <joris.belier@asml.com>"]
+version = "0.1.0"
