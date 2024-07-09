@@ -1,0 +1,59 @@
+name: Bug Report
+description: Create a report to help us improve
+title: "[BUG] "
+labels:
+  - bug
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+
+  - type: input
+    id: matfrost-version
+    attributes:
+      label: MATFrost version
+      description: Which version of MATFrost are you using?
+      placeholder: 0.1.0
+    validations:
+      required: true
+
+  - type: input
+    id: matlab-version
+    attributes:
+      label: MATLAB version
+      description: Which version of MATLAB are you using?
+      placeholder: R2022b
+    validations:
+      required: true
+
+  - type: input
+    id: julia-version
+    attributes:
+      label: Julia version
+      description: Which version of Julia are you using?
+      placeholder: 1.10.4
+    validations:
+      required: true
+
+  - type: input
+    id: mingw-version
+    attributes:
+      label: MinGW version
+      description: |
+        Which version of MinGW-w64 are you using? 
+        If you installed the MinGW-W64 MATLAB add-on, fill in 'add-on'
+      placeholder: add-on
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Also tell us, what did you expect to happen?
+      placeholder: Tell us what you see!
+      value: "A bug happened!"
+    validations:
+      required: true
