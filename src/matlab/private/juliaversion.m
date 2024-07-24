@@ -13,7 +13,7 @@ if bindir ~= "" && isfolder(bindir)
 end
 
 [status, output] = system(sprintf('%s --version', julia_exe));
-assert(~status, "matfrost:exe", "Count not run Julia in %s", bindir)
+assert(~status, "matfrostjulia:exe", "Could not run Julia in %s", bindir)
 versionCell = regexp(output, 'julia version ([\d\.]+)', 'tokens');
 version = versionCell{1}{1};
 

@@ -22,7 +22,7 @@ classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot %& matlab.mixin.inde
         function obj = matfrostjulia(argstruct)
             arguments                
                 argstruct.version     (1,1) string
-                    % The version of Julia to use. (Using Juliaup)
+                    % The version of Julia to use. i.e. 1.10 (Juliaup channel)
                 argstruct.bindir      (1,1) string {mustBeFolder}
                     % The directory where the Julia environment is located.
                     % This will overrule the version specification.
@@ -30,15 +30,18 @@ classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot %& matlab.mixin.inde
                 argstruct.environment (1,1) string
                     % Julia environment.
             end
-
+            
             % Check if environment is a relative path
-            if isfolder(fullfile(pwd(), argstruct.environment))
+            if isfolder(fullfile(pwd(), argstruct.environment))    
                 argstruct.environment = fullfile(pwd(), argstruct.environment);
-            end
+            
+            % Check if environment is a system-wide environment. 
+            elseif startsWith(argstruct.environment, "@")
+
             % Check if environment is an absolute path
-            % elseif ~isfolder(argstruct.environment)
-            %     error("matfrostjulia:env", "Can't find Julia environment");
-            % end
+            elseif ~isfolder(argstruct.environment)
+                error("matfrostjulia:environment", "Can't find Julia environment");
+            end
 
             obj.environment = argstruct.environment;
 
@@ -48,8 +51,8 @@ classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot %& matlab.mixin.inde
                 obj.bindir = juliaup(argstruct.version);
             else
                 [status, obj.bindir] = system('julia -e "print(Sys.BINDIR)"');
-                assert(~status, "matfrost:julia", ...
-                        "Julia not found on path")
+                assert(~status, "matfrostjulia:julia", ...
+                        "Julia not found on PATH")
             end
 
             obj.matfrostjuliacall = getmatfrostjuliacall(obj.bindir);
@@ -79,17 +82,14 @@ classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot %& matlab.mixin.inde
             
             functionname = indexOp(end-1).Name;
 
+
             callstruct.package        = char(ns(1));
             callstruct.function       = char(functionname);
             
             args = indexOp(end).Indices;
             
-            try 
-                jlo = obj.mh.feval(obj.matfrostjuliacall, callstruct, args{:});
-            catch e
-                error("matfrostjulia:crash", ...
-                    "MATFrost has crashed.");
-            end
+            jlo = obj.mh.feval(obj.matfrostjuliacall, callstruct, args{:});
+
             varargout{1} = jlo;
         end
 
