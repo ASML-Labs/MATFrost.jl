@@ -30,7 +30,8 @@ addpath(matfrostmatlabpath);
    % Bootstrap MATFrost (including examples)
 
 mjl = matfrostjulia(...
-    environment = matfrost_helloworld_environment()); % Example Hello World environment. 
+    environment=matfrost_helloworld_environment(), ... % Example Hello World environment. 
+    instantiate=true); 
    % Spawn a matfrostjulia process running JULIA
 
 mjl.MATFrostHelloWorld.matfrost_hello_world() % 'Hello Julia! :)'
@@ -103,6 +104,16 @@ Constructing a `matfrostjulia` object will spawn a new process with Julia loaded
    mjl = matfrostjulia(...              
       environment = <environment_dir>);    % Directory containing Julia environment.
    ```
+
+### Option: Instantiate
+An additional option instantiate will resolve project environment at construction of `matfrostjulia`. This will call `Pkg.instantiate()`. 
+
+```matlab
+mjl = matfrostjulia(...
+   environment = <environment_dir>, ... 
+   version = "1.10", ...
+   instantiate = true);  % By default is turned off.              
+```
 
 ## Calling Julia functions
 

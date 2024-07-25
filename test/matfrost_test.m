@@ -18,7 +18,8 @@ classdef matfrost_test < matlab.unittest.TestCase
         function setup_matfrost(tc, julia_version)
            tc.mjl = matfrostjulia(...
                 environment = fullfile(fileparts(mfilename('fullpath')), 'MATFrostTest'), ...
-                version     = julia_version);
+                version     = julia_version, ...
+                instantiate = true);
            
             tc.mjl = tc.mjl.MATFrostTest;
         end

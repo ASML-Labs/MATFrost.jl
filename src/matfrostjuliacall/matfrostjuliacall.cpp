@@ -111,9 +111,7 @@ public:
         matlabPtr = getEngine(); 
 
         jl_init();
-    
-        jl_eval_string("import Pkg; Pkg.instantiate()");
-                
+                    
         return 0;
     }
 
