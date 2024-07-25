@@ -171,7 +171,8 @@ public:
             matlab::data::ArrayFactory factory;
             matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
                 factory.createScalar("matfrostjulia:packageDoesNotExist"),
-                factory.createScalar(u"\nMATFrost.jl error:\nPackage does not exist! \n\n\n " + matlab::engine::convertUTF8StringToUTF16String(jl_string_ptr((jl_value_t*) jfs.package)))}));
+                factory.createScalar(u"\nMATFrost.jl error:\nPackage does not exist. \n\n\n--------------------------------------------------------------------------------\n" 
+                    + matlab::engine::convertUTF8StringToUTF16String(jl_string_ptr((jl_value_t*) jfs.package)))}));
         }
 
         jfs.function = (jl_function_t*) jl_eval_string(("try \n " + cs.package + "." + cs.function + "\n catch e \n bt = catch_backtrace() \n sprint(showerror, e, bt) \n end").c_str());
@@ -179,7 +180,8 @@ public:
             matlab::data::ArrayFactory factory;
             matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
                 factory.createScalar("matfrostjulia:functionDoesNotExist"),
-                factory.createScalar(u"\nMATFrost.jl error:\nFunction does not exist! \n\n\n " + matlab::engine::convertUTF8StringToUTF16String(jl_string_ptr((jl_value_t*) jfs.function)))}));
+                factory.createScalar(u"\nMATFrost.jl error:\nFunction does not exist. \n\n\n--------------------------------------------------------------------------------\n" 
+                    + matlab::engine::convertUTF8StringToUTF16String(jl_string_ptr((jl_value_t*) jfs.function)))}));
         }
 
         jl_value_t* jlmethods = jl_call1(jl_get_function(jl_main_module, "methods"), jfs.function);
@@ -235,35 +237,43 @@ public:
             }
 
             // Convert MATLAB values to Julia values
-            jl_value_t* jlargs[nargs];
+            jl_value_t* jlargs[nargs+1];
+            jlargs[0] = (jl_value_t*) jfs.function;
+
             for (size_t i=0; i < nargs; i++){
-                jlargs[i] = convert_to_julia_typed(std::move(inputs[i+1]), jfs.arguments[i]);
+                jlargs[i+1] = convert_to_julia_typed(std::move(inputs[i+1]), jfs.arguments[i]);
             }
 
             jl_value_t **jlargs_p = jlargs;
 
             
-            JL_GC_PUSHARGS(jlargs_p, nargs);
+            JL_GC_PUSHARGS(jlargs_p, nargs+1);
             
             // Enabled as intended Julia function is called.
             jl_gc_enable(1);
 
+            jl_function_t* matfrostcall = (jl_function_t*) jl_eval_string("matfrostcall((@nospecialize f), args...) = try \n (false, f(args...)) \n catch e \n bt = catch_backtrace() \n (true, sprint(showerror, e, bt)) \n end");
+
             // The JUICE: The Julia call!
-            jl_value_t* jlo = jl_call(jfs.function, jlargs, nargs);
+            jl_value_t* jlo = jl_call(matfrostcall, jlargs, nargs+1);
 
-            
-            if (jlo != nullptr){
-
-                // Disabled as several calls to jl* are made to destructure the data. 
-                jl_gc_enable(0);
-
-                outputs[0] = convert_to_matlab((jl_value_t*) jlo);
-
-                // Data has been copied to MATLAB domain, so Julia can start Garbage collection again.
-                jl_gc_enable(1);             
-            }
+            // Disabled as several calls to jl* are made to destructure the data. 
+            jl_gc_enable(0);
 
             JL_GC_POP();
+
+            if (!jl_unbox_bool(jl_get_nth_field(jlo, 0))){
+                outputs[0] = convert_to_matlab((jl_value_t*) jl_get_nth_field(jlo, 1));
+            } else {
+                matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
+                    factory.createScalar("matfrostjulia:callError"),
+                    factory.createScalar(u"\nMATFrost.jl error:\nJulia function call error. \n\n\n--------------------------------------------------------------------------------\n" 
+                        + matlab::engine::convertUTF8StringToUTF16String(jl_string_ptr((jl_value_t*) jl_get_nth_field(jlo, 1))))}));
+            }
+            
+            // Data has been copied to MATLAB domain, so Julia can start Garbage collection again.
+            jl_gc_enable(1);      
+
             jl_gc_collect(JL_GC_AUTO);
         }
         catch(const matlab::engine::MATLABException& ex)
