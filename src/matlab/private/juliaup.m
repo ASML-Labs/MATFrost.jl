@@ -8,7 +8,7 @@ function bindir = juliaup(version)
     end
 
     [status, ~] = system("juliaup --version");
-    assert(~status, "matfrost:juliaup", ...
+    assert(~status, "matfrostjulia:juliaup", ...
         "Juliaup not found. Please install it from https://julialang.org/downloads/")
     
     % Check if Julia channel is installed
@@ -22,17 +22,17 @@ function bindir = juliaup(version)
 	        "Yes", "No", "Yes");
         switch answer
             case 'No'
-                error("matfrost:juliaup", "Julia channel has not been installed via juliaup. Please add via `juliaup add %s`", version);
+                error("matfrostjulia:juliaup", "Julia channel has not been installed via juliaup. Please add via `juliaup add %s`", version);
             case 'Yes'
                 status = system(sprintf("juliaup add %s", version), '-echo');
-                assert(~status, "matfrost:juliaup", ...
+                assert(~status, "matfrostjulia:juliaup", ...
                     "Juliaup could not add channel: %s", version)
         end
     end
 
     % Get the bindir
     [status, output]= system(sprintf('julia +%s -e "println(Sys.BINDIR)"', version));
-    assert(~status, "matfrost:juliaup", ...
+    assert(~status, "matfrostjulia:juliaup", ...
             "Julia could not execute in version %s configured by juliaup.", version)
     bindir = strtrim(output);
 end

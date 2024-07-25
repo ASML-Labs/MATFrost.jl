@@ -31,6 +31,10 @@ private:
     std::mutex m;
     std::condition_variable cv;
 
+    
+    bool_t                          exception_triggered = false;
+    matlab::engine::MATLABException exception_matlab;
+    
     // std::string julia_environment_path;
 
 
@@ -44,6 +48,7 @@ public:
             std::unique_lock<std::mutex> lk(m);
             cv.wait(lk);
         }
+ 
 
     }
 
@@ -67,6 +72,13 @@ public:
             std::unique_lock<std::mutex> lk(m);
             cv.wait(lk);
         }
+
+
+        if (exception_triggered){ 
+            exception_triggered = false;
+            throw exception_matlab;
+        }
+
 
     }
 
@@ -156,12 +168,20 @@ public:
 
         jfs.package = (jl_module_t*) jl_eval_string(("try \n import " + cs.package + " \n " + cs.package + "\n catch e \n bt = catch_backtrace() \n sprint(showerror, e, bt) \n end").c_str());
         if (jl_is_string((jl_value_t*) jfs.package)){
-            throw std::invalid_argument(jl_string_ptr((jl_value_t*) jfs.package));
+            matlab::data::ArrayFactory factory;
+            matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
+                factory.createScalar("matfrostjulia:packageDoesNotExist"),
+                factory.createScalar(u"\nMATFrost.jl error:\nPackage does not exist. \n\n\n--------------------------------------------------------------------------------\n" 
+                    + matlab::engine::convertUTF8StringToUTF16String(jl_string_ptr((jl_value_t*) jfs.package)))}));
         }
 
         jfs.function = (jl_function_t*) jl_eval_string(("try \n " + cs.package + "." + cs.function + "\n catch e \n bt = catch_backtrace() \n sprint(showerror, e, bt) \n end").c_str());
         if (jl_is_string((jl_value_t*) jfs.function)){
-            throw std::invalid_argument(jl_string_ptr((jl_value_t*) jfs.function));
+            matlab::data::ArrayFactory factory;
+            matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
+                factory.createScalar("matfrostjulia:functionDoesNotExist"),
+                factory.createScalar(u"\nMATFrost.jl error:\nFunction does not exist. \n\n\n--------------------------------------------------------------------------------\n" 
+                    + matlab::engine::convertUTF8StringToUTF16String(jl_string_ptr((jl_value_t*) jfs.function)))}));
         }
 
         jl_value_t* jlmethods = jl_call1(jl_get_function(jl_main_module, "methods"), jfs.function);
@@ -182,7 +202,10 @@ public:
 
         }
         else {
-            throw std::invalid_argument("Function has more than 1 implementation.");
+            matlab::data::ArrayFactory factory;
+            matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
+                factory.createScalar("matfrost:function"),
+                factory.createScalar("\nMATFrost.jl error:\nFunction has more than 1 method implementation.")}));
         }
         return jfs;
     }
@@ -207,43 +230,67 @@ public:
             
             size_t nargs = inputs.size()-1;
             if (jfs.arguments.size() != nargs){
-                throw std::invalid_argument("Number of input arguments doesn't match number of arguments on function.");
+                matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
+                    factory.createScalar("matfrost:argument"),
+                    factory.createScalar("\nMATFrost.jl error:\nNumber of input arguments doesn't match number of arguments of the function.")}));
+                // throw std::invalid_argument("Number of input arguments doesn't match number of arguments on function.");
             }
 
             // Convert MATLAB values to Julia values
-            jl_value_t* jlargs[nargs];
+            jl_value_t* jlargs[nargs+1];
+            jlargs[0] = (jl_value_t*) jfs.function;
+
             for (size_t i=0; i < nargs; i++){
-                jlargs[i] = convert_to_julia_typed(std::move(inputs[i+1]), jfs.arguments[i]);
+                jlargs[i+1] = convert_to_julia_typed(std::move(inputs[i+1]), jfs.arguments[i]);
             }
 
             jl_value_t **jlargs_p = jlargs;
 
             
-            JL_GC_PUSHARGS(jlargs_p, nargs);
+            JL_GC_PUSHARGS(jlargs_p, nargs+1);
             
             // Enabled as intended Julia function is called.
             jl_gc_enable(1);
 
+            jl_function_t* matfrostcall = (jl_function_t*) jl_eval_string("matfrostcall((@nospecialize f), args...) = try \n (false, f(args...)) \n catch e \n bt = catch_backtrace() \n (true, sprint(showerror, e, bt)) \n end");
+
             // The JUICE: The Julia call!
-            jl_value_t* jlo = jl_call(jfs.function, jlargs, nargs);
+            jl_value_t* jlo = jl_call(matfrostcall, jlargs, nargs+1);
 
-            if (jlo != nullptr){
-
-                // Disabled as several calls to jl* are made to destructure the data. 
-                jl_gc_enable(0);
-
-                outputs[0] = convert_to_matlab((jl_value_t*) jlo);
-
-                // Data has been copied to MATLAB domain, so Julia can start Garbage collection again.
-                jl_gc_enable(1);             
-            }
-            
+            // Disabled as several calls to jl* are made to destructure the data. 
+            jl_gc_enable(0);
 
             JL_GC_POP();
+
+            if (!jl_unbox_bool(jl_get_nth_field(jlo, 0))){
+                outputs[0] = convert_to_matlab((jl_value_t*) jl_get_nth_field(jlo, 1));
+            } else {
+                matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
+                    factory.createScalar("matfrostjulia:callError"),
+                    factory.createScalar(u"\nMATFrost.jl error:\nJulia function call error. \n\n\n--------------------------------------------------------------------------------\n" 
+                        + matlab::engine::convertUTF8StringToUTF16String(jl_string_ptr((jl_value_t*) jl_get_nth_field(jlo, 1))))}));
+            }
+            
+            // Data has been copied to MATLAB domain, so Julia can start Garbage collection again.
+            jl_gc_enable(1);      
+
             jl_gc_collect(JL_GC_AUTO);
+        }
+        catch(const matlab::engine::MATLABException& ex)
+        {
+            // Disabled to convert to Julia types.
+            jl_gc_enable(1); 
+            jl_gc_collect(JL_GC_AUTO);
+
+            exception_matlab = ex;
+            exception_triggered = true;
         }
         catch(std::exception& ex)
         {
+            // Disabled to convert to Julia types.
+            jl_gc_enable(1); 
+            jl_gc_collect(JL_GC_AUTO);
+
             matlab::data::ArrayFactory factory;
             matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
                 ({ factory.createScalar("###################################\nMATFrost error: " + std::string(ex.what()) + "\n###################################\n")}));
@@ -644,7 +691,10 @@ public:
     
     jl_value_t* convert_to_julia_primitive_or_complex_scalar(matlab::data::Array &&marr){
         if (marr.getNumberOfElements() != 1){
-            throw std::invalid_argument("Expecting a scalar value on MATLAB side" );
+            matlab::data::ArrayFactory factory;
+            matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
+                factory.createScalar("matfrostjulia:argumentInvalid"),
+                factory.createScalar(u"\nMATFrost.jl error:\nExpecting a scalar value on MATLAB side.")}));
         }
         switch (marr.getType())
         {
@@ -700,7 +750,10 @@ public:
                 return convert_to_julia_complex_scalar<uint64_t>(std::move(marr), jl_box_uint64, jl_uint64_type);
 
         }
-        throw std::invalid_argument("Unsupported MATLAB Type" );
+        matlab::data::ArrayFactory factory;
+        matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
+            factory.createScalar("matfrostjulia:argumentInvalid"),
+            factory.createScalar(u"\nMATFrost.jl error:\nUnsupported MATLAB Type")}));
     }
 
 
@@ -803,7 +856,10 @@ public:
                 return convert_to_julia_primitive_array<std::complex<uint64_t>>(std::move(marr), (jl_datatype_t*) jl_apply_type1(jlcomplex, (jl_value_t*) jl_uint64_type));
 
         }
-        throw std::invalid_argument("Unsupported MATLAB Type" );
+        matlab::data::ArrayFactory factory;
+        matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
+            factory.createScalar("matfrostjulia:argumentInvalid"),
+            factory.createScalar(u"\nMATFrost.jl error:\nUnsupported MATLAB Type")}));
         
     }
 
@@ -1070,7 +1126,10 @@ public:
             } 
         }
 
-        throw std::invalid_argument(convert_to_julia_typed_cannot_convert(std::move(marr), jldat_t));
+        matlab::data::ArrayFactory factory;
+        matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
+            factory.createScalar("matfrostjulia:argumentInvalid"),
+            factory.createScalar("\nMATFrost.jl error:\n" + convert_to_julia_typed_cannot_convert(std::move(marr), jldat_t))}));
 
     }
 
@@ -1079,7 +1138,11 @@ public:
     jl_value_t* convert_to_julia_typed_primitive_scalar(matlab::data::Array &&marr, jl_value_t* (*jlbox)(T), jl_datatype_t* matelt, jl_datatype_t* jldat){
         
         if (matelt !=  jldat){
-            throw std::invalid_argument(convert_to_julia_typed_cannot_convert(std::move(marr), jldat));
+            matlab::data::ArrayFactory factory;
+            matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
+                factory.createScalar("matfrostjulia:argumentInvalid"),
+                factory.createScalar("\nMATFrost.jl error:\n" + convert_to_julia_typed_cannot_convert(std::move(marr), jldat))}));
+
         }
 
         return jlbox(((matlab::data::TypedArray<T>&&) std::move(marr))[0]); 
@@ -1091,7 +1154,10 @@ public:
         
         jl_value_t* jlcomplex = (jl_value_t*) jl_get_function(jl_base_module, "Complex");
         if (jldat != (jl_datatype_t*) jl_apply_type1(jlcomplex, (jl_value_t*) matelt)){
-            throw std::invalid_argument(convert_to_julia_typed_cannot_convert(std::move(marr), jldat));
+            matlab::data::ArrayFactory factory;
+            matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
+                factory.createScalar("matfrostjulia:argumentInvalid"),
+                factory.createScalar("\nMATFrost.jl error:\n" + convert_to_julia_typed_cannot_convert(std::move(marr), jldat))}));
         }
 
         std::complex<T> v = ((matlab::data::TypedArray<std::complex<T>>&&) std::move(marr))[0];
@@ -1153,7 +1219,10 @@ public:
 
             }
         }
-        throw std::invalid_argument(convert_to_julia_typed_cannot_convert(std::move(marr), jldat));
+        matlab::data::ArrayFactory factory;
+        matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
+            factory.createScalar("matfrostjulia:argumentInvalid"),
+            factory.createScalar("\nMATFrost.jl error:\n" + convert_to_julia_typed_cannot_convert(std::move(marr), jldat))}));
     }
     
 
@@ -1161,7 +1230,10 @@ public:
     jl_value_t* convert_to_julia_typed_primitive_array(matlab::data::Array &&marr, jl_datatype_t* matelt, jl_datatype_t* jlarr_t){
         
         if (matelt != (jl_datatype_t*) jl_tparam0((jl_value_t*) jlarr_t) ){
-            throw std::invalid_argument(convert_to_julia_typed_cannot_convert(std::move(marr), jlarr_t));
+            matlab::data::ArrayFactory factory;
+            matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
+                factory.createScalar("matfrostjulia:argumentInvalid"),
+                factory.createScalar("\nMATFrost.jl error:\n" + convert_to_julia_typed_cannot_convert(std::move(marr), jlarr_t))}));
         }
 
         matlab::data::TypedArray<T> &&mtarr = (matlab::data::TypedArray<T> &&) std::move(marr);
@@ -1183,7 +1255,10 @@ public:
         // return jl_cstr_to_string("");
 
         if (jl_string_type != (jl_datatype_t*) jl_tparam0((jl_value_t*) jlarr_t) ){
-            throw std::invalid_argument("Cannot convert array. Expecting Strings");
+            matlab::data::ArrayFactory factory;
+            matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
+                factory.createScalar("matfrostjulia:argumentInvalid"),
+                factory.createScalar("\nMATFrost.jl error:\nCannot convert array. Expecting Strings")}));
         }
 
         size_t nel = mtarr.getNumberOfElements();     
@@ -1207,7 +1282,10 @@ public:
     jl_value_t* convert_to_julia_typed_string_array(matlab::data::CharArray &&mtarr, jl_datatype_t* jlarr_t){
 
         if (jl_string_type != (jl_datatype_t*) jl_tparam0((jl_value_t*) jlarr_t) ){
-            throw std::invalid_argument("Cannot convert array. Expecting Strings");
+            matlab::data::ArrayFactory factory;
+            matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
+                factory.createScalar("matfrostjulia:argumentInvalid"),
+                factory.createScalar("\nMATFrost.jl error:\nCannot convert array. Expecting Strings")}));
         }
     
         jl_value_t* dimstup = convert_to_julia_typed_array_dimensions(matlab::data::ArrayDimensions{1,1}, jlarr_t);
@@ -1245,7 +1323,10 @@ public:
                     ss << dimsmat[idim] << ", ";
                 }
                 ss << "]\n";
-                throw std::invalid_argument(ss.str());
+                matlab::data::ArrayFactory factory;
+                matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
+                    factory.createScalar("matfrostjulia:argumentInvalid"),
+                    factory.createScalar("\nMATFrost.jl error:\n" + ss.str())}));
             }
         }
 
@@ -1367,7 +1448,10 @@ public:
             }
         }
 
-        throw std::invalid_argument(convert_to_julia_typed_cannot_convert(std::move(marr), jlarr_t));
+        matlab::data::ArrayFactory factory;
+        matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
+        factory.createScalar("matfrostjulia:argumentInvalid"),
+            factory.createScalar("\nMATFrost.jl error:\n" + convert_to_julia_typed_cannot_convert(std::move(marr), jlarr_t))}));
     }
 
     jl_value_t* convert_to_julia_typed_tuple(matlab::data::Array &&marr, jl_datatype_t* jltup_t){
@@ -1382,7 +1466,10 @@ public:
         
             return jl_call(jl_get_function(jl_base_module, "tuple"), jlvals, nel);
         } else {
-            throw std::invalid_argument(convert_to_julia_typed_cannot_convert(std::move(marr), jltup_t));
+            matlab::data::ArrayFactory factory;
+            matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
+            factory.createScalar("matfrostjulia:argumentInvalid"),
+                factory.createScalar("\nMATFrost.jl error:\n" + convert_to_julia_typed_cannot_convert(std::move(marr), jltup_t))}));
         }
     }
 
