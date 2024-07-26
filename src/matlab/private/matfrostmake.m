@@ -1,18 +1,18 @@
-function matfrostmake(bindir, outmex)
+function matfrostmake(juliaexe, outmex)
 % NOTE: MinGW-w64 should be installed separately.
 % Environment variable: "MW_MINGW64_LOC" should point to the MinGW installation directory.
 %
 % Or see https://mathworks.com/help/matlab/matlab_external/install-mingw-support-package.html
 
 arguments
-    bindir (1,1) string {mustBeFolder}
+    juliaexe (1,1) string
     outmex (1,1) string %= fullfile(fileparts(mfilename('fullpath')), 'bin');
 end
 if ~isfolder(fileparts(outmex))
     mkdir(fileparts(outmex))
 end
 
-julia_dir = fileparts(bindir);
+julia_dir = fileparts(fileparts(juliaexe));
 
 mex('-v', ...
     strcat('-I"', fullfile(julia_dir, 'include', 'julia'), '"'), ...
