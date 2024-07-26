@@ -29,6 +29,8 @@ classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot %& matlab.mixin.inde
                     % NOTE: Only needed if version is not specified.
                 argstruct.environment (1,1) string
                     % Julia environment.
+                argstruct.instantiate (1,1) logical = false
+                    % Resolve project environment
             end
             
             % Check if environment is a relative path
@@ -60,6 +62,10 @@ classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot %& matlab.mixin.inde
             obj.mh = mexhost("EnvironmentVariables", [...
                 "JULIA_PROJECT", obj.environment;
                 "PATH",          obj.bindir]);
+
+            if argstruct.instantiate
+                environmentinstantiate(obj.bindir, obj.environment);
+            end
         end
     end
    
