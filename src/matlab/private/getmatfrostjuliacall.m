@@ -1,10 +1,10 @@
-function bjlname = getmatfrostjuliacall(bindir)
+function mjlname = getmatfrostjuliacall(juliaexe)
 % Get the name of the compiled mex file. If MEX file does not exist, it will compile. 
 %
-    bjlname = matfrostjuliacallname(bindir);
-    if ~exist(bjlname, "file")
-        mexdir = matfrostmexdir();
-        matfrostmake(bindir, fullfile(mexdir, bjlname + ".mexw64"));
+    mjlname = matfrostjuliacallname(juliaexe);
+    if ~exist(mjlname, "file")
+        mexdir = matfrostmexdir(juliaexe);
+        matfrostmake(juliaexe, mexdir, mjlname);
     end
 
 end

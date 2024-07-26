@@ -1,10 +1,6 @@
 #include "mex.hpp"
 #include "mexAdapter.hpp"
 
-// windows
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-
 #include <tuple>
 // stdc++ lib
 #include <string>

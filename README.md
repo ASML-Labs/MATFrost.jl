@@ -1,6 +1,7 @@
 ![MATLAB versions](https://img.shields.io/badge/MATLAB-R2022b-blue.svg)
 ![Julia support](https://img.shields.io/badge/Julia%20-v1.7+-purple)
-![Windows support](https://img.shields.io/badge/Windows-yellow)
+![Windows](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)
+![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
 
 # MATFrost.jl - Embedding Julia in MATLAB
 
@@ -13,15 +14,20 @@ Characteristics:
 3. Leveraging Julia environments for reproducible builds.
 4. Julia runs in its own mexhost process.
 
+# Prerequisites: MATLAB MEX C++ compiler configured
+1. Windows: MinGW-w64 installed: https://mathworks.com/support/requirements/supported-compilers.html 
+   ```matlab
+   % Install official MATLAB MinGW-w64 add-on.
+   websave("mingw.mlpkginstall", "https://mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/52848/versions/22/download/mlpkginstall")
+   uiopen("mingw.mlpkginstall",1)
+   ```
+   Alternatively, install MinGW-w64 manually and link with MATLAB using `MW_MINGW64_LOC` environment variable.
+2. Linux: GCC installed: https://mathworks.com/support/requirements/supported-compilers-linux.html
+
 
 # Quick start 🚀
-   
 ```matlab
 % MATLAB
-websave("mingw.mlpkginstall", "https://mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/52848/versions/22/download/mlpkginstall")
-uiopen("mingw.mlpkginstall",1)
-   % Install official MATLAB MinGW-w64 addon for MEX compilation. (Different installation options exist.)
-
 system('julia --project="@MATFrostEnvironment" -e "import Pkg ; Pkg.add(name=""MATFrost"")"');
    % Install MATFrost
 
@@ -40,16 +46,6 @@ mjl.MATFrostHelloWorld.matfrost_hello_world() % 'Hello Julia! :)'
 
 
 For more examples see the examples folder. 
-
-# Prerequisites
-1. MinGW-w64 configured in MATLAB (needed for MEX compilation): https://mathworks.com/help/matlab/matlab_external/install-mingw-support-package.html
-   1. Option 1: Install the official MATLAB MinGW-w64 addon: https://mathworks.com/matlabcentral/fileexchange/52848-matlab-support-for-mingw-w64-c-c-fortran-compiler
-      ```matlab
-      websave("mingw.mlpkginstall", "https://mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/52848/versions/22/download/mlpkginstall")
-      uiopen("mingw.mlpkginstall",1)
-      ```
-
-   2. Option 2: Install MinGW-w64 manually and link with MATLAB using `MW_MINGW64_LOC` environment variable.
 
 # Workflow
 To call a Julia function using MATFrost, the Julia function needs to satisfy some conditions. These conditions include fully typed input signatures and single method implementation (see later section for more info on these conditions). These conditions have been set to remove interface ambiguities but goes against the overall Julia vision of aiming for high extensibility. What this means in practice is that to be able to call Julia functions from MATLAB, very likely, a MATFrost Julia interface function needs to be created that wraps around Julia functionality. 

@@ -13,7 +13,7 @@ classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot %& matlab.mixin.inde
     properties (Access=private)
         environment       (1,1) string
         namespace         (:,1) string = []
-        bindir            (1,1) string
+        juliaexe          (1,1) string
         matfrostjuliacall (1,1) string
         mh                     matlab.mex.MexHost
     end
@@ -48,23 +48,39 @@ classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot %& matlab.mixin.inde
             obj.environment = argstruct.environment;
 
             if isfield(argstruct, 'bindir')
-                obj.bindir = argstruct.bindir;
+                bindir = argstruct.bindir;
             elseif isfield(argstruct, 'version')
-                obj.bindir = juliaup(argstruct.version);
+                bindir = juliaup(argstruct.version);
             else
-                [status, obj.bindir] = system('julia -e "print(Sys.BINDIR)"');
+                [status, bindir] = system('julia -e "print(Sys.BINDIR)"');
                 assert(~status, "matfrostjulia:julia", ...
                         "Julia not found on PATH")
             end
 
-            obj.matfrostjuliacall = getmatfrostjuliacall(obj.bindir);
+            if ispc
+                obj.juliaexe = fullfile(bindir, "julia.exe");
+            elseif isunix
+                obj.juliaexe = fullfile(bindir, "julia");
+            else
+                error("matfrostjulia:osNotSupported", "MacOS not supported yet.");
+            end
 
-            obj.mh = mexhost("EnvironmentVariables", [...
-                "JULIA_PROJECT", obj.environment;
-                "PATH",          obj.bindir]);
+
+            obj.matfrostjuliacall = getmatfrostjuliacall(obj.juliaexe);
+            
+            if ispc
+                obj.mh = mexhost("EnvironmentVariables", [...
+                    "JULIA_PROJECT", obj.environment;
+                    "PATH",          fileparts(obj.juliaexe)]);
+            elseif isunix
+                obj.mh = mexhost("EnvironmentVariables", [...
+                    "JULIA_PROJECT",   obj.environment;
+                    "PATH",            fileparts(obj.juliaexe); 
+                    "LD_LIBRARY_PATH", fullfile(fileparts(fileparts(obj.juliaexe)), "lib")]);
+            end
 
             if argstruct.instantiate
-                environmentinstantiate(obj.bindir, obj.environment);
+                environmentinstantiate(obj.juliaexe, obj.environment);
             end
         end
     end
