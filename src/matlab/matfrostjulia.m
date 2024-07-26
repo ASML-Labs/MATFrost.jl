@@ -67,10 +67,17 @@ classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot %& matlab.mixin.inde
 
 
             obj.matfrostjuliacall = getmatfrostjuliacall(obj.juliaexe);
-
-            obj.mh = mexhost("EnvironmentVariables", [...
-                "JULIA_PROJECT", obj.environment;
-                "PATH",          fileparts(obj.juliaexe)]);
+            
+            if ispc
+                obj.mh = mexhost("EnvironmentVariables", [...
+                    "JULIA_PROJECT", obj.environment;
+                    "PATH",          fileparts(obj.juliaexe)]);
+            elseif isunix
+                obj.mh = mexhost("EnvironmentVariables", [...
+                    "JULIA_PROJECT",   obj.environment;
+                    "PATH",            fileparts(obj.juliaexe); 
+                    "LD_LIBRARY_PATH", fullfile(fileparts(fileparts(obj.juliaexe)), "lib")]);
+            end
 
             if argstruct.instantiate
                 environmentinstantiate(obj.juliaexe, obj.environment);
