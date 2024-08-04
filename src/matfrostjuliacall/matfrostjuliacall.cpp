@@ -25,8 +25,10 @@ private:
     ArgumentList* inputs_p;
     std::thread juliaworkerthread;
     
-    std::mutex m;
-    std::condition_variable cv;
+    std::mutex mtx_mex;
+
+    std::mutex mtx_jl;
+    std::condition_variable cv_jl;
 
     
     bool_t                          exception_triggered = false;
@@ -37,15 +39,16 @@ private:
 
 public:
     MexFunction() {
-        // Start Julia worker and initialization.
-        juliaworkerthread = std::thread(&MexFunction::juliaworker, this);
+        matlabPtr = getEngine(); 
 
+        std::unique_lock<std::mutex> lk(mtx_jl);
+
+        // Start Julia worker and initialize Julia.
+        juliaworkerthread = std::thread(&MexFunction::juliaworker, this);
+        
         // wait for Julia init to finish.
-        {
-            std::unique_lock<std::mutex> lk(m);
-            cv.wait(lk);
-        }
- 
+        cv_jl.wait(lk);
+        
 
     }
 
@@ -58,61 +61,41 @@ public:
     }
 
     void operator()(ArgumentList outputs, ArgumentList inputs) {
-        inputs_p = &inputs;
-        outputs_p = &outputs;
+        
+        // lk_mex will sequentialize Julia jobs in case of concurrent MEX-calls.
+        std::lock_guard<std::mutex> lk_mex(mtx_mex);
+        {
+            std::unique_lock<std::mutex> lk(mtx_jl);
+            inputs_p = &inputs;
+            outputs_p = &outputs;
 
-        // Start Julia Worker
-        cv.notify_one();
+            // Start Julia worker Job
+            cv_jl.notify_one();
+            cv_jl.wait(lk);
 
-        {  
-            // Wait until Julia worker finishes
-            std::unique_lock<std::mutex> lk(m);
-            cv.wait(lk);
+
+            if (exception_triggered){ 
+                exception_triggered = false;
+                throw exception_matlab;
+            } 
         }
-
-
-        if (exception_triggered){ 
-            exception_triggered = false;
-            throw exception_matlab;
-        }
-
-
+        
     }
 
     int juliaworker(){
-        {
-            juliaworkerinit();
-            cv.notify_one();
-        }
-
+        std::unique_lock<std::mutex> lk(mtx_jl);
+        jl_init();
 
         while(true){
-            {
-                // Wait until Julia worker can start
-                std::unique_lock<std::mutex> lk(m);
-                cv.wait(lk);
+            cv_jl.notify_one();
+            cv_jl.wait(lk);
 
-                juliaworkerjob();
-
-                lk.unlock();
-
-                // Pass back control to main thread.
-                cv.notify_one();
-            }
+            juliaworkerjob();
         }
         
         return 0;
     }
 
-    int juliaworkerinit(){
-        matlabPtr = getEngine(); 
-
-        jl_init();
-                    
-        return 0;
-    }
-
-    
 
     std::string convert_to_string(matlab::data::Array marr)
     {
