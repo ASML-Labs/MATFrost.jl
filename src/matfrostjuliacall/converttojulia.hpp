@@ -323,6 +323,101 @@ public:
         return jl_new_structv(jltype, fieldvalues, nfields);
 
     }
+
+    void validate(matlab::data::StructArray msarr, matlab::engine::MATLABEngine* matlabPtr){
+       for (std::string fieldnamejl : fieldnames){        
+            bool found = false;   
+            for (auto fieldnamemat: msarr.getFieldNames()){
+                if (fieldnamejl.compare(fieldnamemat) == 0){
+                    found = true;
+                    break;
+                }
+            }
+            if(!found){
+                throw_missing_fields_error(std::move(msarr), matlabPtr);
+            }
+        }
+
+        for (auto fieldnamemat: msarr.getFieldNames()){ 
+            bool found = false;   
+            for (std::string fieldnamejl : fieldnames){       
+                if (fieldnamejl.compare(fieldnamemat) == 0){
+                    found = true;
+                    break;
+                }
+            }
+            if(!found){
+                throw_additional_fields_error(std::move(msarr), matlabPtr);
+            }
+        }
+    }
+
+    void throw_missing_fields_error(matlab::data::StructArray &&marr, matlab::engine::MATLABEngine* matlabPtr){
+        jl_value_t* jlts = jl_call1(jl_get_function(jl_base_module, "string"), (jl_value_t*) jltype);
+        std::stringstream ss;
+        ss << "\nMATFrost.jl conversion error:\n\nConverting to: " << jl_string_ptr(jlts) << "\n\nInput struct value is missing fields from specified Julia type.\n\nMissing fields:\n";
+
+        for (std::string fieldnamejl : fieldnames){   
+            bool found = false;
+            
+            for (auto fieldnamemat: marr.getFieldNames()){
+                if (fieldnamejl.compare(fieldnamemat) == 0){
+                    found = true;
+                    break;
+                }
+            }
+            if (!found){
+                ss << "    " << fieldnamejl << "\n";
+            }
+        }
+        ss << "\nExpected fields:\n";
+        
+        for (std::string fieldnamejl : fieldnames){   
+            ss << "    " << fieldnamejl << "\n";
+        }
+        ss << "\nActual fields:\n";
+        
+        for (matlab::data::MATLABFieldIdentifier fieldnamemat: marr.getFieldNames()){
+            ss << "    " << std::string(fieldnamemat) << "\n";
+        }
+
+        throw matlab::engine::MATLABException(
+        "matfrostjulia:conversion:missingFields",
+            matlab::engine::convertUTF8StringToUTF16String(ss.str()));
+    }
+
+    void throw_additional_fields_error(matlab::data::StructArray &&marr, matlab::engine::MATLABEngine* matlabPtr){
+        jl_value_t* jlts = jl_call1(jl_get_function(jl_base_module, "string"), (jl_value_t*) jltype);
+        std::stringstream ss;
+        ss << "\nMATFrost.jl conversion error:\n\nConverting to: " << jl_string_ptr(jlts) << "\n\nInput struct value has more fields than specified Julia type.\n\nAdditional fields:\n";
+
+        for (auto fieldnamemat: marr.getFieldNames()){
+            bool found = false;
+            for (std::string fieldnamejl : fieldnames){   
+                if (fieldnamejl.compare(fieldnamemat) == 0){
+                    found = true;
+                    break;
+                }
+            }
+            if (!found){
+                ss << "    " << std::string(fieldnamemat) << "\n";
+            }
+        }
+        ss << "\nExpected fields:\n";
+        
+        for (std::string fieldnamejl : fieldnames){   
+            ss << "    " << fieldnamejl << "\n";
+        }
+        ss << "\nActual fields:\n";
+        
+        for (matlab::data::MATLABFieldIdentifier fieldnamemat: marr.getFieldNames()){
+            ss << "    " << std::string(fieldnamemat) << "\n";
+        }
+
+        throw matlab::engine::MATLABException(
+        "matfrostjulia:conversion:additionalFields",
+            matlab::engine::convertUTF8StringToUTF16String(ss.str()));
+    }
 };
 
 class StructConverter : public Converter {
@@ -337,9 +432,9 @@ public:
     }
 
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
-        
         if (marr.getType() == matlab::data::ArrayType::STRUCT && marr.getNumberOfElements() == 1){
             matlab::data::StructArray &&msarr = (matlab::data::StructArray&&) std::move(marr);
+            base.validate(msarr, matlabPtr);
             return base.convert(std::move(msarr[0]), matlabPtr);
         }
 
@@ -364,7 +459,7 @@ public:
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
         if (marr.getType() == matlab::data::ArrayType::STRUCT){
             matlab::data::StructArray &&msarr = (matlab::data::StructArray&&) std::move(marr);
-            
+            base.validate(msarr, matlabPtr);
             jl_array_t* jlarr  = new_array(msarr.getDimensions(), jltype, matlabPtr);
             
             jl_function_t* setindex_f = jl_get_function(jl_base_module, "setindex!");
@@ -400,6 +495,7 @@ public:
                 matlab::data::Array&& mcv = std::move(it[i]);
                 if (mcv.getType() == matlab::data::ArrayType::STRUCT && mcv.getNumberOfElements() == 1){
                     matlab::data::StructArray &&msarr = (matlab::data::StructArray&&) std::move(mcv);                    
+                    base.validate(msarr, matlabPtr);                    
                     jl_value_t* jlval =  base.convert(std::move(msarr[0]), matlabPtr);
                     jl_call3(setindex_f, (jl_value_t*) jlarr, jlval, jl_box_int64(i+1));
                 } else {
