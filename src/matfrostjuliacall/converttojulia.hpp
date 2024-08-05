@@ -43,6 +43,39 @@ jl_value_t* convert(matlab::data::Array &&marr, jl_datatype_t* jltype, std::shar
 }
 
 
+void throw_incompatible_array_dimensions_error(matlab::data::ArrayDimensions dimsmat, jl_datatype_t* jltype, matlab::engine::MATLABEngine* matlabPtr){
+    size_t ndims = jl_unbox_int64(jl_tparam1((jl_value_t*) jltype));
+    
+    jl_value_t* jlts = jl_call1(jl_get_function(jl_base_module, "string"), (jl_value_t*) jltype);
+   
+    std::stringstream ss;
+    ss << "\nMATFrost.jl conversion error:\n\nConverting to: " << jl_string_ptr(jlts) << "\n\nArray dimensions incompatible:\n";
+    if (ndims == 1){
+        ss << "    Expect array: column-vector (:, 1)"  << "\n";
+    } else {
+        ss << "    Expect array: numdims=" << 
+                std::to_string(ndims) << "\n";
+    }
+
+    size_t actualnumdims = 0;
+    for (size_t idim = 0; idim < dimsmat.size(); idim++){
+        if (dimsmat[idim] != 1){
+            actualnumdims = idim+1;
+        }
+    }
+
+    ss << "    Actual array: numdims=" << std::to_string(actualnumdims) <<
+        "; dimensions=[" << dimsmat[0];
+    for (size_t idim = 1; idim < dimsmat.size(); idim++){
+        ss << ", " << dimsmat[idim];
+    }
+    ss << "]\n";
+    throw matlab::engine::MATLABException(
+        "matfrostjulia:conversion:incompatibleArrayDimensions",
+        matlab::engine::convertUTF8StringToUTF16String(ss.str()));
+}
+
+
 void throw_argument_invalid(matlab::data::Array &&marr, jl_datatype_t* jltype,  matlab::engine::MATLABEngine* matlabPtr){
     std::string sarr(jl_string_ptr((jl_call1(jl_get_function(jl_main_module, "string"), (jl_value_t*) jltype))));
 
@@ -113,27 +146,7 @@ jl_array_t* new_array(matlab::data::ArrayDimensions dimsmat, jl_datatype_t* jlty
 
     for (size_t idim = ndims; idim < dimsmat.size(); idim++){
         if (dimsmat[idim] != 1){
-            std::stringstream ss;
-
-            size_t actualnumdims = 0;
-            for (size_t idim = ndims; idim < dimsmat.size(); idim++){
-                    if (dimsmat[idim] != 1){
-                    actualnumdims = idim+1;
-                }
-            }
-
-            ss << "\nArray dimensions incompatible:\n    Expect array: numdims=" << 
-                std::to_string(ndims) << "\n    Actual array: numdims=" << std::to_string(actualnumdims) << 
-                "; dimensions=[";
-            for (size_t idim = 0; idim < dimsmat.size(); idim++){
-                ss << dimsmat[idim] << ", ";
-            }
-            ss << "]\n";
-
-            matlab::data::ArrayFactory factory;
-            matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
-                factory.createScalar("matfrostjulia:argumentInvalid"),
-                factory.createScalar("\nMATFrost.jl error:\n" + ss.str())}));
+            throw_incompatible_array_dimensions_error(dimsmat, jltype, matlabPtr);
         }
     }
 
