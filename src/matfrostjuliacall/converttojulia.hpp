@@ -197,6 +197,24 @@ jl_array_t* new_array(matlab::data::ArrayDimensions dimsmat, jl_datatype_t* jlty
 
 }
 
+/**
+ * Construct an empty array.
+ */
+jl_array_t* new_empty_array(matlab::data::ArrayDimensions dimsmat, jl_datatype_t* jltype, matlab::engine::MATLABEngine* matlabPtr){
+    size_t ndims = jl_unbox_int64(jl_tparam1((jl_value_t*) jltype));
+
+    jl_value_t* dimsjlv[ndims];
+    
+    for (size_t di = 0; di < ndims; di++){
+        dimsjlv[di] = jl_box_int64(0);
+    }
+
+    jl_value_t* dimstup =  jl_call(jl_get_function(jl_base_module, "tuple"), dimsjlv, ndims);
+   
+    jl_array_t* jlarr = jl_new_array((jl_value_t*) jltype, dimstup);
+
+    return jlarr;
+}
 
 template<typename T>
 class ArrayPrimitiveConverter : public Converter {
@@ -212,7 +230,9 @@ public:
     }
 
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
-        if (mattype != marr.getType()){            
+        if (marr.isEmpty()){
+            return (jl_value_t*) new_empty_array(marr.getDimensions(), jltype, matlabPtr);
+        } else if (mattype != marr.getType()){            
             throw_argument_invalid(std::move(marr), jltype, matlabPtr);
         }
 
@@ -280,7 +300,9 @@ public:
     }
 
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
-        if(marr.getType() == matlab::data::ArrayType::MATLAB_STRING){
+        if (marr.isEmpty()){
+            return (jl_value_t*) new_empty_array(marr.getDimensions(), jltype, matlabPtr);
+        } else if(marr.getType() == matlab::data::ArrayType::MATLAB_STRING){
             matlab::data::StringArray &&msarr = (matlab::data::StringArray&&) std::move(marr);
             size_t nel = msarr.getNumberOfElements();     
     
@@ -489,7 +511,9 @@ public:
     }
 
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
-        if (marr.getType() == matlab::data::ArrayType::STRUCT){
+        if (marr.isEmpty()){
+            return (jl_value_t*) new_empty_array(marr.getDimensions(), jltype, matlabPtr);
+        } else if (marr.getType() == matlab::data::ArrayType::STRUCT){
             matlab::data::StructArray &&msarr = (matlab::data::StructArray&&) std::move(marr);
             base.validate(msarr, matlabPtr);
             jl_array_t* jlarr  = new_array(msarr.getDimensions(), jltype, matlabPtr);
@@ -589,7 +613,9 @@ public:
     }
 
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
-        if (marr.getType() == matlab::data::ArrayType::CELL){
+        if (marr.isEmpty()){
+            return (jl_value_t*) new_empty_array(marr.getDimensions(), jltype, matlabPtr);
+        } else if (marr.getType() == matlab::data::ArrayType::CELL){
             matlab::data::CellArray &&mcarr = (matlab::data::CellArray&&) marr;
             
             jl_array_t* jlarr  = new_array(mcarr.getDimensions(), jltype, matlabPtr);
