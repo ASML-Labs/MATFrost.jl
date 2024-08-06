@@ -596,7 +596,11 @@ public:
     }
 
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
-        if (marr.getType() == matlab::data::ArrayType::CELL && marr.getNumberOfElements() == converters.size()){
+        if (marr.getType() != matlab::data::ArrayType::CELL) {
+            throw incompatible_datatypes_exception(std::move(marr), jltype, matlabPtr);
+        } else if(marr.getNumberOfElements() != converters.size()){
+            throw tuple_exception(std::move(marr), matlabPtr);
+        } else {
             matlab::data::CellArray &&mcarr = (matlab::data::CellArray&&) marr;
             size_t nel = converters.size();
             jl_value_t* fieldvalues[nel];
@@ -606,8 +610,35 @@ public:
             
             return jl_call(jl_get_function(jl_base_module, "tuple"), fieldvalues, nel);
         }
-        throw_argument_invalid(std::move(marr), jltype, matlabPtr);
     }
+
+    
+    matlab::engine::MATLABException tuple_exception(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr){
+        jl_value_t* jlts = jl_call1(jl_get_function(jl_base_module, "string"), (jl_value_t*) jltype);
+        std::stringstream ss;
+        ss << "\nMATFrost.jl conversion error:\n\nConverting to: " << jl_string_ptr(jlts) << "\n\n";
+
+        if (marr.getNumberOfElements() < converters.size()){ 
+            "Input cell array contains less elements than Julia tuple type.\n\n";
+        } else {
+            "Input cell array contains more elements than Julia tuple type.\n\n";
+        }
+
+        ss << "Actual number of elements:   " << marr.getNumberOfElements() << "\n";
+        ss << "Expected number of elements: " << converters.size() ;
+        
+        if (marr.getNumberOfElements() < converters.size()){ 
+            return matlab::engine::MATLABException(
+            "matfrostjulia:conversion:missingFields",
+                matlab::engine::convertUTF8StringToUTF16String(ss.str()));
+        } else {
+            return matlab::engine::MATLABException(
+            "matfrostjulia:conversion:additionalFields",
+                matlab::engine::convertUTF8StringToUTF16String(ss.str()));
+        }
+
+    }
+
 };
 
 class ArrayAnyConverter : public Converter {
