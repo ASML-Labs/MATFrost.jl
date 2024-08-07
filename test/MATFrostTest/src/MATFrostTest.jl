@@ -39,6 +39,7 @@ sum_nest2(v::Nest2) = sum(sum_nest1(e) for e in v.v1) + sum(sum_nest1(e) for e i
 
 nest2_identity(v::Nest2) = v
 
+identity_nest2(v::Nest2) = v
 struct Rename1Old
     old_v  :: Nest1
     old_vs :: Vector{Nest1}
