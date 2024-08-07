@@ -100,16 +100,91 @@ matlab::engine::MATLABException not_scalar_value_exception(matlab::data::ArrayDi
         matlab::engine::convertUTF8StringToUTF16String(ss.str()));
 }
 
-matlab::engine::MATLABException incompatible_datatypes_exception(matlab::data::Array &&marr, jl_datatype_t* jltype,  matlab::engine::MATLABEngine* matlabPtr){
+std::string array_type_name(matlab::data::ArrayType array_type){
+    switch (array_type) {
+        case matlab::data::ArrayType::LOGICAL:
+            return "logical";
+        case matlab::data::ArrayType::CELL:
+            return "cell";
+        case matlab::data::ArrayType::STRUCT:
+            return "struct";
+        case matlab::data::ArrayType::MATLAB_STRING:
+            return "string";        
+        case matlab::data::ArrayType::CHAR:
+            return "char";
+        case matlab::data::ArrayType::OBJECT:
+            return "object";
+
+        case matlab::data::ArrayType::SINGLE:
+            return "single";
+        case matlab::data::ArrayType::DOUBLE:
+            return "double";
+        
+        case matlab::data::ArrayType::UINT8:
+            return "uint8";
+        case matlab::data::ArrayType::INT8:
+            return "int8";
+        case matlab::data::ArrayType::UINT16:
+            return "uint16";
+        case matlab::data::ArrayType::INT16:
+            return "int16";
+        case matlab::data::ArrayType::UINT32:
+            return "int32";
+        case matlab::data::ArrayType::INT32:
+            return "uint32";
+        case matlab::data::ArrayType::UINT64:
+            return "int64";
+        case matlab::data::ArrayType::INT64:
+            return "uint64";
+
+        case matlab::data::ArrayType::COMPLEX_SINGLE:
+            return "complex single";
+        case matlab::data::ArrayType::COMPLEX_DOUBLE:
+            return "complex double";
+
+        case matlab::data::ArrayType::COMPLEX_UINT8:
+            return "complex uint8";
+        case matlab::data::ArrayType::COMPLEX_INT8:
+            return "complex int8";
+        case matlab::data::ArrayType::COMPLEX_UINT16:
+            return "complex uint16";
+        case matlab::data::ArrayType::COMPLEX_INT16:
+            return "complex int16";
+        case matlab::data::ArrayType::COMPLEX_UINT32:
+            return "complex int32";
+        case matlab::data::ArrayType::COMPLEX_INT32:
+            return "complex uint32";
+        case matlab::data::ArrayType::COMPLEX_UINT64:
+            return "complex int64";
+        case matlab::data::ArrayType::COMPLEX_INT64:
+            return "complex uint64";
+        
+        case matlab::data::ArrayType::VALUE_OBJECT:
+            return "value object";
+        case matlab::data::ArrayType::HANDLE_OBJECT_REF:
+            return "handle object ref";       
+        case matlab::data::ArrayType::ENUM:
+            return "enum";
+        case matlab::data::ArrayType::SPARSE_LOGICAL:
+            return "sparse logical";
+        case matlab::data::ArrayType::SPARSE_DOUBLE:
+            return "sparse double";
+        case matlab::data::ArrayType::SPARSE_COMPLEX_DOUBLE:
+            return "sparse complex double";
+        default:
+            return "unknown";
+        
+    }
+}
+
+matlab::engine::MATLABException incompatible_datatypes_exception(matlab::data::Array &&marr, jl_datatype_t* jltype, std::string expected_matlab_type, matlab::engine::MATLABEngine* matlabPtr){
     std::string sarr(jl_string_ptr((jl_call1(jl_get_function(jl_main_module, "string"), (jl_value_t*) jltype))));
     
-    std::vector<matlab::data::Array> typeo = matlabPtr->feval(u"class", 1, std::vector<matlab::data::Array>({marr}));
-    matlab::data::CharArray mstype = (matlab::data::CharArray) typeo[0];
-    std::string stype = matlab::engine::convertUTF16StringToUTF8String(mstype.toUTF16());
+    std::string stype = array_type_name(marr.getType());
 
     return matlab::engine::MATLABException(
         "matfrostjulia:conversion:incompatibleDatatypes",
-        matlab::engine::convertUTF8StringToUTF16String("\nMATFrost.jl conversion error:\n\nConverting to: " + sarr + "\n\nNo conversion defined for:\n    Actual MATLAB type: " + stype + "[] ->\n    Julia type: " + sarr));
+        matlab::engine::convertUTF8StringToUTF16String("\nMATFrost.jl conversion error:\n\nConverting to: " + sarr + "\n\nNo conversion defined:\n    Actual MATLAB type:   " + stype + "[] \n    Expected MATLAB type: " + expected_matlab_type + "[]"));
 }
 
 void throw_argument_invalid(matlab::data::Array &&marr, jl_datatype_t* jltype,  matlab::engine::MATLABEngine* matlabPtr){
@@ -145,7 +220,7 @@ public:
 
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
         if (marr.getType() != mattype ) {
-            throw incompatible_datatypes_exception(std::move(marr), jltype, matlabPtr);
+            throw incompatible_datatypes_exception(std::move(marr), jltype, array_type_name(mattype), matlabPtr);
         } else if(marr.getNumberOfElements() != 1) {
             throw not_scalar_value_exception(marr.getDimensions(), jltype, matlabPtr);
         } else {
@@ -170,7 +245,7 @@ public:
 
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
         if (marr.getType() != mattype) {
-            throw incompatible_datatypes_exception(std::move(marr), jltype, matlabPtr);
+            throw incompatible_datatypes_exception(std::move(marr), jltype, array_type_name(mattype), matlabPtr);
         } else if(marr.getNumberOfElements() != 1) {
             throw not_scalar_value_exception(marr.getDimensions(), jltype, matlabPtr);
         } else {
@@ -244,7 +319,7 @@ public:
         if (marr.isEmpty()){
             return (jl_value_t*) new_empty_array(marr.getDimensions(), jltype, matlabPtr);
         } else if (mattype != marr.getType()){            
-            throw incompatible_datatypes_exception(std::move(marr), jltype, matlabPtr);
+            throw incompatible_datatypes_exception(std::move(marr), jltype, array_type_name(mattype), matlabPtr);
         }
 
         matlab::data::TypedArray<T> &&mtarr = (matlab::data::TypedArray<T> &&) std::move(marr);
@@ -285,7 +360,7 @@ class StringConverter : public Converter {
 public:
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
         if(marr.getType() != matlab::data::ArrayType::MATLAB_STRING){
-            throw incompatible_datatypes_exception(std::move(marr), jl_string_type, matlabPtr);
+            throw incompatible_datatypes_exception(std::move(marr), jl_string_type, "string", matlabPtr);
         } else if (marr.getNumberOfElements() != 1) {
             throw not_scalar_value_exception(marr.getDimensions(), jl_string_type, matlabPtr);
         } else {
@@ -325,7 +400,7 @@ public:
             }
             return (jl_value_t*) jlarr;
         } else {
-            throw incompatible_datatypes_exception(std::move(marr), jltype, matlabPtr);
+            throw incompatible_datatypes_exception(std::move(marr), jltype, "string", matlabPtr);
         }
     }
 };
@@ -477,7 +552,7 @@ public:
 
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
         if (marr.getType() != matlab::data::ArrayType::STRUCT){
-            throw incompatible_datatypes_exception(std::move(marr), jltype, matlabPtr);
+            throw incompatible_datatypes_exception(std::move(marr), jltype, "struct", matlabPtr);
         } else if (marr.getNumberOfElements() != 1){
             throw not_scalar_value_exception(marr.getDimensions(), jltype, matlabPtr);
         } else {
@@ -524,7 +599,7 @@ public:
             return (jl_value_t*) jlarr;
 
         } else {
-            throw incompatible_datatypes_exception(std::move(marr), jltype, matlabPtr);
+            throw incompatible_datatypes_exception(std::move(marr), jltype, "struct", matlabPtr);
         }
 
     }
@@ -550,7 +625,7 @@ public:
 
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
         if (marr.getType() != matlab::data::ArrayType::CELL) {
-            throw incompatible_datatypes_exception(std::move(marr), jltype, matlabPtr);
+            throw incompatible_datatypes_exception(std::move(marr), jltype, "cell", matlabPtr);
         } else if(marr.getNumberOfElements() != converters.size() || marr.getDimensions()[0] != converters.size()){
             throw tuple_exception(std::move(marr), matlabPtr);
         } else {
@@ -641,7 +716,7 @@ public:
 
             return (jl_value_t*) jlarr;
         }
-        throw incompatible_datatypes_exception(std::move(marr), jltype, matlabPtr);
+        throw incompatible_datatypes_exception(std::move(marr), jltype, "cell", matlabPtr);
     }
 };
 
