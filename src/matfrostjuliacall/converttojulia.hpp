@@ -472,7 +472,8 @@ public:
     }
 
     matlab::engine::MATLABException missing_fields_exception(matlab::data::StructArray &&marr, matlab::engine::MATLABEngine* matlabPtr){
-        jl_value_t* jlts = jl_call1(jl_get_function(jl_base_module, "string"), (jl_value_t*) jltype);
+        jl_function_t* jlf_string = jl_get_function(jl_base_module, "string");
+        jl_value_t* jlts = jl_call1(jlf_string, (jl_value_t*) jltype);
         std::stringstream ss;
         ss << "\nMATFrost.jl conversion error:\n\nConverting to: " << jl_string_ptr(jlts) << "\n\nInput struct value is missing fields from specified Julia type.\n\nMissing fields:\n";
 
@@ -489,16 +490,20 @@ public:
                 ss << "    " << fieldnamejl << "\n";
             }
         }
-        ss << "\nExpected fields:\n";
-        
-        for (std::string fieldnamejl : fieldnames){   
-            ss << "    " << fieldnamejl << "\n";
-        }
         ss << "\nActual fields:\n";
         
         for (matlab::data::MATLABFieldIdentifier fieldnamemat: marr.getFieldNames()){
             ss << "    " << std::string(fieldnamemat) << "\n";
         }
+        
+        ss << "\nExpected fields:\n";
+        
+        for (size_t i = 0; i < fieldnames.size(); i++){   
+            std::string fieldnamejl = fieldnames[i];
+            std::string fieldtype = jl_string_ptr(jl_call1(jlf_string, jl_field_type(jltype, i)));
+            ss << "    " << fieldnamejl << "::" << fieldtype << "\n";
+        }
+        
 
         return matlab::engine::MATLABException(
         "matfrostjulia:conversion:missingFields",
@@ -506,7 +511,8 @@ public:
     }
 
     matlab::engine::MATLABException additional_fields_exception(matlab::data::StructArray &&marr, matlab::engine::MATLABEngine* matlabPtr){
-        jl_value_t* jlts = jl_call1(jl_get_function(jl_base_module, "string"), (jl_value_t*) jltype);
+        jl_function_t* jlf_string = jl_get_function(jl_base_module, "string");
+        jl_value_t* jlts = jl_call1(jlf_string, (jl_value_t*) jltype);
         std::stringstream ss;
         ss << "\nMATFrost.jl conversion error:\n\nConverting to: " << jl_string_ptr(jlts) << "\n\nInput struct value has more fields than specified Julia type.\n\nAdditional fields:\n";
 
@@ -522,16 +528,21 @@ public:
                 ss << "    " << std::string(fieldnamemat) << "\n";
             }
         }
-        ss << "\nExpected fields:\n";
         
-        for (std::string fieldnamejl : fieldnames){   
-            ss << "    " << fieldnamejl << "\n";
-        }
         ss << "\nActual fields:\n";
         
         for (matlab::data::MATLABFieldIdentifier fieldnamemat: marr.getFieldNames()){
             ss << "    " << std::string(fieldnamemat) << "\n";
         }
+
+        ss << "\nExpected fields:\n";
+        
+        for (size_t i = 0; i < fieldnames.size(); i++){   
+            std::string fieldnamejl = fieldnames[i];
+            std::string fieldtype = jl_string_ptr(jl_call1(jlf_string, jl_field_type(jltype, i)));
+            ss << "    " << fieldnamejl << "::" << fieldtype << "\n";
+        }
+        
 
         return matlab::engine::MATLABException(
         "matfrostjulia:conversion:additionalFields",
