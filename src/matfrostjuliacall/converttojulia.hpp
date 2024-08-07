@@ -544,35 +544,9 @@ public:
             }
             return (jl_value_t*) jlarr;
 
-        } else if (marr.getType() == matlab::data::ArrayType::CELL){
-
-
-            matlab::data::CellArray &&mcarr = (matlab::data::CellArray&&) std::move(marr);
-            
-            jl_array_t* jlarr  = new_array(mcarr.getDimensions(), jltype, matlabPtr);
-
-            jl_function_t* setindex_f = jl_get_function(jl_base_module, "setindex!");
-
-            matlab::data::TypedIterator<matlab::data::Array>&& it(std::move(mcarr).begin()); 
-
-            size_t nel = mcarr.getNumberOfElements(); 
-
-            for (size_t i = 0; i < nel; i++){
-
-                matlab::data::Array&& mcv = std::move(it[i]);
-                if (mcv.getType() == matlab::data::ArrayType::STRUCT && mcv.getNumberOfElements() == 1){
-                    matlab::data::StructArray &&msarr = (matlab::data::StructArray&&) std::move(mcv);                    
-                    base.validate(msarr, matlabPtr);                    
-                    jl_value_t* jlval =  base.convert(std::move(msarr[0]), matlabPtr);
-                    jl_call3(setindex_f, (jl_value_t*) jlarr, jlval, jl_box_int64(i+1));
-                } else {
-                    throw incompatible_datatypes_exception(std::move(mcv), jltype, matlabPtr);
-                }
-
-            }
-            return (jl_value_t*) jlarr;
+        } else {
+            throw incompatible_datatypes_exception(std::move(marr), jltype, matlabPtr);
         }
-        throw incompatible_datatypes_exception(std::move(marr), jltype, matlabPtr);
 
     }
 };
