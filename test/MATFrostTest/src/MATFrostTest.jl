@@ -172,6 +172,49 @@ multiplication_scalar_cui16(v1::Complex{UInt16}, v2::Complex{UInt16}) = v1*v2
 multiplication_scalar_cui32(v1::Complex{UInt32}, v2::Complex{UInt32}) = v1*v2
 multiplication_scalar_cui64(v1::Complex{UInt64}, v2::Complex{UInt64}) = v1*v2
 
+struct Nest3_L3{T}
+    v1::T
+    v2::Float64
+    v3::Int64
+end
+
+struct Nest3_L2{T}
+    v1::T
+    v2::Vector{T}
+    v3::Vector{Nest3_L3{T}}
+end
+
+struct Nest3_L1{T}
+    v1::Int64
+    v2::Float64
+    v3::T
+    v4::Tuple{T,T,T}
+    v5::Vector{T}
+    v6::Matrix{T}
+    v7::Nest3_L2{T}
+    v8::Vector{Nest3_L2{T}}
+end
+
+struct Nest4_L1{T}
+    v1::Float64
+    v2::Int64
+    v3::Array{Nest3_L1{T}, 3}
+    v4::T
+    v5::Nest3_L2{T}
+end
+
+
+function nested_structures_test1(v::Nest3_L1{T}) where {T}
+    Nest4_L1{T}(
+        v.v2,
+        v.v1,
+        fill(v, (2, 2, 2)),
+        v.v3,
+        v.v7
+    )
+end
+
+
 
 for (suf, prim) in (
         (:bool, Bool),
@@ -249,6 +292,7 @@ for (suf, prim) in (
     eval(:($(string_arr3_s)(v::Array{$(prim), 3}) = string(v)))
 
 
+    eval(:($(Symbol(:nested_structures_test1_, suf))(v::Nest3_L1{$(prim)}) = nested_structures_test1(v)))
 end
 
 
