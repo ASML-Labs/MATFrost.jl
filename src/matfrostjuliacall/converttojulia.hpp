@@ -285,11 +285,7 @@ class StringConverter : public Converter {
 public:
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
         if(marr.getType() != matlab::data::ArrayType::MATLAB_STRING){
-            if (marr.getType() == matlab::data::ArrayType::CHAR){            
-                return convert_string((matlab::data::CharArray&&) std::move(marr));
-            } else {
-                throw incompatible_datatypes_exception(std::move(marr), jl_string_type, matlabPtr);
-            }
+            throw incompatible_datatypes_exception(std::move(marr), jl_string_type, matlabPtr);
         } else if (marr.getNumberOfElements() != 1) {
             throw not_scalar_value_exception(marr.getDimensions(), jl_string_type, matlabPtr);
         } else {
@@ -328,26 +324,9 @@ public:
                 jl_call3(setindex, (jl_value_t*) jlarr, jls, jl_box_int64(i+1));
             }
             return (jl_value_t*) jlarr;
-        } else if(marr.getType() == matlab::data::ArrayType::CELL){
-            // Cell array of strings accepted because of CharArray
-
-            matlab::data::CellArray &&mcarr = (matlab::data::CellArray&&) std::move(marr);
-            size_t nel = mcarr.getNumberOfElements();     
-    
-            jl_array_t* jlarr  = new_array(mcarr.getDimensions(), jltype, matlabPtr);
-            
-            matlab::data::TypedIterator<matlab::data::Array>&& it(std::move(mcarr).begin()); 
-
-            jl_function_t *setindex = jl_get_function(jl_base_module, "setindex!");
-
-            for (size_t i = 0; i < nel; i++){
-                jl_value_t* jls = conv.convert(std::move(it[i]), matlabPtr);
-                jl_call3(setindex, (jl_value_t*) jlarr, jls, jl_box_int64(i+1));
-            }
-            return (jl_value_t*) jlarr;
-       
+        } else {
+            throw incompatible_datatypes_exception(std::move(marr), jltype, matlabPtr);
         }
-        throw incompatible_datatypes_exception(std::move(marr), jltype, matlabPtr);
     }
 };
 
