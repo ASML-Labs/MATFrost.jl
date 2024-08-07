@@ -172,48 +172,84 @@ multiplication_scalar_cui32(v1::Complex{UInt32}, v2::Complex{UInt32}) = v1*v2
 multiplication_scalar_cui64(v1::Complex{UInt64}, v2::Complex{UInt64}) = v1*v2
 
 
+for (suf, prim) in (
+        (:bool, Bool),
+
+        (:string, String),
+        
+        (:simple_population_type, SimplePopulationType),
+        
+        (:named_tuple_simple_population_type, @NamedTuple{name::String, population::Int64}),
+
+        (:tup_f64_i64_bool_string, Tuple{Float64, Int64, Bool, String}),
 
 
 
 
-identity_simple_population_type(v::SimplePopulationType) = v
+        (:f32, Float32), 
+        (:f64, Float64),
 
-identity_string(v::String) = v
-
-identity_f32(v::Float32) = v
-identity_f64(v::Float64) = v
-
-identity_i8(v::Int8) = v
-identity_i16(v::Int16) = v
-identity_i32(v::Int32) = v
-identity_i64(v::Int64) = v
-
-identity_ui8(v::UInt8) = v
-identity_ui16(v::UInt16) = v
-identity_ui32(v::UInt32) = v
-identity_ui64(v::UInt64) = v
-
-
-identity_cf32(v::Complex{Float32}) = v
-identity_cf64(v::Complex{Float64}) = v
-
-identity_ci8(v::Complex{Int8}) = v
-identity_ci16(v::Complex{Int16}) = v
-identity_ci32(v::Complex{Int32}) = v
-identity_ci64(v::Complex{Int64}) = v
-
-identity_cui8(v::Complex{UInt8}) = v
-identity_cui16(v::Complex{UInt16}) = v
-identity_cui32(v::Complex{UInt32}) = v
-identity_cui64(v::Complex{UInt64}) = v
+        (:i8, Int8), 
+        (:ui8, UInt8),
+        
+        (:i16, Int16), 
+        (:ui16, UInt16),
+        
+        (:i32, Int32), 
+        (:ui32, UInt32),
+        
+        (:i64, Int64), 
+        (:ui64, UInt64),
 
 
 
-# identity_ui8(v::Float64) = v
-# identity_f64(v::Float64) = v
-# identity_f64(v::Float64) = v
-# identity_f64(v::Float64) = v
-# identity_f64(v::Float64) = v
+
+        (:cf32, Complex{Float32}), 
+        (:cf64, Complex{Float64}),
+
+        (:ci8, Complex{Int8}), 
+        (:cui8, Complex{UInt8}),
+        
+        (:ci16, Complex{Int16}), 
+        (:cui16, Complex{UInt16}),
+        
+        (:ci32, Complex{Int32}), 
+        (:cui32, Complex{UInt32}),
+        
+        (:ci64, Complex{Int64}), 
+        (:cui64, Complex{UInt64}))
+
+
+
+    identity = Symbol(:identity_, suf)
+    eval(:($(identity)(v::$(prim))=v))
+
+    identity_vector = Symbol(:identity_vector_, suf)
+    eval(:($(identity_vector)(v::Vector{$(prim)})=v))
+
+    identity_matrix = Symbol(:identity_matrix_, suf)
+    eval(:($(identity_matrix)(v::Matrix{$(prim)})=v))
+    
+    identity_arr3 = Symbol(:identity_arr3_, suf)
+    eval(:($(identity_arr3)(v::Array{$(prim), 3})=v))
+
+
+
+    string_s = Symbol(:string_, suf)
+    eval(:($(string_s)(v::$(prim)) = string(v)))
+
+    string_vector_s = Symbol(:string_vector_, suf)
+    eval(:($(string_vector_s)(v::Vector{$(prim)}) = string(v)))
+
+    string_matrix_s = Symbol(:string_matrix_, suf)
+    eval(:($(string_matrix_s)(v::Matrix{$(prim)}) = string(v)))
+
+    string_arr3_s = Symbol(:string_arr3_, suf)
+    eval(:($(string_arr3_s)(v::Array{$(prim), 3}) = string(v)))
+
+
+end
+
 
 
 
