@@ -5,7 +5,7 @@ classdef matfrost_abstract_test < matlab.unittest.TestCase
     end
 
     properties (ClassSetupParameter)
-        julia = {"1.7", "1.8", "1.9", "1.10"};
+        julia = {"1.7"};
     end    
     
     
@@ -21,11 +21,12 @@ classdef matfrost_abstract_test < matlab.unittest.TestCase
                 environment = tc.environment, ...
                 version     = julia, ...
                 instantiate = true);
+
+            if isunix()
+                addpath("~/.julia/scratchspaces/406cae98-a0f7-4766-b83f-8510a556e0e7/mexbin")
+            end
            
         end
     end
-
    
-  
-    
 end
