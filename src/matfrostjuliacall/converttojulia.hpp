@@ -43,6 +43,150 @@ jl_value_t* convert(matlab::data::Array &&marr, jl_datatype_t* jltype, std::shar
 }
 
 
+matlab::engine::MATLABException incompatible_array_dimensions_exception(matlab::data::ArrayDimensions dimsmat, jl_datatype_t* jltype, matlab::engine::MATLABEngine* matlabPtr){
+    size_t ndims = jl_unbox_int64(jl_tparam1((jl_value_t*) jltype));
+    
+    jl_value_t* jlts = jl_call1(jl_get_function(jl_base_module, "string"), (jl_value_t*) jltype);
+    
+    std::stringstream ss;
+    ss << "\nMATFrost.jl conversion error:\n\nConverting to: " << jl_string_ptr(jlts) << "\n\nArray dimensions incompatible:\n";
+    if (ndims == 1){
+        ss << "    Expect array: column-vector (:, 1)"  << "\n";
+    } else {
+        ss << "    Expect array: numdims=" << 
+                std::to_string(ndims) << "\n";
+    }
+
+    size_t actualnumdims = 0;
+    for (size_t idim = 0; idim < dimsmat.size(); idim++){
+        if (dimsmat[idim] != 1){
+            actualnumdims = idim+1;
+        }
+    }
+
+    ss << "    Actual array: numdims=" << std::to_string(actualnumdims) <<
+        "; dimensions=[" << dimsmat[0];
+    for (size_t idim = 1; idim < dimsmat.size(); idim++){
+        ss << ", " << dimsmat[idim];
+    }
+    ss << "]\n";
+    return matlab::engine::MATLABException(
+        "matfrostjulia:conversion:incompatibleArrayDimensions",
+        matlab::engine::convertUTF8StringToUTF16String(ss.str()));
+}
+
+matlab::engine::MATLABException not_scalar_value_exception(matlab::data::ArrayDimensions dimsmat, jl_datatype_t* jltype, matlab::engine::MATLABEngine* matlabPtr){
+    jl_value_t* jlts = jl_call1(jl_get_function(jl_base_module, "string"), (jl_value_t*) jltype);
+    
+    std::stringstream ss;
+    ss << "\nMATFrost.jl conversion error:\n\nConverting to: " << jl_string_ptr(jlts) << 
+        "\n\nNot scalar value:\n    Expect array: scalar (1, 1)\n";
+
+    size_t actualnumdims = 0;
+    for (size_t idim = 0; idim < dimsmat.size(); idim++){
+        if (dimsmat[idim] != 1){
+            actualnumdims = idim+1;
+        }
+    }
+
+    ss << "    Actual array: numdims=" << std::to_string(actualnumdims) <<
+        "; dimensions=[" << dimsmat[0];
+    for (size_t idim = 1; idim < dimsmat.size(); idim++){
+        ss << ", " << dimsmat[idim];
+    }
+    ss << "]\n";
+    return matlab::engine::MATLABException(
+        "matfrostjulia:conversion:notScalarValue",
+        matlab::engine::convertUTF8StringToUTF16String(ss.str()));
+}
+
+std::string array_type_name(matlab::data::ArrayType array_type){
+    switch (array_type) {
+        case matlab::data::ArrayType::LOGICAL:
+            return "logical";
+        case matlab::data::ArrayType::CELL:
+            return "cell";
+        case matlab::data::ArrayType::STRUCT:
+            return "struct";
+        case matlab::data::ArrayType::MATLAB_STRING:
+            return "string";        
+        case matlab::data::ArrayType::CHAR:
+            return "char";
+        case matlab::data::ArrayType::OBJECT:
+            return "object";
+
+        case matlab::data::ArrayType::SINGLE:
+            return "single";
+        case matlab::data::ArrayType::DOUBLE:
+            return "double";
+        
+        case matlab::data::ArrayType::UINT8:
+            return "uint8";
+        case matlab::data::ArrayType::INT8:
+            return "int8";
+        case matlab::data::ArrayType::UINT16:
+            return "uint16";
+        case matlab::data::ArrayType::INT16:
+            return "int16";
+        case matlab::data::ArrayType::UINT32:
+            return "int32";
+        case matlab::data::ArrayType::INT32:
+            return "uint32";
+        case matlab::data::ArrayType::UINT64:
+            return "int64";
+        case matlab::data::ArrayType::INT64:
+            return "uint64";
+
+        case matlab::data::ArrayType::COMPLEX_SINGLE:
+            return "complex single";
+        case matlab::data::ArrayType::COMPLEX_DOUBLE:
+            return "complex double";
+
+        case matlab::data::ArrayType::COMPLEX_UINT8:
+            return "complex uint8";
+        case matlab::data::ArrayType::COMPLEX_INT8:
+            return "complex int8";
+        case matlab::data::ArrayType::COMPLEX_UINT16:
+            return "complex uint16";
+        case matlab::data::ArrayType::COMPLEX_INT16:
+            return "complex int16";
+        case matlab::data::ArrayType::COMPLEX_UINT32:
+            return "complex int32";
+        case matlab::data::ArrayType::COMPLEX_INT32:
+            return "complex uint32";
+        case matlab::data::ArrayType::COMPLEX_UINT64:
+            return "complex int64";
+        case matlab::data::ArrayType::COMPLEX_INT64:
+            return "complex uint64";
+        
+        case matlab::data::ArrayType::VALUE_OBJECT:
+            return "value object";
+        case matlab::data::ArrayType::HANDLE_OBJECT_REF:
+            return "handle object ref";       
+        case matlab::data::ArrayType::ENUM:
+            return "enum";
+        case matlab::data::ArrayType::SPARSE_LOGICAL:
+            return "sparse logical";
+        case matlab::data::ArrayType::SPARSE_DOUBLE:
+            return "sparse double";
+        case matlab::data::ArrayType::SPARSE_COMPLEX_DOUBLE:
+            return "sparse complex double";
+        default:
+            return "unknown";
+        
+    }
+}
+
+matlab::engine::MATLABException incompatible_datatypes_exception(matlab::data::Array &&marr, jl_datatype_t* jltype, std::string expected_matlab_type, matlab::engine::MATLABEngine* matlabPtr){
+    std::string sarr(jl_string_ptr((jl_call1(jl_get_function(jl_main_module, "string"), (jl_value_t*) jltype))));
+    
+    std::string stype = array_type_name(marr.getType());
+
+    return matlab::engine::MATLABException(
+        "matfrostjulia:conversion:incompatibleDatatypes",
+        matlab::engine::convertUTF8StringToUTF16String("\nMATFrost.jl conversion error:\n\nConverting to: " + sarr + "\n\nNo conversion defined:\n    Actual MATLAB type:   " + stype + "[] \n    Expected MATLAB type: " + expected_matlab_type + "[]"));
+}
+
 void throw_argument_invalid(matlab::data::Array &&marr, jl_datatype_t* jltype,  matlab::engine::MATLABEngine* matlabPtr){
     std::string sarr(jl_string_ptr((jl_call1(jl_get_function(jl_main_module, "string"), (jl_value_t*) jltype))));
 
@@ -75,10 +219,12 @@ public:
     }
 
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
-        if (marr.getType() == mattype && marr.getNumberOfElements() == 1) {
-            return jlbox(((matlab::data::TypedArray<T>&&) std::move(marr))[0]);
+        if (marr.getType() != mattype ) {
+            throw incompatible_datatypes_exception(std::move(marr), jltype, array_type_name(mattype), matlabPtr);
+        } else if(marr.getNumberOfElements() != 1) {
+            throw not_scalar_value_exception(marr.getDimensions(), jltype, matlabPtr);
         } else {
-            throw_argument_invalid(std::move(marr), jltype, matlabPtr);
+            return jlbox(((matlab::data::TypedArray<T>&&) std::move(marr))[0]);
         }
     }
 };
@@ -98,11 +244,13 @@ public:
     }
 
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
-        if (marr.getType() == mattype && marr.getNumberOfElements() == 1) {
+        if (marr.getType() != mattype) {
+            throw incompatible_datatypes_exception(std::move(marr), jltype, array_type_name(mattype), matlabPtr);
+        } else if(marr.getNumberOfElements() != 1) {
+            throw not_scalar_value_exception(marr.getDimensions(), jltype, matlabPtr);
+        } else {
             std::complex<T> v = ((matlab::data::TypedArray<std::complex<T>>&&) std::move(marr))[0];
             return jl_new_struct(jltype, jlbox(v.real()), jlbox(v.imag())); 
-        } else {
-            throw_argument_invalid(std::move(marr), jltype, matlabPtr);
         }
     }
 };
@@ -113,27 +261,7 @@ jl_array_t* new_array(matlab::data::ArrayDimensions dimsmat, jl_datatype_t* jlty
 
     for (size_t idim = ndims; idim < dimsmat.size(); idim++){
         if (dimsmat[idim] != 1){
-            std::stringstream ss;
-
-            size_t actualnumdims = 0;
-            for (size_t idim = ndims; idim < dimsmat.size(); idim++){
-                    if (dimsmat[idim] != 1){
-                    actualnumdims = idim+1;
-                }
-            }
-
-            ss << "\nArray dimensions incompatible:\n    Expect array: numdims=" << 
-                std::to_string(ndims) << "\n    Actual array: numdims=" << std::to_string(actualnumdims) << 
-                "; dimensions=[";
-            for (size_t idim = 0; idim < dimsmat.size(); idim++){
-                ss << dimsmat[idim] << ", ";
-            }
-            ss << "]\n";
-
-            matlab::data::ArrayFactory factory;
-            matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
-                factory.createScalar("matfrostjulia:argumentInvalid"),
-                factory.createScalar("\nMATFrost.jl error:\n" + ss.str())}));
+            throw incompatible_array_dimensions_exception(dimsmat, jltype, matlabPtr);
         }
     }
 
@@ -155,6 +283,24 @@ jl_array_t* new_array(matlab::data::ArrayDimensions dimsmat, jl_datatype_t* jlty
 
 }
 
+/**
+ * Construct an empty array.
+ */
+jl_array_t* new_empty_array(matlab::data::ArrayDimensions dimsmat, jl_datatype_t* jltype, matlab::engine::MATLABEngine* matlabPtr){
+    size_t ndims = jl_unbox_int64(jl_tparam1((jl_value_t*) jltype));
+
+    jl_value_t* dimsjlv[ndims];
+    
+    for (size_t di = 0; di < ndims; di++){
+        dimsjlv[di] = jl_box_int64(0);
+    }
+
+    jl_value_t* dimstup =  jl_call(jl_get_function(jl_base_module, "tuple"), dimsjlv, ndims);
+   
+    jl_array_t* jlarr = jl_new_array((jl_value_t*) jltype, dimstup);
+
+    return jlarr;
+}
 
 template<typename T>
 class ArrayPrimitiveConverter : public Converter {
@@ -170,8 +316,10 @@ public:
     }
 
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
-        if (mattype != marr.getType()){            
-            throw_argument_invalid(std::move(marr), jltype, matlabPtr);
+        if (marr.isEmpty()){
+            return (jl_value_t*) new_empty_array(marr.getDimensions(), jltype, matlabPtr);
+        } else if (mattype != marr.getType()){            
+            throw incompatible_datatypes_exception(std::move(marr), jltype, array_type_name(mattype), matlabPtr);
         }
 
         matlab::data::TypedArray<T> &&mtarr = (matlab::data::TypedArray<T> &&) std::move(marr);
@@ -211,15 +359,14 @@ class StringConverter : public Converter {
     
 public:
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
-        if (marr.getType() == matlab::data::ArrayType::CHAR){            
-            return convert_string((matlab::data::CharArray&&) std::move(marr));
-        } else if(marr.getType() == matlab::data::ArrayType::MATLAB_STRING && marr.getNumberOfElements() == 1){
+        if(marr.getType() != matlab::data::ArrayType::MATLAB_STRING){
+            throw incompatible_datatypes_exception(std::move(marr), jl_string_type, "string", matlabPtr);
+        } else if (marr.getNumberOfElements() != 1) {
+            throw not_scalar_value_exception(marr.getDimensions(), jl_string_type, matlabPtr);
+        } else {
             matlab::data::StringArray &&msarr = (matlab::data::StringArray&&) std::move(marr); 
             return convert_string((matlab::data::MATLABString&&) std::move(msarr[0]));
         }
-
-        throw_argument_invalid(std::move(marr), jl_string_type, matlabPtr);
-
     }
 };
 
@@ -235,7 +382,9 @@ public:
     }
 
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
-        if(marr.getType() == matlab::data::ArrayType::MATLAB_STRING){
+        if (marr.isEmpty()){
+            return (jl_value_t*) new_empty_array(marr.getDimensions(), jltype, matlabPtr);
+        } else if(marr.getType() == matlab::data::ArrayType::MATLAB_STRING){
             matlab::data::StringArray &&msarr = (matlab::data::StringArray&&) std::move(marr);
             size_t nel = msarr.getNumberOfElements();     
     
@@ -250,26 +399,9 @@ public:
                 jl_call3(setindex, (jl_value_t*) jlarr, jls, jl_box_int64(i+1));
             }
             return (jl_value_t*) jlarr;
-        } else if(marr.getType() == matlab::data::ArrayType::CELL){
-            // Cell array of strings accepted because of CharArray
-
-            matlab::data::CellArray &&mcarr = (matlab::data::CellArray&&) std::move(marr);
-            size_t nel = mcarr.getNumberOfElements();     
-    
-            jl_array_t* jlarr  = new_array(mcarr.getDimensions(), jltype, matlabPtr);
-            
-            matlab::data::TypedIterator<matlab::data::Array>&& it(std::move(mcarr).begin()); 
-
-            jl_function_t *setindex = jl_get_function(jl_base_module, "setindex!");
-
-            for (size_t i = 0; i < nel; i++){
-                jl_value_t* jls = conv.convert(std::move(it[i]), matlabPtr);
-                jl_call3(setindex, (jl_value_t*) jlarr, jls, jl_box_int64(i+1));
-            }
-            return (jl_value_t*) jlarr;
-       
+        } else {
+            throw incompatible_datatypes_exception(std::move(marr), jltype, "string", matlabPtr);
         }
-        throw_argument_invalid(std::move(marr), jltype, matlabPtr);
     }
 };
 
@@ -310,6 +442,112 @@ public:
         return jl_new_structv(jltype, fieldvalues, nfields);
 
     }
+
+    void validate(matlab::data::StructArray msarr, matlab::engine::MATLABEngine* matlabPtr){
+       for (std::string fieldnamejl : fieldnames){        
+            bool found = false;   
+            for (auto fieldnamemat: msarr.getFieldNames()){
+                if (fieldnamejl.compare(fieldnamemat) == 0){
+                    found = true;
+                    break;
+                }
+            }
+            if(!found){
+                throw missing_fields_exception(std::move(msarr), matlabPtr);
+            }
+        }
+
+        for (auto fieldnamemat: msarr.getFieldNames()){ 
+            bool found = false;   
+            for (std::string fieldnamejl : fieldnames){       
+                if (fieldnamejl.compare(fieldnamemat) == 0){
+                    found = true;
+                    break;
+                }
+            }
+            if(!found){
+                throw additional_fields_exception(std::move(msarr), matlabPtr);
+            }
+        }
+    }
+
+    matlab::engine::MATLABException missing_fields_exception(matlab::data::StructArray &&marr, matlab::engine::MATLABEngine* matlabPtr){
+        jl_function_t* jlf_string = jl_get_function(jl_base_module, "string");
+        jl_value_t* jlts = jl_call1(jlf_string, (jl_value_t*) jltype);
+        std::stringstream ss;
+        ss << "\nMATFrost.jl conversion error:\n\nConverting to: " << jl_string_ptr(jlts) << "\n\nInput struct value is missing fields from specified Julia type.\n\nMissing fields:\n";
+
+        for (std::string fieldnamejl : fieldnames){   
+            bool found = false;
+            
+            for (auto fieldnamemat: marr.getFieldNames()){
+                if (fieldnamejl.compare(fieldnamemat) == 0){
+                    found = true;
+                    break;
+                }
+            }
+            if (!found){
+                ss << "    " << fieldnamejl << "\n";
+            }
+        }
+        ss << "\nActual fields:\n";
+        
+        for (matlab::data::MATLABFieldIdentifier fieldnamemat: marr.getFieldNames()){
+            ss << "    " << std::string(fieldnamemat) << "\n";
+        }
+        
+        ss << "\nExpected fields:\n";
+        
+        for (size_t i = 0; i < fieldnames.size(); i++){   
+            std::string fieldnamejl = fieldnames[i];
+            std::string fieldtype = jl_string_ptr(jl_call1(jlf_string, jl_field_type(jltype, i)));
+            ss << "    " << fieldnamejl << "::" << fieldtype << "\n";
+        }
+        
+
+        return matlab::engine::MATLABException(
+        "matfrostjulia:conversion:missingFields",
+            matlab::engine::convertUTF8StringToUTF16String(ss.str()));
+    }
+
+    matlab::engine::MATLABException additional_fields_exception(matlab::data::StructArray &&marr, matlab::engine::MATLABEngine* matlabPtr){
+        jl_function_t* jlf_string = jl_get_function(jl_base_module, "string");
+        jl_value_t* jlts = jl_call1(jlf_string, (jl_value_t*) jltype);
+        std::stringstream ss;
+        ss << "\nMATFrost.jl conversion error:\n\nConverting to: " << jl_string_ptr(jlts) << "\n\nInput struct value has more fields than specified Julia type.\n\nAdditional fields:\n";
+
+        for (auto fieldnamemat: marr.getFieldNames()){
+            bool found = false;
+            for (std::string fieldnamejl : fieldnames){   
+                if (fieldnamejl.compare(fieldnamemat) == 0){
+                    found = true;
+                    break;
+                }
+            }
+            if (!found){
+                ss << "    " << std::string(fieldnamemat) << "\n";
+            }
+        }
+        
+        ss << "\nActual fields:\n";
+        
+        for (matlab::data::MATLABFieldIdentifier fieldnamemat: marr.getFieldNames()){
+            ss << "    " << std::string(fieldnamemat) << "\n";
+        }
+
+        ss << "\nExpected fields:\n";
+        
+        for (size_t i = 0; i < fieldnames.size(); i++){   
+            std::string fieldnamejl = fieldnames[i];
+            std::string fieldtype = jl_string_ptr(jl_call1(jlf_string, jl_field_type(jltype, i)));
+            ss << "    " << fieldnamejl << "::" << fieldtype << "\n";
+        }
+        
+
+        return matlab::engine::MATLABException(
+        "matfrostjulia:conversion:additionalFields",
+            matlab::engine::convertUTF8StringToUTF16String(ss.str()));
+    }
 };
 
 class StructConverter : public Converter {
@@ -324,15 +562,15 @@ public:
     }
 
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
-        
-        if (marr.getType() == matlab::data::ArrayType::STRUCT && marr.getNumberOfElements() == 1){
+        if (marr.getType() != matlab::data::ArrayType::STRUCT){
+            throw incompatible_datatypes_exception(std::move(marr), jltype, "struct", matlabPtr);
+        } else if (marr.getNumberOfElements() != 1){
+            throw not_scalar_value_exception(marr.getDimensions(), jltype, matlabPtr);
+        } else {
             matlab::data::StructArray &&msarr = (matlab::data::StructArray&&) std::move(marr);
+            base.validate(msarr, matlabPtr);
             return base.convert(std::move(msarr[0]), matlabPtr);
         }
-
-
-        throw_argument_invalid(std::move(marr), jltype, matlabPtr);
-
     }
 };
 
@@ -349,9 +587,11 @@ public:
     }
 
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
-        if (marr.getType() == matlab::data::ArrayType::STRUCT){
+        if (marr.isEmpty()){
+            return (jl_value_t*) new_empty_array(marr.getDimensions(), jltype, matlabPtr);
+        } else if (marr.getType() == matlab::data::ArrayType::STRUCT){
             matlab::data::StructArray &&msarr = (matlab::data::StructArray&&) std::move(marr);
-            
+            base.validate(msarr, matlabPtr);
             jl_array_t* jlarr  = new_array(msarr.getDimensions(), jltype, matlabPtr);
             
             jl_function_t* setindex_f = jl_get_function(jl_base_module, "setindex!");
@@ -369,34 +609,9 @@ public:
             }
             return (jl_value_t*) jlarr;
 
-        } else if (marr.getType() == matlab::data::ArrayType::CELL){
-
-
-            matlab::data::CellArray &&mcarr = (matlab::data::CellArray&&) std::move(marr);
-            
-            jl_array_t* jlarr  = new_array(mcarr.getDimensions(), jltype, matlabPtr);
-
-            jl_function_t* setindex_f = jl_get_function(jl_base_module, "setindex!");
-
-            matlab::data::TypedIterator<matlab::data::Array>&& it(std::move(mcarr).begin()); 
-
-            size_t nel = mcarr.getNumberOfElements(); 
-
-            for (size_t i = 0; i < nel; i++){
-
-                matlab::data::Array&& mcv = std::move(it[i]);
-                if (mcv.getType() == matlab::data::ArrayType::STRUCT && mcv.getNumberOfElements() == 1){
-                    matlab::data::StructArray &&msarr = (matlab::data::StructArray&&) std::move(mcv);                    
-                    jl_value_t* jlval =  base.convert(std::move(msarr[0]), matlabPtr);
-                    jl_call3(setindex_f, (jl_value_t*) jlarr, jlval, jl_box_int64(i+1));
-                } else {
-                    throw_argument_invalid(std::move(mcv), jltype, matlabPtr);
-                }
-
-            }
-            return (jl_value_t*) jlarr;
+        } else {
+            throw incompatible_datatypes_exception(std::move(marr), jltype, "struct", matlabPtr);
         }
-        throw_argument_invalid(std::move(marr), jltype, matlabPtr);
 
     }
 };
@@ -420,7 +635,11 @@ public:
     }
 
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
-        if (marr.getType() == matlab::data::ArrayType::CELL && marr.getNumberOfElements() == converters.size()){
+        if (marr.getType() != matlab::data::ArrayType::CELL) {
+            throw incompatible_datatypes_exception(std::move(marr), jltype, "cell", matlabPtr);
+        } else if(marr.getNumberOfElements() != converters.size() || marr.getDimensions()[0] != converters.size()){
+            throw tuple_exception(std::move(marr), matlabPtr);
+        } else {
             matlab::data::CellArray &&mcarr = (matlab::data::CellArray&&) marr;
             size_t nel = converters.size();
             jl_value_t* fieldvalues[nel];
@@ -430,8 +649,45 @@ public:
             
             return jl_call(jl_get_function(jl_base_module, "tuple"), fieldvalues, nel);
         }
-        throw_argument_invalid(std::move(marr), jltype, matlabPtr);
     }
+
+    
+    matlab::engine::MATLABException tuple_exception(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr){
+        jl_value_t* jlts = jl_call1(jl_get_function(jl_base_module, "string"), (jl_value_t*) jltype);
+        matlab::data::ArrayDimensions dimsmat = marr.getDimensions();
+
+        std::stringstream ss;
+        ss << "\nMATFrost.jl conversion error:\n\nConverting to: " << jl_string_ptr(jlts) << "\n\n";
+        if (marr.getNumberOfElements() < converters.size()){ 
+            ss << "Input cell array contains less elements than Julia tuple type.\n\n";
+        } else if(marr.getNumberOfElements() > converters.size()){
+            ss << "Input cell array contains more elements than Julia tuple type.\n\n";
+        } else {
+            ss << "Input cell array is not a column-vector.\n\n";
+        }
+
+        ss << "    Actual array:   dimensions=(" << dimsmat[0];
+        for (size_t idim = 1; idim < dimsmat.size(); idim++){
+            ss << ", " << dimsmat[idim];
+        }
+        ss << ")\n";
+        ss << "    Expected array: dimensions=(" << converters.size() << ", 1)";
+        if (marr.getNumberOfElements() < converters.size()){ 
+            return matlab::engine::MATLABException(
+            "matfrostjulia:conversion:missingFields",
+                matlab::engine::convertUTF8StringToUTF16String(ss.str()));
+        } else if(marr.getNumberOfElements() > converters.size()) {
+            return matlab::engine::MATLABException(
+            "matfrostjulia:conversion:additionalFields",
+                matlab::engine::convertUTF8StringToUTF16String(ss.str()));
+        } else {
+            return matlab::engine::MATLABException(
+            "matfrostjulia:conversion:incompatibleArrayDimensions",
+                matlab::engine::convertUTF8StringToUTF16String(ss.str()));
+        }
+
+    }
+
 };
 
 class ArrayAnyConverter : public Converter {
@@ -448,7 +704,9 @@ public:
     }
 
     jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
-        if (marr.getType() == matlab::data::ArrayType::CELL){
+        if (marr.isEmpty()){
+            return (jl_value_t*) new_empty_array(marr.getDimensions(), jltype, matlabPtr);
+        } else if (marr.getType() == matlab::data::ArrayType::CELL){
             matlab::data::CellArray &&mcarr = (matlab::data::CellArray&&) marr;
             
             jl_array_t* jlarr  = new_array(mcarr.getDimensions(), jltype, matlabPtr);
@@ -469,7 +727,7 @@ public:
 
             return (jl_value_t*) jlarr;
         }
-        throw_argument_invalid(std::move(marr), jltype, matlabPtr);
+        throw incompatible_datatypes_exception(std::move(marr), jltype, "cell", matlabPtr);
     }
 };
 
