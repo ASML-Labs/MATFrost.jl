@@ -30,6 +30,39 @@ public:
  */ 
 std::unique_ptr<Converter> converter(jl_datatype_t* jltype);
 
+class ConversionException : public std::exception { 
+public:      
+    std::string id;
+    std::u16string message; 
+    std::vector<std::u16string> trace;
+
+    // Constructor accepts a const char* that is used to set 
+    // the exception message 
+    ConversionException(std::string id, std::u16string message) 
+        : id(id), message(message) 
+    { 
+    } 
+  
+    // Override the what() method to return our message 
+    const char* what() const throw() 
+    { 
+        return matlab::engine::convertUTF16StringToUTF8String(message).c_str(); 
+    }
+
+    matlab::engine::MATLABException matlab_exception(){
+        std::u16string s = u"MATFrost.jl conversion error at:\n   ";
+
+        std::u16string st = u"";
+        for (auto t:trace){
+            st = t + st;
+        }
+        s = s + st + u"\n\n" + message;
+
+        return matlab::engine::MATLABException(id, s);
+    }
+}; 
+
+
 /**
  * Converts a MATLAB value to a Julia value of a given type. This is the entrypoint for conversions. 
  *  
@@ -37,19 +70,24 @@ std::unique_ptr<Converter> converter(jl_datatype_t* jltype);
  * @param jltype Julia type to convert MATLAB value to
  * @param matlabPtr MATLABEngine.
  */ 
-jl_value_t* convert(matlab::data::Array &&marr, jl_datatype_t* jltype, std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr){
+jl_value_t* convert(matlab::data::Array &&marr, jl_datatype_t* jltype, size_t argi, std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr){
     std::unique_ptr<Converter> conv = converter(jltype);
-    return conv->convert(std::move(marr), matlabPtr.get());
+     try {
+        return conv->convert(std::move(marr), matlabPtr.get());
+    } catch (ConversionException& e){
+        e.trace.push_back(u"args[" + matlab::engine::convertUTF8StringToUTF16String(std::to_string(argi + 1)) + u"]");
+        throw e.matlab_exception();
+    }
 }
 
 
-matlab::engine::MATLABException incompatible_array_dimensions_exception(matlab::data::ArrayDimensions dimsmat, jl_datatype_t* jltype, matlab::engine::MATLABEngine* matlabPtr){
+ConversionException incompatible_array_dimensions_exception(matlab::data::ArrayDimensions dimsmat, jl_datatype_t* jltype, matlab::engine::MATLABEngine* matlabPtr){
     size_t ndims = jl_unbox_int64(jl_tparam1((jl_value_t*) jltype));
     
     jl_value_t* jlts = jl_call1(jl_get_function(jl_base_module, "string"), (jl_value_t*) jltype);
     
     std::stringstream ss;
-    ss << "\nMATFrost.jl conversion error:\n\nConverting to: " << jl_string_ptr(jlts) << "\n\nArray dimensions incompatible:\n";
+    ss << "Converting to: " << jl_string_ptr(jlts) << "\n\nArray dimensions incompatible:\n";
     if (ndims == 1){
         ss << "    Expect array: column-vector (:, 1)"  << "\n";
     } else {
@@ -70,16 +108,16 @@ matlab::engine::MATLABException incompatible_array_dimensions_exception(matlab::
         ss << ", " << dimsmat[idim];
     }
     ss << "]\n";
-    return matlab::engine::MATLABException(
+    return ConversionException(
         "matfrostjulia:conversion:incompatibleArrayDimensions",
         matlab::engine::convertUTF8StringToUTF16String(ss.str()));
 }
 
-matlab::engine::MATLABException not_scalar_value_exception(matlab::data::ArrayDimensions dimsmat, jl_datatype_t* jltype, matlab::engine::MATLABEngine* matlabPtr){
+ConversionException not_scalar_value_exception(matlab::data::ArrayDimensions dimsmat, jl_datatype_t* jltype, matlab::engine::MATLABEngine* matlabPtr){
     jl_value_t* jlts = jl_call1(jl_get_function(jl_base_module, "string"), (jl_value_t*) jltype);
     
     std::stringstream ss;
-    ss << "\nMATFrost.jl conversion error:\n\nConverting to: " << jl_string_ptr(jlts) << 
+    ss << "Converting to: " << jl_string_ptr(jlts) << 
         "\n\nNot scalar value:\n    Expect array: scalar (1, 1)\n";
 
     size_t actualnumdims = 0;
@@ -95,7 +133,7 @@ matlab::engine::MATLABException not_scalar_value_exception(matlab::data::ArrayDi
         ss << ", " << dimsmat[idim];
     }
     ss << "]\n";
-    return matlab::engine::MATLABException(
+    return ConversionException(
         "matfrostjulia:conversion:notScalarValue",
         matlab::engine::convertUTF8StringToUTF16String(ss.str()));
 }
@@ -177,14 +215,14 @@ std::string array_type_name(matlab::data::ArrayType array_type){
     }
 }
 
-matlab::engine::MATLABException incompatible_datatypes_exception(matlab::data::Array &&marr, jl_datatype_t* jltype, std::string expected_matlab_type, matlab::engine::MATLABEngine* matlabPtr){
+ConversionException incompatible_datatypes_exception(matlab::data::Array &&marr, jl_datatype_t* jltype, std::string expected_matlab_type, matlab::engine::MATLABEngine* matlabPtr){
     std::string sarr(jl_string_ptr((jl_call1(jl_get_function(jl_main_module, "string"), (jl_value_t*) jltype))));
     
     std::string stype = array_type_name(marr.getType());
 
-    return matlab::engine::MATLABException(
+    return ConversionException(
         "matfrostjulia:conversion:incompatibleDatatypes",
-        matlab::engine::convertUTF8StringToUTF16String("\nMATFrost.jl conversion error:\n\nConverting to: " + sarr + "\n\nNo conversion defined:\n    Actual MATLAB type:   " + stype + "[] \n    Expected MATLAB type: " + expected_matlab_type + "[]"));
+        matlab::engine::convertUTF8StringToUTF16String("Converting to: " + sarr + "\n\nNo conversion defined:\n    Actual MATLAB type:   " + stype + "[] \n    Expected MATLAB type: " + expected_matlab_type + "[]"));
 }
 
 void throw_argument_invalid(matlab::data::Array &&marr, jl_datatype_t* jltype,  matlab::engine::MATLABEngine* matlabPtr){
@@ -201,7 +239,7 @@ void throw_argument_invalid(matlab::data::Array &&marr, jl_datatype_t* jltype,  
     matlab::data::ArrayFactory factory;
     matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
         factory.createScalar("matfrostjulia:argumentInvalid"),
-        factory.createScalar("\nMATFrost.jl error:\n\nNo conversion exists for:\n    MATLAB value: \n" + sval + "\n    MATLAB type:\n    " + stype + "[]\n->\n    Julia type: \n    " + sarr)}));
+        factory.createScalar("No conversion exists for:\n    MATLAB value: \n" + sval + "\n    MATLAB type:\n    " + stype + "[]\n->\n    Julia type: \n    " + sarr)}));
 }
 
 template<typename T>
@@ -437,7 +475,12 @@ public:
         size_t nfields = fieldnames.size();
         jl_value_t* fieldvalues[nfields];
         for (size_t ifield = 0; ifield < nfields; ifield++){
-            fieldvalues[ifield] = converters[ifield]->convert(std::move(ms[fieldnames[ifield]]), matlabPtr);
+            try {
+                fieldvalues[ifield] = converters[ifield]->convert(std::move(ms[fieldnames[ifield]]), matlabPtr);
+            } catch (ConversionException& e){
+                e.trace.push_back(u"." + matlab::engine::convertUTF8StringToUTF16String(fieldnames[ifield]));
+                throw;
+            }
         }
         return jl_new_structv(jltype, fieldvalues, nfields);
 
@@ -471,11 +514,11 @@ public:
         }
     }
 
-    matlab::engine::MATLABException missing_fields_exception(matlab::data::StructArray &&marr, matlab::engine::MATLABEngine* matlabPtr){
+    ConversionException missing_fields_exception(matlab::data::StructArray &&marr, matlab::engine::MATLABEngine* matlabPtr){
         jl_function_t* jlf_string = jl_get_function(jl_base_module, "string");
         jl_value_t* jlts = jl_call1(jlf_string, (jl_value_t*) jltype);
         std::stringstream ss;
-        ss << "\nMATFrost.jl conversion error:\n\nConverting to: " << jl_string_ptr(jlts) << "\n\nInput struct value is missing fields from specified Julia type.\n\nMissing fields:\n";
+        ss << "Converting to: " << jl_string_ptr(jlts) << "\n\nInput struct value is missing fields from specified Julia type.\n\nMissing fields:\n";
 
         for (std::string fieldnamejl : fieldnames){   
             bool found = false;
@@ -505,16 +548,16 @@ public:
         }
         
 
-        return matlab::engine::MATLABException(
+        return ConversionException(
         "matfrostjulia:conversion:missingFields",
             matlab::engine::convertUTF8StringToUTF16String(ss.str()));
     }
 
-    matlab::engine::MATLABException additional_fields_exception(matlab::data::StructArray &&marr, matlab::engine::MATLABEngine* matlabPtr){
+    ConversionException additional_fields_exception(matlab::data::StructArray &&marr, matlab::engine::MATLABEngine* matlabPtr){
         jl_function_t* jlf_string = jl_get_function(jl_base_module, "string");
         jl_value_t* jlts = jl_call1(jlf_string, (jl_value_t*) jltype);
         std::stringstream ss;
-        ss << "\nMATFrost.jl conversion error:\n\nConverting to: " << jl_string_ptr(jlts) << "\n\nInput struct value has more fields than specified Julia type.\n\nAdditional fields:\n";
+        ss << "Converting to: " << jl_string_ptr(jlts) << "\n\nInput struct value has more fields than specified Julia type.\n\nAdditional fields:\n";
 
         for (auto fieldnamemat: marr.getFieldNames()){
             bool found = false;
@@ -544,7 +587,7 @@ public:
         }
         
 
-        return matlab::engine::MATLABException(
+        return ConversionException(
         "matfrostjulia:conversion:additionalFields",
             matlab::engine::convertUTF8StringToUTF16String(ss.str()));
     }
@@ -601,11 +644,18 @@ public:
             size_t nel = msarr.getNumberOfElements(); 
 
             for (size_t i = 0; i < nel; i++){
-                matlab::data::Struct&& matstruct = std::move(it[i]);
 
-                jl_value_t* jlval = base.convert(std::move(it[i]), matlabPtr);;
+                try {
+                    matlab::data::Struct&& matstruct = std::move(it[i]);
 
-                jl_call3(setindex_f, (jl_value_t*) jlarr, jlval, jl_box_int64(i+1));
+                    jl_value_t* jlval = base.convert(std::move(it[i]), matlabPtr);;
+
+                    jl_call3(setindex_f, (jl_value_t*) jlarr, jlval, jl_box_int64(i+1));
+
+                } catch (ConversionException& e){
+                    e.trace.push_back(u"[" + matlab::engine::convertUTF8StringToUTF16String(std::to_string(i+1)) + u"]");
+                    throw;
+                }
             }
             return (jl_value_t*) jlarr;
 
@@ -644,7 +694,12 @@ public:
             size_t nel = converters.size();
             jl_value_t* fieldvalues[nel];
             for (size_t ifield = 0; ifield < nel; ifield++){
-                fieldvalues[ifield] = converters[ifield]->convert(std::move(mcarr[ifield]), matlabPtr);
+                try {
+                    fieldvalues[ifield] = converters[ifield]->convert(std::move(mcarr[ifield]), matlabPtr);
+                } catch (ConversionException& e){
+                    e.trace.push_back(u"[" + matlab::engine::convertUTF8StringToUTF16String(std::to_string(ifield+1)) + u"]");
+                    throw;
+                }
             }
             
             return jl_call(jl_get_function(jl_base_module, "tuple"), fieldvalues, nel);
@@ -652,12 +707,12 @@ public:
     }
 
     
-    matlab::engine::MATLABException tuple_exception(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr){
+    ConversionException tuple_exception(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr){
         jl_value_t* jlts = jl_call1(jl_get_function(jl_base_module, "string"), (jl_value_t*) jltype);
         matlab::data::ArrayDimensions dimsmat = marr.getDimensions();
 
         std::stringstream ss;
-        ss << "\nMATFrost.jl conversion error:\n\nConverting to: " << jl_string_ptr(jlts) << "\n\n";
+        ss << "Converting to: " << jl_string_ptr(jlts) << "\n\n";
         if (marr.getNumberOfElements() < converters.size()){ 
             ss << "Input cell array contains less elements than Julia tuple type.\n\n";
         } else if(marr.getNumberOfElements() > converters.size()){
@@ -673,15 +728,15 @@ public:
         ss << ")\n";
         ss << "    Expected array: dimensions=(" << converters.size() << ", 1)";
         if (marr.getNumberOfElements() < converters.size()){ 
-            return matlab::engine::MATLABException(
+            return ConversionException(
             "matfrostjulia:conversion:missingFields",
                 matlab::engine::convertUTF8StringToUTF16String(ss.str()));
         } else if(marr.getNumberOfElements() > converters.size()) {
-            return matlab::engine::MATLABException(
+            return ConversionException(
             "matfrostjulia:conversion:additionalFields",
                 matlab::engine::convertUTF8StringToUTF16String(ss.str()));
         } else {
-            return matlab::engine::MATLABException(
+            return ConversionException(
             "matfrostjulia:conversion:incompatibleArrayDimensions",
                 matlab::engine::convertUTF8StringToUTF16String(ss.str()));
         }
@@ -718,11 +773,16 @@ public:
             matlab::data::TypedIterator<matlab::data::Array>&& it(std::move(mcarr).begin()); 
 
             for (size_t i = 0; i < nel; i++){
-                matlab::data::Array&& anyval = std::move(it[i]);
+                try {
+                    matlab::data::Array&& anyval = std::move(it[i]);
 
-                jl_value_t* jlval = anyconverter->convert(std::move(anyval), matlabPtr);;
+                    jl_value_t* jlval = anyconverter->convert(std::move(anyval), matlabPtr);;
 
-                jl_call3(setindex_f, (jl_value_t*) jlarr, jlval, jl_box_int64(i+1));
+                    jl_call3(setindex_f, (jl_value_t*) jlarr, jlval, jl_box_int64(i+1));
+                } catch (ConversionException& e){
+                    e.trace.push_back(u"[" + matlab::engine::convertUTF8StringToUTF16String(std::to_string(i+1)) + u"]");
+                    throw;
+                }
             }
 
             return (jl_value_t*) jlarr;
