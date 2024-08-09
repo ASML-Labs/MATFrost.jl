@@ -39,6 +39,7 @@ function bindir = juliaup(version)
 
     % Get the bindir
     [status, output]= shell('julia', ['+' char(version)], '-e',  '"println(Sys.BINDIR)"');
+    disp(output) 
     assert(~status, "matfrostjulia:juliaup", ...
             "Julia could not execute in version %s configured by juliaup.", version)
     bindir = strtrim(output);
