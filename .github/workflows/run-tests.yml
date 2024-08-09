@@ -19,7 +19,9 @@ jobs:
         with:
           channel: '1'
 
-      - run: julia +${{ matrix.julia-version }} -e "println(Sys.BINDIR)"
+      - run: |
+          juliaup add ${{ matrix.julia-version }}
+          julia +${{ matrix.julia-version }} -e "println(Sys.BINDIR)"
 
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v2
