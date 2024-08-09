@@ -29,6 +29,13 @@ jobs:
           release: ${{ matrix.matlab-version }}
           cache: true
 
+      - name: Run statements
+        uses: matlab-actions/run-command@v2
+        with:
+          command: |
+            cd 'src/matlab';
+            juliaup('1.10')
+
       - name: Run tests
         uses: matlab-actions/run-tests@v2
         env:
