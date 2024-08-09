@@ -10,10 +10,14 @@ classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot %& matlab.mixin.inde
 % - Leveraging Julia environments for reproducible builds.
 % - Julia runs in its own mexhost process.
 
-    properties (Access=private)
+    properties (SetAccess=immutable)
         environment       (1,1) string
+        julia          (1,1) string
+    end
+
+    properties (Access=private)
+        
         namespace         (:,1) string = []
-        juliaexe          (1,1) string
         matfrostjuliacall (1,1) string
         mh                     matlab.mex.MexHost
     end
@@ -32,6 +36,7 @@ classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot %& matlab.mixin.inde
                 argstruct.instantiate (1,1) logical = false
                     % Resolve project environment
             end
+            
             
             % Check if environment is a relative path
             if isfolder(fullfile(pwd(), argstruct.environment))    
@@ -52,35 +57,35 @@ classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot %& matlab.mixin.inde
             elseif isfield(argstruct, 'version')
                 bindir = juliaup(argstruct.version);
             else
-                [status, bindir] = system('julia -e "print(Sys.BINDIR)"');
+                [status, bindir] = shell('julia', '-e', 'print(Sys.BINDIR)');
                 assert(~status, "matfrostjulia:julia", ...
                         "Julia not found on PATH")
             end
 
             if ispc
-                obj.juliaexe = fullfile(bindir, "julia.exe");
+                obj.julia = fullfile(bindir, "julia.exe");
             elseif isunix
-                obj.juliaexe = fullfile(bindir, "julia");
+                obj.julia = fullfile(bindir, "julia");
             else
                 error("matfrostjulia:osNotSupported", "MacOS not supported yet.");
             end
 
 
-            obj.matfrostjuliacall = getmatfrostjuliacall(obj.juliaexe);
+            obj.matfrostjuliacall = getmatfrostjuliacall(obj.julia);
             
             if ispc
                 obj.mh = mexhost("EnvironmentVariables", [...
                     "JULIA_PROJECT", obj.environment;
-                    "PATH",          fileparts(obj.juliaexe)]);
+                    "PATH",          fileparts(obj.julia)]);
             elseif isunix
                 obj.mh = mexhost("EnvironmentVariables", [...
                     "JULIA_PROJECT",   obj.environment;
-                    "PATH",            fileparts(obj.juliaexe); 
-                    "LD_LIBRARY_PATH", fullfile(fileparts(fileparts(obj.juliaexe)), "lib")]);
+                    "PATH",            fileparts(obj.julia); 
+                    "LD_LIBRARY_PATH", fullfile(fileparts(fileparts(obj.julia)), "lib")]);
             end
 
             if argstruct.instantiate
-                environmentinstantiate(obj.juliaexe, obj.environment);
+                environmentinstantiate(obj.julia, obj.environment);
             end
         end
     end
