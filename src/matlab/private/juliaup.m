@@ -28,9 +28,10 @@ function bindir = juliaup(version)
                 error("matfrostjulia:juliaup", "Julia channel has not been installed via juliaup. Please add via `juliaup add %s`", version);
             case 'Yes'
                 disp('Hello world')
-                status = shell('juliaup', 'add', version);
+                status = shell('juliaup', 'add', version, echo=true);
                 assert(~status, "matfrostjulia:juliaup", ...
                     "Juliaup could not add channel: %s", version)
+                disp('Hello world')
         end
     else
         % Update is required to update loaded channels such that command line output is minimal
