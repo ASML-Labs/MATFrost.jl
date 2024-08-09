@@ -46,8 +46,16 @@ jobs:
             shell('julia', '+${{ matrix.julia-version }}', '-e' , '"println(Base.VERSION)"', echo=true);
             shell('julia', '+${{ matrix.julia-version }}', '-e',  '"println(Sys.BINDIR)"', echo=true);
             system('julia --version', '-echo');
-            system('julia +${{ matrix.julia-version }} -e "println(Base.VERSION)"', '-echo');
-            system('julia +${{ matrix.julia-version }} -e "println(Sys.BINDIR)"', '-echo');
+
+            
+            system('julia +${{ matrix.julia-version }} -e "print(Base.VERSION)"', '-echo');
+            system('julia +${{ matrix.julia-version }} -e "print(Sys.BINDIR)"', '-echo');
+
+            setenv("MATLAB_SHELL","/bin/bash");
+            setenv("SHELL","/bin/bash");
+
+            system('julia +${{ matrix.julia-version }} -e "print(Base.VERSION)"', '-echo');
+            system('julia +${{ matrix.julia-version }} -e "print(Sys.BINDIR)"', '-echo');
 
             system('/bin/bash -o pipefail -c ''julia +${{ matrix.julia-version }} -e "println(Base.VERSION)" | cat''', '-echo');
             system('/bin/bash -o pipefail -c ''julia +${{ matrix.julia-version }} -e "println(Sys.BINDIR)" | cat''', '-echo');
