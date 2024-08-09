@@ -17,7 +17,7 @@ jobs:
 
       - uses: julia-actions/install-juliaup@v2
         with:
-          channel: '1'
+          channel: ${{ matrix.julia-version }}
 
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v2
