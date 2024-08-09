@@ -48,6 +48,9 @@ jobs:
             system('julia +${{ matrix.julia-version }} -e "println(Base.VERSION)"', '-echo');
             system('julia +${{ matrix.julia-version }} -e "println(Sys.BINDIR)"', '-echo');
 
+            system('/bin/bash -o pipefail -c ''julia +${{ matrix.julia-version }} -e "println(Base.VERSION)" | cat''', '-echo');
+            system('/bin/bash -o pipefail -c ''julia +${{ matrix.julia-version }} -e "println(Sys.BINDIR)" | cat''', '-echo');
+
       - name: Run tests
         uses: matlab-actions/run-tests@v2
         env:
