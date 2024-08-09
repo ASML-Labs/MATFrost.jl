@@ -33,7 +33,7 @@ jobs:
         uses: matlab-actions/run-command@v2
         with:
           command: |
-            cd 'src/matlab';
+            cd('src/matlab/private');
             juliaup('1.10')
 
       - name: Run tests
