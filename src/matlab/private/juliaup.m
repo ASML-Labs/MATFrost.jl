@@ -18,6 +18,7 @@ function bindir = juliaup(version)
     % Check if Julia channel is installed
     [status, ~]= shell('julia', ['+' char(version)], '-e' , '"println(Base.VERSION)"', echo=true);
     if status
+        disp('Hello world')
         % Julia channel was not installed. Ask if the user wants to install Julia.
         
         if strcmp(getenv('GITHUB_ACTIONS'), 'true')
