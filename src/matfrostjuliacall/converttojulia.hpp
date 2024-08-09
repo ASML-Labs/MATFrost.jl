@@ -20,7 +20,7 @@ namespace ConvertToJulia {
  */ 
 class Converter {
 public:
-    virtual jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr);
+    virtual jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr){ }
 };
 
 /**
