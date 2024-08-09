@@ -13,7 +13,7 @@ function bindir = juliaup(version)
     
     % Update is required to update loaded channels such that command line output is minimal
     % see https://github.com/JuliaLang/juliaup/issues/705
-    shell('juliaup', 'update'); 
+    shell('juliaup', 'update', echo=true); 
 
     % Check if Julia channel is installed
     [status, ~]= shell('julia', ['+' char(version)], '-e' , '"println(Base.VERSION)"', echo=true);
@@ -39,7 +39,6 @@ function bindir = juliaup(version)
 
     % Get the bindir
     [status, output]= shell('julia', ['+' char(version)], '-e',  '"println(Sys.BINDIR)"', echo=true);
-    disp(output) 
     assert(~status, "matfrostjulia:juliaup", ...
             "Julia could not execute in version %s configured by juliaup.", version)
     bindir = strtrim(output);
