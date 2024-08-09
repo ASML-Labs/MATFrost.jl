@@ -32,6 +32,7 @@ jobs:
           julia +${{ matrix.julia-version }} -e "println(Base.VERSION)"
           juliaup add ${{ matrix.julia-version }}
           julia +${{ matrix.julia-version }} -e "println(Sys.BINDIR)"
+          export MATLAB_SHELL=/bin/bash
 
       - name: Run statements
         uses: matlab-actions/run-command@v2
