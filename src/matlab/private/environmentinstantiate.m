@@ -4,8 +4,8 @@ function environmentinstantiate(juliaexe, environment)
         environment (1,1) string
     end
 
-    [status, cmdout] = shell(juliaexe, ['--project="', char(environment), '"'], '-e', 'import Pkg; Pkg.instantiate()');
-    disp(cmdout);
+    [status, output] = system(juliaexe + " --project=""" + environment + """  -e ""import Pkg; Pkg.instantiate()""");
+    disp(output);
     assert(~status, "matfrostjulia:exe", "Could not instantiate environment: " + environment);
 
 end
