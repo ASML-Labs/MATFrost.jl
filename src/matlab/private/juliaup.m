@@ -8,6 +8,9 @@ function bindir = juliaup(version)
     end
 
     [status, ~] = shell('juliaup', '--version', echo=true);
+    shell('juliaup', 'status', echo=true);
+    shell('julia', '--version', echo=true);
+
     assert(~status, "matfrostjulia:juliaup", ...
         "Juliaup not found. Please install it from https://julialang.org/downloads/")
     
