@@ -4,7 +4,10 @@ function mjlname = getmatfrostjuliacall(juliaexe)
     mjlname = matfrostjuliacallname(juliaexe);
     if ~exist(mjlname, "file")
         mexdir = matfrostmexdir(juliaexe);
-        matfrostmake(juliaexe, mexdir, mjlname);
+        addpath(mexdir);
+        if ~exist(mjlname, "file")
+            matfrostmake(juliaexe, mexdir, mjlname);
+        end
     end
 
 end
