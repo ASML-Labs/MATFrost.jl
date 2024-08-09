@@ -30,7 +30,13 @@ jobs:
         with:
           command: |
             cd('src/matlab/private');
-            juliaup('1.10')
+            shell('juliaup', '--version', echo=true);
+            shell('juliaup', 'status', echo=true);
+            shell('julia', '--version', echo=true);
+            shell('julia', '+${{ matrix.julia-version }}', '-e' , '"println(Base.VERSION)"', echo=true);
+            shell('juliaup', 'add', '${{ matrix.julia-version }}', echo=true)
+            shell('julia', '+${{ matrix.julia-version }}', '-e',  '"println(Sys.BINDIR)"', echo=true);
+
 
       - name: Run tests
         uses: matlab-actions/run-tests@v2
