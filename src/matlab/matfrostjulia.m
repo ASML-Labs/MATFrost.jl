@@ -57,7 +57,7 @@ classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot %& matlab.mixin.inde
             elseif isfield(argstruct, 'version')
                 bindir = juliaup(argstruct.version);
             else
-                [status, bindir] = system('julia -e "print(Sys.BINDIR)"');
+                [status, bindir] = shell('julia', '-e', '"print(Sys.BINDIR)"');
                 assert(~status, "matfrostjulia:julia", ...
                         "Julia not found on PATH")
             end
