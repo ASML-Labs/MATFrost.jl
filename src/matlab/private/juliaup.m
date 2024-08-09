@@ -7,16 +7,16 @@ function bindir = juliaup(version)
         bindir (1,1) string {mustBeFolder}
     end
 
-    [status, ~] = shell('juliaup', '--version');
+    [status, ~] = shell('juliaup', '--version', echo=true);
     assert(~status, "matfrostjulia:juliaup", ...
         "Juliaup not found. Please install it from https://julialang.org/downloads/")
-
+    
     % Update is required to update loaded channels such that command line output is minimal
     % see https://github.com/JuliaLang/juliaup/issues/705
     shell('juliaup', 'update'); 
 
     % Check if Julia channel is installed
-    [status, ~]= shell('julia', ['+' char(version)], '-e' , '"println(Base.VERSION)"');
+    [status, ~]= shell('julia', ['+' char(version)], '-e' , '"println(Base.VERSION)"', echo=true);
     if status
         % Julia channel was not installed. Ask if the user wants to install Julia.
         
@@ -38,7 +38,7 @@ function bindir = juliaup(version)
     end
 
     % Get the bindir
-    [status, output]= shell('julia', ['+' char(version)], '-e',  '"println(Sys.BINDIR)"');
+    [status, output]= shell('julia', ['+' char(version)], '-e',  '"println(Sys.BINDIR)"', echo=true);
     disp(output) 
     assert(~status, "matfrostjulia:juliaup", ...
             "Julia could not execute in version %s configured by juliaup.", version)
