@@ -14,12 +14,15 @@ function bindir = juliaup(version)
     % Check if Julia channel is installed
     [status, ~]= system(sprintf('julia +%s -e "println(Base.VERSION)"', version));
     if status
-        % Julia channel was not installed. Ask if the user wants to install
-        % Julia.
-
-        answer = questdlg(sprintf("Julia %s was not installed. Do you want to install it?", version),...
-	        "Julia was not installed", ...
-	        "Yes", "No", "Yes");
+        % Julia channel was not installed. Ask if the user wants to install Julia.
+        
+        if strcmp(getenv('GITHUB_ACTIONS'), 'true')
+            answer = 'Yes';
+        else
+            answer = questdlg(sprintf("Julia %s was not installed. Do you want to install it?", version),...
+	            "Julia was not installed", ...
+	            "Yes", "No", "Yes");
+        end
         switch answer
             case 'No'
                 error("matfrostjulia:juliaup", "Julia channel has not been installed via juliaup. Please add via `juliaup add %s`", version);
