@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         julia-version: ['1.10']
-        matlab-version: [R2024a]
+        matlab-version: [R2022b]
 
     steps:
       - name: Checkout code
