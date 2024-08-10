@@ -23,7 +23,10 @@ jobs:
       - uses: julia-actions/install-juliaup@v2
         with:
           channel: ${{ matrix.julia-version }}
-
+    
+      - run: |
+          julia --project="test/MATFrostTest" -e "import Pkg; Pkg.instantiate()"
+          
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v2
         with:
