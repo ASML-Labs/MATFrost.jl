@@ -2,7 +2,12 @@ name: Run Tests
 
 on:
   workflow_dispatch:
-
+    inputs:
+      debug_enabled:
+        type: boolean
+        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
 jobs:
   test:
     runs-on: ubuntu-20.04
@@ -46,7 +51,11 @@ jobs:
             shell('julia', '+${{ matrix.julia-version }}', '-e' , 'println(Base.VERSION)', echo=true);
             shell('julia', '+${{ matrix.julia-version }}', '-e',  'println(Sys.BINDIR)', echo=true);
 
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
 
+        
       - name: Run tests
         uses: matlab-actions/run-tests@v2
         env:
