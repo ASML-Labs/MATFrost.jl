@@ -691,7 +691,7 @@ public:
         } else if(marr.getNumberOfElements() != converters.size() || marr.getDimensions()[0] != converters.size()){
             throw tuple_exception(std::move(marr), matlabPtr);
         } else {
-            matlab::data::CellArray &&mcarr = (matlab::data::CellArray&&) marr;
+            const matlab::data::CellArray mcarr(marr);
             size_t nel = converters.size();
             jl_value_t* fieldvalues[nel];
             for (size_t ifield = 0; ifield < nel; ifield++){
@@ -763,7 +763,7 @@ public:
         if (marr.isEmpty()){
             return (jl_value_t*) new_empty_array(marr.getDimensions(), jltype, matlabPtr);
         } else if (marr.getType() == matlab::data::ArrayType::CELL){
-            matlab::data::CellArray &&mcarr = (matlab::data::CellArray&&) marr;
+            const matlab::data::CellArray mcarr(marr);
             
             jl_array_t* jlarr  = new_array(mcarr.getDimensions(), jltype, matlabPtr);
 
@@ -771,14 +771,11 @@ public:
 
             size_t nel = mcarr.getNumberOfElements(); 
 
-            matlab::data::TypedIterator<matlab::data::Array>&& it(std::move(mcarr).begin()); 
+            const matlab::data::TypedIterator<const matlab::data::Array> it(mcarr.begin());
 
             for (size_t i = 0; i < nel; i++){
                 try {
-                    matlab::data::Array&& anyval = std::move(it[i]);
-
-                    jl_value_t* jlval = anyconverter->convert(std::move(anyval), matlabPtr);;
-
+                    jl_value_t* jlval = anyconverter->convert(std::move(it[i]), matlabPtr);;
                     jl_call3(setindex_f, (jl_value_t*) jlarr, jlval, jl_box_int64(i+1));
                 } catch (ConversionException& e){
                     e.trace.push_back(u"[" + matlab::engine::convertUTF8StringToUTF16String(std::to_string(i+1)) + u"]");
