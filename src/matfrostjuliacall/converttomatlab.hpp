@@ -19,7 +19,8 @@ namespace ConvertToMATLAB {
  */ 
 class Converter {
 public:
-    virtual matlab::data::Array convert(jl_value_t* jlval, matlab::engine::MATLABEngine* matlabPtr);
+    virtual matlab::data::Array convert(jl_value_t* jlval, matlab::engine::MATLABEngine* matlabPtr) = 0;
+    virtual ~Converter() = default;
 };
 
 /**
