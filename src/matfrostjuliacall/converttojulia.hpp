@@ -20,7 +20,7 @@ namespace ConvertToJulia {
  */ 
 class Converter {
 public:
-    virtual jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) = 0;
+    virtual jl_value_t* convert(matlab::data::Array marr, matlab::engine::MATLABEngine* matlabPtr) = 0;
     virtual ~Converter() = default;
 };
 
@@ -71,7 +71,7 @@ public:
  * @param jltype Julia type to convert MATLAB value to
  * @param matlabPtr MATLABEngine.
  */ 
-jl_value_t* convert(matlab::data::Array &&marr, jl_datatype_t* jltype, size_t argi, std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr){
+jl_value_t* convert(matlab::data::Array marr, jl_datatype_t* jltype, size_t argi, std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr){
     std::unique_ptr<Converter> conv = converter(jltype);
      try {
         return conv->convert(std::move(marr), matlabPtr.get());
@@ -216,7 +216,7 @@ std::string array_type_name(matlab::data::ArrayType array_type){
     }
 }
 
-ConversionException incompatible_datatypes_exception(matlab::data::Array &&marr, jl_datatype_t* jltype, std::string expected_matlab_type, matlab::engine::MATLABEngine* matlabPtr){
+ConversionException incompatible_datatypes_exception(matlab::data::Array marr, jl_datatype_t* jltype, std::string expected_matlab_type, matlab::engine::MATLABEngine* matlabPtr){
     std::string sarr(jl_string_ptr((jl_call1(jl_get_function(jl_main_module, "string"), (jl_value_t*) jltype))));
     
     std::string stype = array_type_name(marr.getType());
@@ -257,7 +257,7 @@ public:
     {
     }
 
-    jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
+    jl_value_t* convert(matlab::data::Array marr, matlab::engine::MATLABEngine* matlabPtr) override{
         if (marr.getType() != mattype ) {
             throw incompatible_datatypes_exception(std::move(marr), jltype, array_type_name(mattype), matlabPtr);
         } else if(marr.getNumberOfElements() != 1) {
@@ -283,7 +283,7 @@ public:
     {
     }
 
-    jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
+    jl_value_t* convert(matlab::data::Array marr, matlab::engine::MATLABEngine* matlabPtr) override{
         if (marr.getType() != mattype) {
             throw incompatible_datatypes_exception(std::move(marr), jltype, array_type_name(mattype), matlabPtr);
         } else if(marr.getNumberOfElements() != 1) {
@@ -356,7 +356,7 @@ public:
     {
     }
 
-    jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
+    jl_value_t* convert(matlab::data::Array marr, matlab::engine::MATLABEngine* matlabPtr) override{
         if (marr.isEmpty()){
             return (jl_value_t*) new_empty_array(marr.getDimensions(), jltype, matlabPtr);
         } else if (mattype != marr.getType()){            
@@ -392,7 +392,7 @@ inline jl_value_t* convert_string(matlab::data::MATLABString ms){
     }
 }
 
-inline jl_value_t* convert_string(matlab::data::CharArray &&mcarr){
+inline jl_value_t* convert_string(matlab::data::CharArray mcarr){
     auto s = mcarr.toUTF16();
     std::string s8 = matlab::engine::convertUTF16StringToUTF8String(s);
     return jl_cstr_to_string(s8.c_str());
@@ -402,7 +402,7 @@ inline jl_value_t* convert_string(matlab::data::CharArray &&mcarr){
 class StringConverter : public Converter {
     
 public:
-    jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
+    jl_value_t* convert(matlab::data::Array marr, matlab::engine::MATLABEngine* matlabPtr) override{
         if(marr.getType() != matlab::data::ArrayType::MATLAB_STRING){
             throw incompatible_datatypes_exception(std::move(marr), jl_string_type, "string", matlabPtr);
         } else if (marr.getNumberOfElements() != 1) {
@@ -425,7 +425,7 @@ public:
     {
     }
 
-    jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
+    jl_value_t* convert(matlab::data::Array marr, matlab::engine::MATLABEngine* matlabPtr) override {
         if (marr.isEmpty()){
             return (jl_value_t*) new_empty_array(marr.getDimensions(), jltype, matlabPtr);
         } else if(marr.getType() == matlab::data::ArrayType::MATLAB_STRING){
@@ -520,7 +520,7 @@ public:
         }
     }
 
-    ConversionException missing_fields_exception(matlab::data::StructArray &&marr, matlab::engine::MATLABEngine* matlabPtr){
+    ConversionException missing_fields_exception(matlab::data::StructArray marr, matlab::engine::MATLABEngine* matlabPtr){
         jl_function_t* jlf_string = jl_get_function(jl_base_module, "string");
         jl_value_t* jlts = jl_call1(jlf_string, (jl_value_t*) jltype);
         std::stringstream ss;
@@ -559,7 +559,7 @@ public:
             matlab::engine::convertUTF8StringToUTF16String(ss.str()));
     }
 
-    ConversionException additional_fields_exception(matlab::data::StructArray &&marr, matlab::engine::MATLABEngine* matlabPtr){
+    ConversionException additional_fields_exception(matlab::data::StructArray marr, matlab::engine::MATLABEngine* matlabPtr){
         jl_function_t* jlf_string = jl_get_function(jl_base_module, "string");
         jl_value_t* jlts = jl_call1(jlf_string, (jl_value_t*) jltype);
         std::stringstream ss;
@@ -610,7 +610,7 @@ public:
     {
     }
 
-    jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
+    jl_value_t* convert(matlab::data::Array marr, matlab::engine::MATLABEngine* matlabPtr) override{
         if (marr.getType() != matlab::data::ArrayType::STRUCT){
             throw incompatible_datatypes_exception(std::move(marr), jltype, "struct", matlabPtr);
         } else if (marr.getNumberOfElements() != 1){
@@ -635,7 +635,7 @@ public:
     {
     }
 
-    jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
+    jl_value_t* convert(matlab::data::Array marr, matlab::engine::MATLABEngine* matlabPtr) override{
         if (marr.isEmpty()){
             return (jl_value_t*) new_empty_array(marr.getDimensions(), jltype, matlabPtr);
         } else if (marr.getType() == matlab::data::ArrayType::STRUCT){
@@ -686,7 +686,7 @@ public:
         }
     }
 
-    jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
+    jl_value_t* convert(matlab::data::Array marr, matlab::engine::MATLABEngine* matlabPtr) override{
         if (marr.getType() != matlab::data::ArrayType::CELL) {
             throw incompatible_datatypes_exception(std::move(marr), jltype, "cell", matlabPtr);
         } else if(marr.getNumberOfElements() != converters.size() || marr.getDimensions()[0] != converters.size()){
@@ -709,7 +709,7 @@ public:
     }
 
     
-    ConversionException tuple_exception(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr){
+    ConversionException tuple_exception(matlab::data::Array marr, matlab::engine::MATLABEngine* matlabPtr){
         jl_value_t* jlts = jl_call1(jl_get_function(jl_base_module, "string"), (jl_value_t*) jltype);
         matlab::data::ArrayDimensions dimsmat = marr.getDimensions();
 
@@ -760,7 +760,7 @@ public:
         anyconverter = converter(jlarrayof);
     }
 
-    jl_value_t* convert(matlab::data::Array &&marr, matlab::engine::MATLABEngine* matlabPtr) {
+    jl_value_t* convert(matlab::data::Array marr, matlab::engine::MATLABEngine* matlabPtr) override{
         if (marr.isEmpty()){
             return (jl_value_t*) new_empty_array(marr.getDimensions(), jltype, matlabPtr);
         } else if (marr.getType() == matlab::data::ArrayType::CELL){
