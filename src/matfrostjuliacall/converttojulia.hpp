@@ -262,7 +262,8 @@ public:
         } else if(marr.getNumberOfElements() != 1) {
             throw not_scalar_value_exception(marr.getDimensions(), jltype, matlabPtr);
         } else {
-            return jlbox(((matlab::data::TypedArray<T>&&) std::move(marr))[0]);
+            const matlab::data::TypedArray<T> mtarr(marr);
+            return jlbox(mtarr[0]);
         }
     }
 };
@@ -287,7 +288,8 @@ public:
         } else if(marr.getNumberOfElements() != 1) {
             throw not_scalar_value_exception(marr.getDimensions(), jltype, matlabPtr);
         } else {
-            std::complex<T> v = ((matlab::data::TypedArray<std::complex<T>>&&) std::move(marr))[0];
+            const matlab::data::TypedArray<std::complex<T>> mtarr(marr);
+            std::complex<T> v = mtarr[0];
             return jl_new_struct(jltype, jlbox(v.real()), jlbox(v.imag())); 
         }
     }
@@ -801,7 +803,7 @@ std::unique_ptr<Converter> converter(jl_datatype_t* jltype){
         } else if (jltype == jl_float64_type){
             return std::unique_ptr<Converter>(new PrimitiveConverter<double>(jltype, jl_box_float64, matlab::data::ArrayType::DOUBLE));    
         } else if (jltype == jl_bool_type){
-            return std::unique_ptr<Converter>(new PrimitiveConverter<int8_t>(jltype, jl_box_bool, matlab::data::ArrayType::LOGICAL));
+            return std::unique_ptr<Converter>(new PrimitiveConverter<bool>(jltype, [](bool b){return jl_box_bool((int8_t) b);}, matlab::data::ArrayType::LOGICAL));
         } else if (jltype == jl_uint8_type){
             return std::unique_ptr<Converter>(new PrimitiveConverter<uint8_t>(jltype, jl_box_uint8, matlab::data::ArrayType::UINT8));
         } else if (jltype == jl_int8_type){
