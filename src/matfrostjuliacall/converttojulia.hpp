@@ -362,13 +362,16 @@ public:
             throw incompatible_datatypes_exception(std::move(marr), jltype, array_type_name(mattype), matlabPtr);
         }
 
-        matlab::data::TypedArray<T> &&mtarr = (matlab::data::TypedArray<T> &&) std::move(marr);
-        size_t nel = mtarr.getNumberOfElements();     
-    
+        const matlab::data::TypedArray<T> mtarr(marr);
+
+        size_t nel = mtarr.getNumberOfElements();
+
+        matlab::data::TypedIterator<const T> it(mtarr.begin());
+        const T* vs = it.operator->();
+
         jl_array_t* jlarr  = new_array(mtarr.getDimensions(), jltype, matlabPtr);
 
-        matlab::data::buffer_ptr_t<T> mtarrbuf = mtarr.release();
-        memcpy(jl_array_ptr(jlarr), mtarrbuf.get(), nel*sizeof(T)); 
+        memcpy(jl_array_ptr(jlarr), vs, nel*sizeof(T));
 
         return (jl_value_t*) jlarr;
 
@@ -856,7 +859,7 @@ std::unique_ptr<Converter> converter(jl_datatype_t* jltype){
             } else if (jlarrayof == jl_float64_type){
                 return std::unique_ptr<Converter>(new ArrayPrimitiveConverter<double>(jltype, matlab::data::ArrayType::DOUBLE));    
             } else if (jlarrayof == jl_bool_type){
-                return std::unique_ptr<Converter>(new ArrayPrimitiveConverter<int8_t>(jltype, matlab::data::ArrayType::LOGICAL));
+                return std::unique_ptr<Converter>(new ArrayPrimitiveConverter<bool>(jltype, matlab::data::ArrayType::LOGICAL));
             } else if (jlarrayof == jl_uint8_type){
                 return std::unique_ptr<Converter>(new ArrayPrimitiveConverter<uint8_t>(jltype, matlab::data::ArrayType::UINT8));
             } else if (jlarrayof == jl_int8_type){
