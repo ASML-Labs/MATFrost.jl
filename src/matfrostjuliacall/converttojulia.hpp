@@ -379,7 +379,7 @@ public:
     }
 };
 
-inline jl_value_t* convert_string(matlab::data::MATLABString &&ms){
+inline jl_value_t* convert_string(matlab::data::MATLABString ms){
     if (ms.has_value()){         
         matlab::data::String sv = *ms;
         
@@ -407,8 +407,8 @@ public:
         } else if (marr.getNumberOfElements() != 1) {
             throw not_scalar_value_exception(marr.getDimensions(), jl_string_type, matlabPtr);
         } else {
-            matlab::data::StringArray &&msarr = (matlab::data::StringArray&&) std::move(marr); 
-            return convert_string((matlab::data::MATLABString&&) std::move(msarr[0]));
+            const matlab::data::StringArray msarr(marr);
+            return convert_string(msarr[0]);
         }
     }
 };
@@ -428,17 +428,17 @@ public:
         if (marr.isEmpty()){
             return (jl_value_t*) new_empty_array(marr.getDimensions(), jltype, matlabPtr);
         } else if(marr.getType() == matlab::data::ArrayType::MATLAB_STRING){
-            matlab::data::StringArray &&msarr = (matlab::data::StringArray&&) std::move(marr);
+            const matlab::data::StringArray msarr(marr);
             size_t nel = msarr.getNumberOfElements();     
     
             jl_array_t* jlarr  = new_array(msarr.getDimensions(), jltype, matlabPtr);
             
-            matlab::data::TypedIterator<matlab::data::MATLABString>&& it(std::move(msarr).begin()); 
+            matlab::data::TypedIterator<const matlab::data::MATLABString> it(msarr.begin());
 
             jl_function_t *setindex = jl_get_function(jl_base_module, "setindex!");
 
             for (size_t i = 0; i < nel; i++){
-                jl_value_t* jls = convert_string((matlab::data::MATLABString&&) std::move(it[i]));
+                jl_value_t* jls = convert_string(it[i]);
                 jl_call3(setindex, (jl_value_t*) jlarr, jls, jl_box_int64(i+1));
             }
             return (jl_value_t*) jlarr;
