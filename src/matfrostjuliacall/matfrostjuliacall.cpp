@@ -221,7 +221,7 @@ public:
             jlargs[0] = (jl_value_t*) jfs.function;
 
             for (size_t i=0; i < nargs; i++){
-                jlargs[i+1] = MATFrost::ConvertToJulia::convert(std::move(inputs[i+1]), jfs.arguments[i], i, matlabPtr);
+                jlargs[i+1] = MATFrost::ConvertToJulia::convert(inputs[i+1], jfs.arguments[i], i, matlabPtr);
             }
 
             jl_value_t **jlargs_p = jlargs;
