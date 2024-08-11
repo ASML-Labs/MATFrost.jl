@@ -476,7 +476,7 @@ public:
         }
     }
 
-    jl_value_t* convert(matlab::data::Struct &&ms, matlab::engine::MATLABEngine* matlabPtr) {
+    jl_value_t* convert(matlab::data::Struct ms, matlab::engine::MATLABEngine* matlabPtr) {
         size_t nfields = fieldnames.size();
         jl_value_t* fieldvalues[nfields];
         for (size_t ifield = 0; ifield < nfields; ifield++){
@@ -615,9 +615,9 @@ public:
         } else if (marr.getNumberOfElements() != 1){
             throw not_scalar_value_exception(marr.getDimensions(), jltype, matlabPtr);
         } else {
-            matlab::data::StructArray &&msarr = (matlab::data::StructArray&&) std::move(marr);
+            const matlab::data::StructArray msarr(marr);
             base.validate(msarr, matlabPtr);
-            return base.convert(std::move(msarr[0]), matlabPtr);
+            return base.convert(msarr[0], matlabPtr);
         }
     }
 };
@@ -638,25 +638,21 @@ public:
         if (marr.isEmpty()){
             return (jl_value_t*) new_empty_array(marr.getDimensions(), jltype, matlabPtr);
         } else if (marr.getType() == matlab::data::ArrayType::STRUCT){
-            matlab::data::StructArray &&msarr = (matlab::data::StructArray&&) std::move(marr);
+            const matlab::data::StructArray msarr(marr);
+
             base.validate(msarr, matlabPtr);
             jl_array_t* jlarr  = new_array(msarr.getDimensions(), jltype, matlabPtr);
             
             jl_function_t* setindex_f = jl_get_function(jl_base_module, "setindex!");
 
-            matlab::data::TypedIterator<matlab::data::Struct>&& it(std::move(msarr).begin()); 
+            const matlab::data::TypedIterator<const matlab::data::Struct> it(msarr.begin());
 
             size_t nel = msarr.getNumberOfElements(); 
 
             for (size_t i = 0; i < nel; i++){
-
                 try {
-                    matlab::data::Struct&& matstruct = std::move(it[i]);
-
-                    jl_value_t* jlval = base.convert(std::move(it[i]), matlabPtr);;
-
+                    jl_value_t* jlval = base.convert(it[i], matlabPtr);;
                     jl_call3(setindex_f, (jl_value_t*) jlarr, jlval, jl_box_int64(i+1));
-
                 } catch (ConversionException& e){
                     e.trace.push_back(u"[" + matlab::engine::convertUTF8StringToUTF16String(std::to_string(i+1)) + u"]");
                     throw;
