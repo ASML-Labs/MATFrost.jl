@@ -123,8 +123,17 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
             callstruct.function       = char(functionname);
             
             args = indexOp(end).Indices;
-            
-            jlo = obj.mh.feval(obj.matfrostjuliacall, callstruct, args{:});
+
+            try
+                jlo = obj.mh.feval(obj.matfrostjuliacall, callstruct, args{:});
+            catch ME
+                if (strcmp(ME.identifier, "MATLAB:mex:MexHostCrashed"))
+                    obj.spawn_mexhost();
+                    jlo = obj.mh.feval(obj.matfrostjuliacall, callstruct, args{:});
+                else
+                    rethrow(ME)
+                end
+            end
 
             varargout{1} = jlo;
         end
