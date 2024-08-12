@@ -8,8 +8,8 @@ jobs:
     strategy:
       matrix:
         os: ["windows-latest"]
-        matlab-version: [R2022b]
-        julia-version: ['1.10']
+        matlab-version: ['R2020b', 'R2021b', '2022b', '2023b', '2024a']
+        julia-version: ['1.7', '1.8', '1.9', '1.10']
         
     runs-on: ${{ matrix.os }}
     
