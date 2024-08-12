@@ -33,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['windows-latest', 'ubuntu-20.04', 'macos-latest']
+        os: ['windows-latest', 'ubuntu-20.04']
         matlab-version: ['R2021b', 'R2022b', 'R2023b']
         julia-version: ['1.7', '1.8', '1.9', '1.10']
     with:
