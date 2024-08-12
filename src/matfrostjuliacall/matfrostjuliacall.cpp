@@ -230,7 +230,7 @@ public:
             JL_GC_PUSHARGS(jlargs_p, nargs+1);
             
             // Enabled as intended Julia function is called.
-            jl_gc_enable(1);
+            // jl_gc_enable(1);
 
             jl_function_t* matfrostcall = (jl_function_t*) jl_eval_string("matfrostcall((@nospecialize f), args...) = try \n (false, f(args...)) \n catch e \n bt = catch_backtrace() \n (true, sprint(showerror, e, bt)) \n end");
 
@@ -238,7 +238,7 @@ public:
             jl_value_t* jlo = jl_call(matfrostcall, jlargs, nargs+1);
 
             // Disabled as several calls to jl* are made to destructure the data. 
-            jl_gc_enable(0);
+            // jl_gc_enable(0);
 
             JL_GC_POP();
 
