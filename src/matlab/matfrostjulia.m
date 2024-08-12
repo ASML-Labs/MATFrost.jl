@@ -69,14 +69,15 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                 error("matfrostjulia:osNotSupported", "MacOS not supported yet.");
             end
 
+            if argstruct.instantiate
+                environmentinstantiate(obj.julia, obj.environment);
+            end
 
             obj.matfrostjuliacall = getmatfrostjuliacall(obj.julia);
             
             obj.spawn_mexhost();
 
-            if argstruct.instantiate
-                environmentinstantiate(obj.juliaexe, obj.environment);
-            end
+
         end
     end
 
@@ -91,10 +92,6 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                     "JULIA_PROJECT",   obj.environment;
                     "PATH",            fileparts(obj.julia); 
                     "LD_LIBRARY_PATH", fullfile(fileparts(fileparts(obj.julia)), "lib")]);
-            end
-
-            if argstruct.instantiate
-                environmentinstantiate(obj.juliaexe, obj.environment);
             end
         end
     end
@@ -130,9 +127,8 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                 if (strcmp(ME.identifier, "MATLAB:mex:MexHostCrashed"))
                     obj.spawn_mexhost();
                     jlo = obj.mh.feval(obj.matfrostjuliacall, callstruct, args{:});
-                else
-                    rethrow(ME)
                 end
+                rethrow(ME)
             end
 
             varargout{1} = jlo;
