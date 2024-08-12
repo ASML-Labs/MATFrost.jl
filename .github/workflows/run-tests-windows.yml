@@ -27,7 +27,7 @@ jobs:
           release: ${{ matrix.matlab-version }}
           cache: true
           products: >
-            MATLAB_Support_for_MinGW-w64_C/C++_Compiler
+            ${{ contains(matrix.matlab-version, '2024') && 'MATLAB_Support_for_MinGW-w64_C/C++/Fortran_Compiler' || 'MATLAB_Support_for_MinGW-w64_C/C++_Compiler' }}
         
       - name: Run tests
         uses: matlab-actions/run-tests@v2
@@ -52,3 +52,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with: 
           path: test-reults
+          name: results-${{ matrix.matlab-version }}-${{ matrix.julia-version }}
