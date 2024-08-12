@@ -1,4 +1,4 @@
-classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot %& matlab.mixin.indexing.OverridesPublicDotMethodCall
+classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
 % matfrostjulia - Embedding Julia in MATLAB
 %
 % MATFrost enables quick and easy embedding of Julia functions from MATLAB side.
