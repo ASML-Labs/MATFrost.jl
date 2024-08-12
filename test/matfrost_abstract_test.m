@@ -4,7 +4,7 @@ classdef matfrost_abstract_test < matlab.unittest.TestCase
         environment (1,1) string = fullfile(fileparts(mfilename('fullpath')), 'MATFrostTest');
     end
 
-    properties (MethodSetupParameter)
+    properties (ClassSetupParameter)
         julia_version = get_julia_version()
     end    
     
@@ -14,7 +14,7 @@ classdef matfrost_abstract_test < matlab.unittest.TestCase
     end
 
 
-    methods(TestMethodSetup)
+    methods(TestClassSetup)
         function setup_matfrost(tc, julia_version)
 
            tc.mjl = matfrostjulia(...
