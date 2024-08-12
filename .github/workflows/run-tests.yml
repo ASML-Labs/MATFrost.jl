@@ -39,4 +39,4 @@ jobs:
     with:
       os: ${{ matrix.os }}
       matlab-version: ${{ matrix.matlab-version }}
-      julia-version: ${{ inpmatrixuts.julia-version }}
+      julia-version: ${{ matrix.julia-version }}
