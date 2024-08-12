@@ -1,10 +1,7 @@
 function bindir = juliaup(version)
 % Finds the julia bindir installed via juliaup
-    arguments (Input)
+    arguments 
         version (1,1) string
-    end
-    arguments (Output)
-        bindir (1,1) string {mustBeFolder}
     end
 
     [status, ~] = shell('juliaup', '--version');
