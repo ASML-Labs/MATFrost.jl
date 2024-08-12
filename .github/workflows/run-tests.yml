@@ -29,6 +29,7 @@ on:
 jobs:
   test:
     uses: ./.github/workflows/run-tests-reusable.yml
+    if: ${{ ((github.event_name == 'pull_request') && !github.event.pull_request.draft) || (github.event_name == 'push') }}
     secrets: inherit
     strategy:
       fail-fast: false
