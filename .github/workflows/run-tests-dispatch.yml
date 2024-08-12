@@ -3,36 +3,35 @@ name: "Dispatch tests with inputs"
 on:
   workflow_dispatch:
     inputs:
-    os:
-      required: true
-      description: "Operating system"
-      default: "windows-latest"
-      type: choice
-      options:
-        - 'windows-latest'
-        - 'ubuntu-20.04'
-        - 'macos-latest'
-    matlab-version:
-      required: true
-      description: "MATLAB version"
-      type: choice
-      options:
-        - 'R2021a'
-        - 'R2021b'
-        - 'R2022a'
-        - 'R2022b'
-        - 'R2023a'
-        - 'R2023b'
-        - 'R2024a'
-    julia-version:
-      required: true
-      description: "Julia version"
-      type: choice
-      options:
-        - '1.7'
-        - '1.8'
-        - '1.9'
-        - '1.10'
+      os:
+        required: true
+        description: "Operating system"
+        type: choice
+        options:
+          - 'windows-latest'
+          - 'ubuntu-20.04'
+          - 'macos-latest'
+      matlab-version:
+        required: true
+        description: "MATLAB version"
+        type: choice
+        options:
+          - 'R2021a'
+          - 'R2021b'
+          - 'R2022a'
+          - 'R2022b'
+          - 'R2023a'
+          - 'R2023b'
+          - 'R2024a'
+      julia-version:
+        required: true
+        description: "Julia version"
+        type: choice
+        options:
+          - '1.7'
+          - '1.8'
+          - '1.9'
+          - '1.10'
 
 jobs:
   test:
