@@ -10,7 +10,7 @@ function [exitCode, stdOut] = shell(varargin, options)
         arguments
             options.executionDirectory (1,1) string = pwd               % Directory to execute the command
             options.environmentVariables (1,1) struct = struct()        % Environment variables to give to the command
-            options.echo (1,1) logical = true                           % Whether to echo the stdout in the cmd
+            options.echo (1,1) logical = false                          % Whether to echo the stdout in the cmd
             options.loggingFilter (1,:) string = string.empty(1,0)      % Whether to filter the logging
         end
     
@@ -24,7 +24,7 @@ function [exitCode, stdOut] = shell(varargin, options)
         variableNames = fieldnames(options.environmentVariables);
         if ~isempty(variableNames)
             environment = builder.environment();
-            for iVar = numel(variableNames)
+            for iVar = 1:numel(variableNames)
                 environment.put(variableNames{iVar}, options.environmentVariables.(variableNames{iVar}));
             end
         end
