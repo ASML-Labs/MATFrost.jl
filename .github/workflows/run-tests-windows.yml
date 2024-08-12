@@ -10,7 +10,9 @@ jobs:
         os: ["windows-latest"]
         matlab-version: [R2022b]
         julia-version: ['1.10']
-
+        
+    runs-on: ${{ matrix.os }}
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
