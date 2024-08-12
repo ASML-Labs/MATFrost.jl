@@ -89,7 +89,57 @@ classdef matfrost_nested_structures_test < matfrost_abstract_test
             nest4_o.v5 = nest3_l1.v7;
 
             tc.verifyEqual(...
-                tc.mjl.MATFrostTest.("nested_structures_test1_" + jltype)(nest3_l1), ...
+                tc.mjl.MATFrostTest.("nested_structures_test1_scalar_" + jltype)(nest3_l1), ...
+                nest4_o);
+
+        end
+
+
+        function nested_structures_test1_vectors(tc, jltype, val)
+
+            if iscell(val)
+                val = repmat({val}, 5,1);
+            else
+                val = repmat(val, 5,1);
+            end
+
+            nest3_l3.v1 = val;
+            nest3_l3.v2 = 3.0;
+            nest3_l3.v3 = int64(23);
+
+
+            nest3_l2.v1 = val;
+%             if iscell(val)
+                nest3_l2.v2 = repmat({val}, 10,1);
+%             else
+%                 nest3_l2.v2 = repmat(val, 10,1);
+%             end
+            nest3_l2.v3 = repmat(nest3_l3, 10,1);
+
+            nest3_l1.v1 = int64(23);
+            nest3_l1.v2 = 323.0;
+            nest3_l1.v3 = val;
+            nest3_l1.v4 = repmat({val}, 3,1);
+%             if iscell(val)
+                nest3_l1.v5 = repmat({val}, 5,1);
+                nest3_l1.v6 = repmat({val}, 5,5);
+%             else
+%                 nest3_l1.v5 = repmat(val, 5,1);
+%                 nest3_l1.v6 = repmat(val, 5,5);
+%             end
+%              
+            nest3_l1.v7 = nest3_l2;
+            nest3_l1.v8 = repmat(nest3_l2, 10,1);
+
+
+            nest4_o.v1 = nest3_l1.v2;
+            nest4_o.v2 = nest3_l1.v1;
+            nest4_o.v3 = repmat(nest3_l1, 2,2,2);
+            nest4_o.v4 = nest3_l1.v3;
+            nest4_o.v5 = nest3_l1.v7;
+
+            tc.verifyEqual(...
+                tc.mjl.MATFrostTest.("nested_structures_test1_vector_" + jltype)(nest3_l1), ...
                 nest4_o);
 
         end

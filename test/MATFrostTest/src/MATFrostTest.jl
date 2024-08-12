@@ -292,7 +292,10 @@ for (suf, prim) in (
     eval(:($(string_arr3_s)(v::Array{$(prim), 3}) = string(v)))
 
 
-    eval(:($(Symbol(:nested_structures_test1_, suf))(v::Nest3_L1{$(prim)}) = nested_structures_test1(v)))
+    eval(:($(Symbol(:nested_structures_test1_scalar_, suf))(v::Nest3_L1{$(prim)}) = nested_structures_test1(v)))
+
+    
+    eval(:($(Symbol(:nested_structures_test1_vector_, suf))(v::Nest3_L1{Vector{$(prim)}}) = nested_structures_test1(v)))
 end
 
 
