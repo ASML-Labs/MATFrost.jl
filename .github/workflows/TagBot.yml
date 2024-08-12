@@ -1,4 +1,4 @@
-name: TagBot
+name: Julia TagBot
 on:
   issue_comment:
     types:
