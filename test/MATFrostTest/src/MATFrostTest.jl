@@ -6,8 +6,15 @@ elementwise_addition_f64(c::Float64, x::Vector{Float64}) = c .+ x
 
 kron_product_matrix_f64(A::Matrix{Float64}, B::Matrix{Float64}) = kron(A, B)
 
-sum_vector_of_vector_f64(vs::Vector{Vector{Float64}}) :: Float64 = sum(sum(v; init=0.0) for v in vs; init=0.0) + 0.0
-
+function sum_vector_of_vector_f64(vs::Vector{Vector{Float64}}) :: Float64 
+    acc = 0.0
+    for v in vs
+        for e in v
+           acc += e 
+        end
+    end
+    acc
+end
 
 struct SimplePopulationType
     name::String
