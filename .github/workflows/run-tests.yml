@@ -10,7 +10,7 @@ on:
         default: false
 jobs:
   test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-20.04 # 20.04 contains the last version of gcc that is compatible with MATLAB R2022b
     strategy:
       matrix:
         julia-version: ['1.10']
@@ -27,7 +27,7 @@ jobs:
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
-        
+
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v2
         with:
@@ -45,7 +45,15 @@ jobs:
           test-results-junit: test-reults/results.xml
           code-coverage-cobertura: test-reults/coverage.xml
 
+      - uses: 5monkeys/cobertura-action@master
+        if: always()
+        with:
+          path: test-reults/coverage.xml
+          fail_below_threshold: false
+          minimum_coverage: 69
+
       - name: Upload artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with: 
           path: test-reults
