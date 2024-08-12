@@ -6,7 +6,7 @@ on:
 jobs:
   test:
     strategy:
-    fail-fast: false
+      fail-fast: false
       matrix:
         os: ["windows-latest"]
         matlab-version: ['R2020b', 'R2021b', 'R2022b', 'R2023b', 'R2024a']
