@@ -1,0 +1,53 @@
+name: Run Tests Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+
+jobs:
+  test:
+     strategy:
+      matrix:
+        os: ["windows-latest"]
+        matlab-version: [R2022b]
+        julia-version: ['1.10']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - uses: julia-actions/install-juliaup@v2
+        with:
+          channel: ${{ matrix.julia-version }}
+
+      - name: Set up MATLAB
+        uses: matlab-actions/setup-matlab@v2
+        with:
+          release: ${{ matrix.matlab-version }}
+          cache: true
+          products: >
+            MATLAB_Support_for_MinGW-w64_C/C++_Compiler
+        
+      - name: Run tests
+        uses: matlab-actions/run-tests@v2
+        env:
+          JULIA_VERSION: ${{ matrix.julia-version }}
+        with:
+          source-folder: 'src/matlab'
+          select-by-folder: 'test'
+          strict: false
+          test-results-junit: test-reults/results.xml
+          code-coverage-cobertura: test-reults/coverage.xml
+
+      - uses: 5monkeys/cobertura-action@master
+        if: always()
+        with:
+          path: test-reults/coverage.xml
+          fail_below_threshold: false
+          minimum_coverage: 69
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with: 
+          path: test-reults
