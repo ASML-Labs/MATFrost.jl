@@ -12,5 +12,4 @@ function mjlname = getmatfrostjuliacall(juliaexe)
             matfrostmake(juliaexe, mexdir, mjlname);
         end
     end
-
 end
