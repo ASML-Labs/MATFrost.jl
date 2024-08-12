@@ -6,7 +6,7 @@ elementwise_addition_f64(c::Float64, x::Vector{Float64}) = c .+ x
 
 kron_product_matrix_f64(A::Matrix{Float64}, B::Matrix{Float64}) = kron(A, B)
 
-sum_vector_of_vector_f64(vs::Vector{Vector{Float64}}) :: Float64 = sum(sum(v; init=0.0) for v in vs; init=0.0)
+sum_vector_of_vector_f64(vs::Vector{Vector{Float64}}) :: Float64 = sum(sum(v; init=0.0) for v in vs; init=0.0) + 0.0
 
 
 struct SimplePopulationType
@@ -16,7 +16,15 @@ end
 
 largest_population(p1::SimplePopulationType, p2::SimplePopulationType) = ifelse(p1.population > p2.population, p1, p2)
 
-largest_population_vector(ps::Vector{SimplePopulationType}) = sort(ps, lt=(p1, p2)-> p1.population < p2.population)[end]
+function largest_population_vector(ps::Vector{SimplePopulationType})
+    mp = ps[1]
+    for p in ps
+        if mp.population < p.population
+            mp = p
+        end
+    end
+    mp
+end
 
 
 struct Nest1
