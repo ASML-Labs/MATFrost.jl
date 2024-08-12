@@ -6,12 +6,11 @@ on:
 jobs:
   test:
     strategy:
+    fail-fast: false
       matrix:
         os: ["windows-latest"]
         matlab-version: ['R2020b', 'R2021b', 'R2022b', 'R2023b', 'R2024a']
         julia-version: ['1.7', '1.8', '1.9', '1.10']
-    strategy:
-      fail-fast: false
     runs-on: ${{ matrix.os }}
     
     steps:
