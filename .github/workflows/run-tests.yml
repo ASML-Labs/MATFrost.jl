@@ -23,41 +23,16 @@ jobs:
       - uses: julia-actions/install-juliaup@v2
         with:
           channel: ${{ matrix.julia-version }}
-    
-      - run: |
-          julia --project="test/MATFrostTest" -e "import Pkg; Pkg.instantiate()"
           
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+        
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v2
         with:
           release: ${{ matrix.matlab-version }}
           cache: true
-
-      - run: |
-          juliaup --version
-          juliaup status
-          julia --version
-          julia +${{ matrix.julia-version }} -e "println(Base.VERSION)"
-          juliaup add ${{ matrix.julia-version }}
-          julia +${{ matrix.julia-version }} -e "println(Sys.BINDIR)"
-          export MATLAB_SHELL=/bin/bash
-
-      - name: Run statements
-        uses: matlab-actions/run-command@v2
-        with:
-          command: |
-            cd('src/matlab/private');
-            shell('juliaup', '--version', echo=true);
-            shell('juliaup', 'status', echo=true);
-            shell('juliaup', 'add', '${{ matrix.julia-version }}', echo=true)
-            shell('julia', '--version', echo=true);
-            shell('julia', '+${{ matrix.julia-version }}', '-e' , 'println(Base.VERSION)', echo=true);
-            shell('julia', '+${{ matrix.julia-version }}', '-e',  'println(Sys.BINDIR)', echo=true);
-
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
-
         
       - name: Run tests
         uses: matlab-actions/run-tests@v2
