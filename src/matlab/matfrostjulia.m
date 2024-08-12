@@ -1,4 +1,4 @@
-classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot %& matlab.mixin.indexing.OverridesPublicDotMethodCall
+classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot & handle
 % matfrostjulia - Embedding Julia in MATLAB
 %
 % MATFrost enables quick and easy embedding of Julia functions from MATLAB side.
@@ -68,6 +68,16 @@ classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot %& matlab.mixin.inde
 
             obj.matfrostjuliacall = getmatfrostjuliacall(obj.juliaexe);
             
+            obj.spawn_mexhost();
+
+            if argstruct.instantiate
+                environmentinstantiate(obj.juliaexe, obj.environment);
+            end
+        end
+    end
+
+    methods (Access=private)
+        function obj = spawn_mexhost(obj)
             if ispc
                 obj.mh = mexhost("EnvironmentVariables", [...
                     "JULIA_PROJECT", obj.environment;
@@ -77,10 +87,6 @@ classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot %& matlab.mixin.inde
                     "JULIA_PROJECT",   obj.environment;
                     "PATH",            fileparts(obj.juliaexe); 
                     "LD_LIBRARY_PATH", fullfile(fileparts(fileparts(obj.juliaexe)), "lib")]);
-            end
-
-            if argstruct.instantiate
-                environmentinstantiate(obj.juliaexe, obj.environment);
             end
         end
     end
@@ -110,7 +116,14 @@ classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot %& matlab.mixin.inde
             
             args = indexOp(end).Indices;
             
-            jlo = obj.mh.feval(obj.matfrostjuliacall, callstruct, args{:});
+            try
+                jlo = obj.mh.feval(obj.matfrostjuliacall, callstruct, args{:});
+            catch ME
+                if (strcmp(ME.identifier, "MATLAB:mex:MexHostCrashed"))
+                    obj.spawn_mexhost();
+                end
+                rethrow(ME)
+            end
 
             varargout{1} = jlo;
         end
