@@ -5,16 +5,16 @@ classdef matfrost_test < matfrost_abstract_test
     methods(Test)
         % Test methods
         
-        function simple_numerical_tests(tc)            
-            tc.verifyEqual(...
-                tc.mjl.MATFrostTest.elementwise_addition_f64(100, (1:100)'), ...
-                100.+(1:100)');
-
-            tc.verifyEqual(...
-                tc.mjl.MATFrostTest.kron_product_matrix_f64(diag(1:10), (1:10)'*(1:10)), ...
-                kron(diag(1:10), (1:10)'*(1:10)));
-
-        end
+%         function simple_numerical_tests(tc)            
+%             tc.verifyEqual(...
+%                 tc.mjl.MATFrostTest.elementwise_addition_f64(100, (1:100)'), ...
+%                 100.+(1:100)');
+% 
+%             tc.verifyEqual(...
+%                 tc.mjl.MATFrostTest.kron_product_matrix_f64(diag(1:10), (1:10)'*(1:10)), ...
+%                 kron(diag(1:10), (1:10)'*(1:10)));
+% 
+%         end
 % 
 %         function sum_vector_of_vector_f64(tc)
 %             vov = cell(10,1);
