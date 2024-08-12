@@ -1,0 +1,66 @@
+name: "Reusable workflow for running tests" 
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        description: "Operating system"
+        default: "windows-latest"
+        type: string
+      matlab-version:
+        required: true
+        description: "MATLAB version"
+        default: "R2022b"
+        type: string
+      julia-version:
+        required: true
+        description: "Julia version"
+        default: "1.10"
+        type: string
+
+jobs:
+  test:
+    runs-on: ${{ inputs.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - uses: julia-actions/install-juliaup@v2
+        with:
+          channel: ${{ inputs.julia-version }}
+
+      - name: Set up MATLAB on Unix/Mac
+        uses: matlab-actions/setup-matlab@v2
+        if: !contains(${{ inputs.os }}, 'windows')
+        with:
+          release: ${{ inputs.matlab-version }}
+          cache: true
+
+      - name: Set up MATLAB on Windows
+        uses: matlab-actions/setup-matlab@v2
+        if: startsWith(${{ inputs.os }}, 'windows')
+        with:
+          release: ${{ inputs.matlab-version }}
+          cache: true
+          products: >
+            ${{ contains(inputs.matlab-version, '2024') && 'MATLAB_Support_for_MinGW-w64_C/C++/Fortran_Compiler' || 'MATLAB_Support_for_MinGW-w64_C/C++_Compiler' }}
+        
+      - name: Run tests
+        uses: matlab-actions/run-tests@v2
+        env:
+          JULIA_VERSION: ${{ inputs.julia-version }}
+        with:
+          source-folder: 'src/matlab'
+          select-by-folder: 'test'
+          strict: false
+          test-results-junit: test-reults/results.xml
+          code-coverage-cobertura: test-reults/coverage.xml
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with: 
+          path: test-reults
+          name: results-${{ inputs.matlab-version }}-${{ inputs.julia-version }}
