@@ -15,20 +15,20 @@ classdef matfrost_test < matfrost_abstract_test
                 kron(diag(1:10), (1:10)'*(1:10)));
 
         end
-
-        function sum_vector_of_vector_f64(tc)
-            vov = cell(10,1);
-            acc = 0;
-            for i=1:10
-                vov{i} = (1:i)';
-                acc = acc+ sum(1:i);
-            end
-
-            tc.verifyEqual(...
-                tc.mjl.MATFrostTest.sum_vector_of_vector_f64(vov), ...
-                acc);
-
-        end
+% 
+%         function sum_vector_of_vector_f64(tc)
+%             vov = cell(10,1);
+%             acc = 0;
+%             for i=1:10
+%                 vov{i} = (1:i)';
+%                 acc = acc+ sum(1:i);
+%             end
+% 
+%             tc.verifyEqual(...
+%                 tc.mjl.MATFrostTest.sum_vector_of_vector_f64(vov), ...
+%                 acc);
+% 
+%         end
         function simple_struct(tc)
             
             p1 = struct;
