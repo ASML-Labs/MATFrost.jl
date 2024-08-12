@@ -5,7 +5,7 @@ on:
 
 jobs:
   test:
-     strategy:
+    strategy:
       matrix:
         os: ["windows-latest"]
         matlab-version: [R2022b]
