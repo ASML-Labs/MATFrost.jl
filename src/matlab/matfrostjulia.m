@@ -1,4 +1,4 @@
-classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot %& matlab.mixin.indexing.OverridesPublicDotMethodCall
+classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot & handle %& matlab.mixin.indexing.OverridesPublicDotMethodCall
 % matfrostjulia - Embedding Julia in MATLAB
 %
 % MATFrost enables quick and easy embedding of Julia functions from MATLAB side.
@@ -115,7 +115,23 @@ classdef matfrostjulia < matlab.mixin.indexing.RedefinesDot %& matlab.mixin.inde
             
             args = indexOp(end).Indices;
             
-            jlo = obj.mh.feval(obj.matfrostjuliacall, callstruct, args{:});
+            try
+                jlo = obj.mh.feval(obj.matfrostjuliacall, callstruct, args{:});
+            catch ME
+                if (strcmp(ME.identifier, "MATLAB:mex:MexHostCrashed"))
+                    if ispc
+                        obj.mh = mexhost("EnvironmentVariables", [...
+                            "JULIA_PROJECT", obj.environment;
+                            "PATH",          fileparts(obj.julia)]);
+                    elseif isunix
+                        obj.mh = mexhost("EnvironmentVariables", [...
+                            "JULIA_PROJECT",   obj.environment;
+                            "PATH",            fileparts(obj.julia); 
+                            "LD_LIBRARY_PATH", fullfile(fileparts(fileparts(obj.julia)), "lib")]);
+                    end
+                end
+                rethrow(ME)
+            end
 
             varargout{1} = jlo;
         end
