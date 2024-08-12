@@ -6,7 +6,7 @@ elementwise_addition_f64(c::Float64, x::Vector{Float64}) = c .+ x
 
 kron_product_matrix_f64(A::Matrix{Float64}, B::Matrix{Float64}) = kron(A, B)
 
-sum_vector_of_vector_f64(vs::Vector{Vector{Float64}}) = sum(sum(v) for v in vs)
+sum_vector_of_vector_f64(vs::Vector{Vector{Float64}}) :: Float64 = sum(sum(v; init=0.0) for v in vs; init=0.0)
 
 
 struct SimplePopulationType
@@ -16,7 +16,7 @@ end
 
 largest_population(p1::SimplePopulationType, p2::SimplePopulationType) = ifelse(p1.population > p2.population, p1, p2)
 
-largest_population_vector(ps::Vector{SimplePopulationType}) = last(sort(ps, lt=(p1, p2)-> p1.population < p2.population))
+largest_population_vector(ps::Vector{SimplePopulationType}) = sort(ps, lt=(p1, p2)-> p1.population < p2.population)[end]
 
 
 struct Nest1
@@ -26,7 +26,7 @@ struct Nest1
     v4::Bool
 end
 
-sum_nest1(v::Nest1) = v.v1 + v.v2 + v.v3[1]+v.v3[2]+v.v3[3]
+sum_nest1(v::Nest1) :: Float64 = v.v1 + v.v2 + v.v3[1]+v.v3[2]+v.v3[3]
 
 nest1_identity(v::Nest1) = v
 
@@ -35,7 +35,7 @@ struct Nest2
     vs::Vector{Nest1}
 end
 
-sum_nest2(v::Nest2) = sum(sum_nest1(e) for e in v.v1) + sum(sum_nest1(e) for e in v.vs)
+sum_nest2(v::Nest2) :: Float64 = sum(sum_nest1(e) for e in v.v1) + sum(sum_nest1(e) for e in v.vs; init=0.0)
 
 nest2_identity(v::Nest2) = v
 
