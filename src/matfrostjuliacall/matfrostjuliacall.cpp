@@ -200,14 +200,16 @@ public:
             ArgumentList& outputs = *outputs_p;
             ArgumentList& inputs = *inputs_p;
             matlab::data::ArrayFactory factory;
-                        
-            BifrostCallStruct bcs = convert_callstruct(inputs[0]);
-            JuliaFunctionSignature jfs = get_jl_function_signature(bcs);
 
+            
             jl_gc_collect(JL_GC_AUTO);
             // Disabled to convert to Julia types.
             jl_gc_enable(0);
-            
+
+            BifrostCallStruct bcs = convert_callstruct(inputs[0]);
+            JuliaFunctionSignature jfs = get_jl_function_signature(bcs);
+
+
             size_t nargs = inputs.size()-1;
             if (jfs.arguments.size() != nargs){
                 matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({
