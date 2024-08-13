@@ -343,6 +343,20 @@ public:
     }
 };
 
+/**
+ * UnionConverter will construct a converter for values from union types.
+ */
+class UnionConverter : public Converter {
+public:
+
+    matlab::data::Array convert(jl_value_t* jlval, matlab::engine::MATLABEngine* matlabPtr) override {
+        jl_value_t* jlvalc = jl_call1(jl_get_function(jl_base_module, "identity"), jlval); // Unpacks the union value.
+        std::unique_ptr<Converter> conv = converter((jl_datatype_t*) jl_typeof(jlvalc));
+        return conv->convert(jlvalc, matlabPtr);
+
+    }
+};
+
 
 bool unbox_bool(jl_value_t* jlval){
     return (bool) jl_unbox_bool(jlval);
@@ -352,6 +366,8 @@ std::unique_ptr<Converter> converter(jl_datatype_t* jltype){
     jl_value_t* jlcomplex = (jl_value_t*) jl_get_function(jl_base_module, "Complex");
     if (jl_is_abstracttype(jltype)){
         return std::unique_ptr<Converter>(new AbstractConverter());
+    } else if(jl_is_uniontype(jltype)) {
+        return std::unique_ptr<Converter>(new UnionConverter());
     } else if(jl_is_primitivetype(jltype)){
         if (jltype == jl_float32_type){
             return std::unique_ptr<Converter>(new PrimitiveConverter<float>(jl_unbox_float32));
@@ -456,7 +472,7 @@ std::unique_ptr<Converter> converter(jl_datatype_t* jltype){
         else if(jlarrayof == jl_string_type){
             return std::unique_ptr<Converter>(new ArrayStringConverter());
         } 
-        else if (jl_is_array_type(jlarrayof) || jl_is_tuple_type(jlarrayof)) {
+        else if (jl_is_array_type(jlarrayof) || jl_is_tuple_type(jlarrayof) || jl_is_uniontype(jlarrayof)) {
             return std::unique_ptr<Converter>(new ArrayConverter(jltype));
         }
         else if (jl_is_structtype(jlarrayof) || jl_is_namedtuple_type(jlarrayof)){
@@ -466,7 +482,8 @@ std::unique_ptr<Converter> converter(jl_datatype_t* jltype){
     } else if (jl_is_structtype(jltype) || jl_is_namedtuple_type(jltype)){
         return std::unique_ptr<Converter>(new StructConverter(jltype));
     }
-    throw std::invalid_argument("Wrong input MATFRost test - Cannot find matching type.");
+    throw std::invalid_argument("Wrong input MATFRost test - Cannot find matching type for: " +
+        std::string(jl_string_ptr(jl_call1(jl_get_function(jl_base_module, "string"), (jl_value_t*) jltype))));
 }
 
 

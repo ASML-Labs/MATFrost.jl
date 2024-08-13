@@ -229,6 +229,15 @@ function nested_structures_test1(v::Nest3_L1{T}) where {T}
     )
 end
 
+function interleave_with_number_and_string(vs::Vector{T}, vnum::Float64, vstring::String) where {T}
+    vo = Vector{Union{T, Float64, String}}(undef, length(vs)*3)
+
+    vo[1:3:end] .= vs
+    vo[2:3:end] .= vnum
+    vo[3:3:end] .= vstring
+
+    vo
+end
 
 
 for (suf, prim) in (
@@ -311,6 +320,12 @@ for (suf, prim) in (
 
     
     eval(:($(Symbol(:nested_structures_test1_vector_, suf))(v::Nest3_L1{Vector{$(prim)}}) = nested_structures_test1(v)))
+
+    eval(:($(Symbol(:interleave_with_number_and_string_, suf))(vs::Vector{$(prim)}, vnum::Float64, vstring::String) = interleave_with_number_and_string(vs, vnum, vstring)))
+
+    eval(:($(Symbol(:ifelse_, suf))(b::Bool, v::$(prim), vstrings::Vector{String}) = ifelse(b, v, vstrings)))
+
+
 end
 
 
