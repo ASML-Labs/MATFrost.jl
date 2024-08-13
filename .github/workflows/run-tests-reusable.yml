@@ -63,4 +63,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with: 
           path: test-reults
-          name: results-${{ inputs.matlab-version }}-${{ inputs.julia-version }}
+          name: results-${{ inputs.os }}-${{ inputs.matlab-version }}-${{ inputs.julia-version }}
