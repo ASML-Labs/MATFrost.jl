@@ -50,7 +50,21 @@ struct Nest2
     vs::Vector{Nest1}
 end
 
-sum_nest2(v::Nest2) :: Float64 = sum(sum_nest1(e) for e in v.v1) + sum(sum_nest1(e) for e in v.vs; init=0.0)
+# The following function breaks on older Linux Julia versions. Curious behavior.
+sum_nest2_breaking(v::Nest2) :: Float64 = sum(sum_nest1(e) for e in v.v1) + sum(sum_nest1(e) for e in v.vs; init=0.0)
+
+function sum_nest2(v::Nest2) :: Float64 
+    acc = 0.0
+    for e in v.v1
+        acc += sum_nest1(e)
+    end
+
+    for e in v.vs
+        acc += sum_nest1(e)
+    end
+
+    acc
+end
 
 nest2_identity(v::Nest2) = v
 
