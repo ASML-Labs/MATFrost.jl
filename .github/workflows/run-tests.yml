@@ -29,9 +29,9 @@ on:
 jobs:
   ubuntu:
     uses: ./.github/workflows/run-tests-ubuntu.yml
-    if: ${{ ((github.event_name == 'pull_request') && !github.event.pull_request.draft) || (github.event_name == 'push') }}
+    if: ${{ ((github.event_name == 'pull_request') && !github.event.pull_request.draft) || (github.event_name == 'push') || (github.event_name == 'workflow_dispatch') }}
     secrets: inherit
   windows:
     uses: ./.github/workflows/run-tests-windows.yml
-    if: ${{ ((github.event_name == 'pull_request') && !github.event.pull_request.draft) || (github.event_name == 'push') }}
+    if: ${{ ((github.event_name == 'pull_request') && !github.event.pull_request.draft) || (github.event_name == 'push') || (github.event_name == 'workflow_dispatch') }}
     secrets: inherit
