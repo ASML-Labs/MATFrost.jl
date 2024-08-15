@@ -22,7 +22,7 @@ on:
 jobs:
   test:
     runs-on: ${{ inputs.os }}
-    
+    name: ${{ inputs.os }}-${{ inputs.matlab-version }}-${{ inputs.julia-version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
