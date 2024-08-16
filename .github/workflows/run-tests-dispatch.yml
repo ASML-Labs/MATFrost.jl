@@ -9,14 +9,13 @@ on:
         type: choice
         options:
           - 'windows-latest'
-          - 'ubuntu-20.04'
-          - 'macos-latest'
+          - 'ubuntu-latest'
+          # - 'macos-latest'
       matlab-version:
         required: true
         description: "MATLAB version"
         type: choice
         options:
-          - 'R2021a'
           - 'R2021b'
           - 'R2022a'
           - 'R2022b'
