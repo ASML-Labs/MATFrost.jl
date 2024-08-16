@@ -19,13 +19,29 @@ on:
         default: "1.10"
         type: string
 
+
+env:
+  GCC_VERSION: ${{ (startsWith(inputs.matlab-version, 'R2022') && '9' || '10') }}
+
 jobs:
   test:
-    runs-on: ${{ inputs.os }}
+    runs-on:  ${{ inputs.os }}
     name: ${{ inputs.os }}-${{ inputs.matlab-version }}-${{ inputs.julia-version }}
     steps:
+
+      - name: Configure compatible linux GCC compiler for MATLAB.
+        if: ${{ startsWith(inputs.os , 'ubuntu') }}
+        run: |
+          sudo apt-get install g++-${{ env.GCC_VERSION }}
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${{ env.GCC_VERSION }} 100
+          sudo update-alternatives --config g++
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${{ env.GCC_VERSION }} 100
+          sudo update-alternatives --config gcc
+          g++ --version
+          gcc --version
+
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4     
 
       - uses: julia-actions/install-juliaup@v2
         with:
@@ -40,13 +56,15 @@ jobs:
 
       - name: Set up MATLAB on Windows
         uses: matlab-actions/setup-matlab@v2
-        if: startsWith(${{ inputs.os }}, 'windows')
+        if: ${{ startsWith(inputs.os, 'windows') }}
         with:
           release: ${{ inputs.matlab-version }}
           cache: true
           products: >
             ${{ contains(inputs.matlab-version, '2024') && 'MATLAB_Support_for_MinGW-w64_C/C++/Fortran_Compiler' || 'MATLAB_Support_for_MinGW-w64_C/C++_Compiler' }}
         
+
+       
       - name: Run tests
         uses: matlab-actions/run-tests@v2
         env:
