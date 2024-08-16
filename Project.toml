@@ -1,7 +1,7 @@
 name = "MATFrost"
 uuid = "406cae98-a0f7-4766-b83f-8510a556e0e7"
 authors = ["Joris Belier <joris.belier@asml.com>", "Paolo Accordini <paolo.accordini@asml.com>", "Mark Hu <mark.hu@asml.com>"]
-version = "0.2.0"
+version = "0.3.0"
 
 [deps]
 Scratch = "6c6a2e73-6563-6170-7368-637461726353"

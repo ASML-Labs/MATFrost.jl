@@ -1,5 +1,5 @@
 function matfrostversion = matfrostversion
 
-    matfrostversion = "0.2.0";
+    matfrostversion = "0.3.0";
 
 end
