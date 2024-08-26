@@ -1,9 +1,9 @@
 ![MATLAB versions](https://img.shields.io/badge/MATLAB-R2022b-blue.svg)
 ![Julia support](https://img.shields.io/badge/Julia%20-v1.7+-purple)
 
-
-[![windows](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests-windows.yml/badge.svg)](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests-windows.yml)
-[![ubuntu](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests-ubuntu.yml/badge.svg)](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests-ubuntu.yml)
+[![Windows](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests.yml/badge.svg?branch=main)](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests.yml)
+<!-- [![windows](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests-windows.yml/badge.svg)](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests-windows.yml) -->
+<!-- [![ubuntu](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests-ubuntu.yml/badge.svg)](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests-ubuntu.yml) -->
 
 
 # MATFrost.jl - Embedding Julia in MATLAB
@@ -25,7 +25,10 @@ Characteristics:
    uiopen("mingw.mlpkginstall",1)
    ```
    Alternatively, install MinGW-w64 manually and link with MATLAB using `MW_MINGW64_LOC` environment variable.
-2. Linux: GCC installed: https://mathworks.com/support/requirements/supported-compilers-linux.html
+<!-- 2. Linux: GCC installed: https://mathworks.com/support/requirements/supported-compilers-linux.html -->
+
+# Linux not supported yet!
+Linux not supported at this point. Default library `libunwind.so` bundled with MATLAB is incompatible with Julia.  
 
 
 # Quick start 🚀
