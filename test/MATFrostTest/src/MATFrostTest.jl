@@ -16,6 +16,14 @@ function sum_vector_of_vector_f64(vs::Vector{Vector{Float64}}) :: Float64
     acc
 end
 
+struct CompositeNumberType
+    v1::Int64
+    v2::Int32
+    v3::UInt8
+end
+
+sum_composite_number_type(cnt::CompositeNumberType) = cnt.v1 + cnt.v2 + cnt.v3
+
 struct SimplePopulationType
     name::String
     population::Int64
@@ -65,6 +73,11 @@ function sum_nest2(v::Nest2) :: Float64
 
     acc
 end
+
+multiple_method_definitions(x::Float64)="First"
+multiple_method_definitions(x::Int64)="Second"
+multiple_method_definitions(x::Float64, y::Int64)="Third"
+
 
 nest2_identity(v::Nest2) = v
 
