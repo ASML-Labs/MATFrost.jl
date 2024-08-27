@@ -21,10 +21,12 @@ classdef matfrost_abstract_test < matlab.unittest.TestCase
                 instantiate = false);
             
             matfpath = strrep(fileparts(fileparts(mfilename('fullpath'))), "\", "\\");
-            system(sprintf('julia -E "import Pkg ; Pkg.develop(path=\\"%s\\") ; Pkg.instantiate()"', matfpath), ...
-                "JULIA_PROJECT",   tc.mjl.environment, ...
-                "PATH",            fileparts(tc.mjl.julia), ... 
-                "LD_LIBRARY_PATH", fullfile(fileparts(fileparts(tc.mjl.julia)), "lib"));
+            
+            env.JULIA_PROJECT = tc.mjl.environment;
+            env.PATH = fileparts(tc.mjl.julia);
+            env.LD_LIBRARY_PATH = fullfile(fileparts(fileparts(tc.mjl.julia)), "lib");
+
+            [status, output] = shell('julia', ['+' char(julia_version)], '-e',  "import Pkg ; Pkg.develop(path=\"""+ matfpath + "\"") ; Pkg.instantiate()", environmentVariables=env, echo=true);
 
         end
     end
