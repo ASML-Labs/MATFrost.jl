@@ -2,3 +2,6 @@ name = "MATFrostTest"
 uuid = "13500e4e-9d63-4f78-ab54-2a107fc91083"
 authors = ["Joris Belier <joris.belier@asml.com>"]
 version = "0.1.0"
+
+[deps]
+MATFrost = "406cae98-a0f7-4766-b83f-8510a556e0e7"

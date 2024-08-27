@@ -1,4 +1,7 @@
 .vscode
+.idea
+cmake-build-debug
+CMakeLists.txt
 *.mexw64
 *.mexa64
 *.asv

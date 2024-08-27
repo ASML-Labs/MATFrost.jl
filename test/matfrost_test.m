@@ -29,6 +29,19 @@ classdef matfrost_test < matfrost_abstract_test
                 acc);
 
         end
+
+        function simple_composite_type(tc)
+            ct = struct;
+            ct.v1 = int64(322);
+            ct.v2 = int32(3913);
+            ct.v3 = uint8(33);
+
+            tc.verifyEqual(...
+                tc.mjl.MATFrostTest.sum_composite_number_type(ct), ...
+                int64(322+3913+33));
+
+        end
+
         function simple_struct(tc)
             
             p1 = struct;
