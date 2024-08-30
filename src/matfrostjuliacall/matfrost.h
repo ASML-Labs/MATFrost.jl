@@ -31,6 +31,9 @@ struct MATFrostOutputUnwrap {
     MATFrostArray value;
 };
 
+__declspec(dllimport) void jl_init();
+__declspec(dllimport) void* jl_eval_string(const char *str);
+__declspec(dllimport) void* jl_unbox_voidpointer(void* v) ;
 
 
 

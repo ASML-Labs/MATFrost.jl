@@ -1,5 +1,3 @@
-
-#include <julia.h>
 #include "mex.hpp"
 #include "mexAdapter.hpp"
 
@@ -7,7 +5,10 @@
 // stdc++ lib
 #include <string>
 #include <complex>
+extern "C" {
 #include "matfrost.h"
+}
+
 
 namespace MATFrost::ConvertToJulia {
 

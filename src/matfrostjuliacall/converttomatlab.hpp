@@ -1,5 +1,3 @@
-
-#include <julia.h>
 #include "mex.hpp"
 #include "mexAdapter.hpp"
 
@@ -8,7 +6,9 @@
 #include <string>
 #include <complex>
 
+extern "C" {
 #include "matfrost.h"
+}
 
 
 

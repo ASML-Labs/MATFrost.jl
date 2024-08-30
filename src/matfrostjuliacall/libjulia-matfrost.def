@@ -1,0 +1,5 @@
+LIBRARY libjulia.dll
+EXPORTS
+	jl_init
+	jl_unbox_voidpointer
+	jl_eval_string
