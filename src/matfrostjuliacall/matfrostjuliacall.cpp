@@ -121,27 +121,24 @@ public:
 
             auto mfa = MATFrost::ConvertToJulia::convert(inputs[0]);
 
-            auto juliacall = (jl_value_t* (*)(MATFrostArray))  jl_unbox_voidpointer(jl_eval_string("MATFrost._JuliaCall.juliacall_c()"));
-            auto unwrap    = (MATFrostOutputUnwrap (*)(jl_value_t*))  jl_unbox_voidpointer(jl_eval_string("MATFrost._JuliaCall.unwrap_c()"));
+            auto juliacall = (MATFrostArray (*)(MATFrostArray))  jl_unbox_voidpointer(jl_eval_string("MATFrost._JuliaCall.juliacall_c()"));
+            auto freematfrostmemory    = (void (*)(MATFrostArray))  jl_unbox_voidpointer(jl_eval_string("MATFrost._JuliaCall.freematfrostmemory_c()"));
 
-            jl_value_t*   jlo = juliacall(mfa->matfrostarray);
+            MATFrostArray   jlo = juliacall(mfa->matfrostarray);
 
-            JL_GC_PUSH1(jlo);
+            const matlab::data::StructArray mato = MATFrost::ConvertToMATLAB::convert(jlo);
 
-            const MATFrostOutputUnwrap mfao = unwrap(jlo);
+            freematfrostmemory(jlo);
 
-            const matlab::data::Array mato = MATFrost::ConvertToMATLAB::convert(mfao.value);
-
-            JL_GC_POP();
-
-            if (mfao.exception) {
-                const matlab::data::StructArray matso = mato;
+            const matlab::data::TypedArray<bool> exception_b = mato[0]["exception"];
+            if (exception_b[0]) {
+                const matlab::data::StructArray matso = mato[0]["value"];
                 const matlab::data::StringArray exception_id = matso[0]["id"];
                 const matlab::data::StringArray exception_message = matso[0]["message"];
                 throw matlab::engine::MATLABException(exception_id[0], exception_message[0]);
             }
 
-            outputs[0] = mato;
+            outputs[0] = mato[0]["value"];
 
         }
         catch(const matlab::engine::MATLABException& ex)

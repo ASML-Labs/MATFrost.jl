@@ -14,18 +14,11 @@ module _JuliaCall
     end
 
     struct MATFrostOutput
-        value::MATFrostArray
-        data::Any
+        value::Any
         exception::Bool
-    end
-    
-    struct MATFrostOutputUnwrap
-        exception::Bool
-        value::MATFrostArray
-    end
+    end   
 
-    # module MATFrostPackage
-    # end
+    const MATFROSTMEMORY = Dict{MATFrostArray, Any}()
 
     function juliacall(mfa::MATFrostArray)
 
@@ -33,8 +26,7 @@ module _JuliaCall
             fns = [Symbol(unsafe_string(unsafe_load(mfa.fieldnames, i))) for i in 1:mfa.nfields]
 
             if !(:package in fns && :func in fns && :args in fns)
-                s = _ConvertToMATLAB.convert("Not working2" * string(fns))
-                return MATFrostOutput(s.matfrostarray, s, false)
+                throw(MATFrostException("matfrostjulia:incorrectInputSignature", "Missing either field: 'package', 'func' or 'args'."))
             end
 
             package_i  = findfirst(fn -> fn == :package, fns)
@@ -88,41 +80,32 @@ module _JuliaCall
             # The main Julia call
             vo = func(args...)
             
-            vom = _ConvertToMATLAB.convert(vo)
-
-            return MATFrostOutput(vom.matfrostarray, vom, false)
+            vom = _ConvertToMATLAB.convert(MATFrostOutput(vo, false))
+            MATFROSTMEMORY[vom.matfrostarray] = vom
+            return vom.matfrostarray
         catch e
             if isa(e, MATFrostException)
-                mfe = _ConvertToMATLAB.convert(e)
-                return MATFrostOutput(mfe.matfrostarray, mfe, true)
+                mfe = _ConvertToMATLAB.convert(MATFrostOutput(e, true))
+                MATFROSTMEMORY[mfe.matfrostarray] = mfe
+                return mfe.matfrostarray
             else
-                s = _ConvertToMATLAB.convert(MATFrostException("matfrostjulia:crashed", sprint(showerror, e, catch_backtrace())))
-                return MATFrostOutput(s.matfrostarray, s, true)
+                mfe = _ConvertToMATLAB.convert(MATfrostOutput(MATFrostException("matfrostjulia:crashed", sprint(showerror, e, catch_backtrace())), true))
+                MATFROSTMEMORY[mfe.matfrostarray] = mfe
+                return mfe.matfrostarray
             end
         end
 
+    end    
+
+    juliacall_c() = @cfunction(juliacall, MATFrostArray, (MATFrostArray,))
+
+    function freematfrostmemory(mfa::MATFrostArray)
+        delete!(MATFROSTMEMORY, mfa)
+        return nothing
     end
 
-    function juliacall_test(mfa::MATFrostArray)
-        s = _ConvertToMATLAB.convert("Is this working on Linux?")
-
-        MATFrostOutput(s.matfrostarray, s, false)
-    end
-
-    juliacall_c() = @cfunction(juliacall, Any, (MATFrostArray,))
+    freematfrostmemory_c() = @cfunction(freematfrostmemory, Cvoid, (MATFrostArray,))
 
 
-    unwrap(val::MATFrostOutput) = MATFrostOutputUnwrap(val.exception, val.value)
-
-    unwrap_c() = @cfunction(unwrap, MATFrostOutputUnwrap, (Any,))
-
-
-
-    test2 = ["SDF", "SDFS", "FD"]
-
-    mfa = MATFrostArray(0, 0, 0, 0, 0, 0)
-
-    test1 = juliacall(mfa)
-    
 
 end
