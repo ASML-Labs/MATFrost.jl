@@ -8,18 +8,19 @@
 // External dependencies
 // using namespace matlab::data;
 using matlab::mex::ArgumentList;
-#include <julia.h>
 #include <thread>
 #include <condition_variable>
 #include <mutex>
 
 #include <complex>
 
-#include "matfrost.h"
 #include <chrono>
 #include "converttojulia.hpp"
 #include "converttomatlab.hpp"
 
+extern "C" {
+    #include "matfrost.h"
+}
 
 
 
@@ -36,7 +37,7 @@ private:
     std::condition_variable cv_jl;
 
     
-    bool_t                          exception_triggered = false;
+    bool                          exception_triggered = false;
     matlab::engine::MATLABException exception_matlab;
     
     // std::string julia_environment_path;

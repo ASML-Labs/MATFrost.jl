@@ -1,5 +1,5 @@
-function bjlname = matfrostjuliacallname(juliaexe)
+function bjlname = matfrostjuliacallname()
 
-    bjlname = "matfrostjuliacall_" + mlreportgen.utils.hash(string(version) + juliaversion(juliaexe) + matfrostversion());
+    bjlname = "matfrostjuliacall_" + mlreportgen.utils.hash(string(version) + matfrostversion());
 
 end
