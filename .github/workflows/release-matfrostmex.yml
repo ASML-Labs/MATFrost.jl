@@ -1,0 +1,32 @@
+name: "Release MATFrost MEX binary."
+
+on:
+  workflow_dispatch:
+    # push:
+    #     tags:
+    #         - mex-v*
+
+jobs:
+  build-and-release-windows:
+    runs-on: windows-latest
+    name: windows-R2022b
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4                
+      - name: Set up MATLAB on Windows
+        uses: matlab-actions/setup-matlab@v2
+        with:
+          release: R2022b
+          cache: true
+          products: >
+              ${{ contains('R2022b', '2024') && 'MATLAB_Support_for_MinGW-w64_C/C++/Fortran_Compiler' || 'MATLAB_Support_for_MinGW-w64_C/C++_Compiler' }}
+      - name: Compile MEX binary
+        uses: matlab-actions/run-command@v2
+        with:
+          command: addpath("src/matfrostjuliacall"), matfrostmake("matfrostjuliacall_r2022b")
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with: 
+          path: src/matfrostjuliacall/bin
+          name: matfrost-mex-win-x64
