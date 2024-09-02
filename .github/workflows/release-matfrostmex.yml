@@ -2,31 +2,58 @@ name: "Release MATFrost MEX binary."
 
 on:
   workflow_dispatch:
-    # push:
-    #     tags:
-    #         - mex-v*
-
+    inputs:
+      matfrost-mex-version:
+        required: true
+        description: "MATFrost MEX version"
+        default: 0.0.0
 jobs:
-  build-and-release-windows:
+  build-mex-binary:
+    strategy:
+      matrix:
+        matlab-version: ['2021b', '2022a', '2022b', '2023a', '2023b'] #, '2024a']
     runs-on: windows-latest
-    name: windows-R2022b
+    name: windows-R${{ matrix.matlab-version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4                
       - name: Set up MATLAB on Windows
         uses: matlab-actions/setup-matlab@v2
         with:
-          release: R2022b
-          cache: true
+          release: R${{ matrix.matlab-version }}
+          # cache: true
           products: >
-              ${{ contains('R2022b', '2024') && 'MATLAB_Support_for_MinGW-w64_C/C++/Fortran_Compiler' || 'MATLAB_Support_for_MinGW-w64_C/C++_Compiler' }}
+              ${{ contains(matrix.matlab-version, '2024') && 'MATLAB_Support_for_MinGW-w64_C/C++/Fortran_Compiler' || 'MATLAB_Support_for_MinGW-w64_C/C++_Compiler' }}
       - name: Compile MEX binary
         uses: matlab-actions/run-command@v2
         with:
-          command: addpath("src/matfrostjuliacall"), matfrostmake("matfrostjuliacall_r2022b")
+          command: addpath("src/matfrostjuliacall"), matfrostmake("matfrostjuliacall_r${{ matrix.matlab-version }}")
       - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with: 
           path: src/matfrostjuliacall/bin
-          name: matfrost-mex-win-x64
+          name: matfrost-mex-win-r${{ matrix.matlab-version }}-x64
+  release-mex-binary:
+    needs: build-mex-binary
+    runs-on: ubuntu-latest
+    name: Release-MEX-Binary
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4         
+      - name: Download MEX artifacts
+        uses: actions/download-artifact@v4
+        with: 
+          path: mexbinwin
+          merge-multiple: true
+      - name: Display structure of downloade MEX binaries.
+        run: ls -R mexbinwin
+      - name: Upload MEX binaries
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd mexbinwin 
+          tar -czvf ../matfrost-mex-v${{ inputs.matfrost-mex-version }}-win-x64.tar.gz *
+          cd ..
+          gh release create matfrost-mex-v${{ inputs.matfrost-mex-version }} --latest=false matfrost-mex-v${{ inputs.matfrost-mex-version }}-win-x64.tar.gz
+
