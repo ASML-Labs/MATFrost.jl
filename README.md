@@ -80,10 +80,10 @@ In this section we would like to explain the workflow of integrating Julia funct
 
    end # module MATFrostWorkflowExample
    ```
-6. Construct a `MATFrostWorkflowExample` object. This will spawn a Julia process with the `MATFrostWorkflowExample` environment.
+6. Construct a `MATFrostWorkflowExample` object. This will spawn a Julia process (using Juliaup channel +1.10) set to `MATFrostWorkflowExample` environment.
    ```matlab
    mjl = MATFrostWorkflowExample(...
-      environment = <MATFrostWorkflowExample>);
+      version = "1.10");
    ```
 7. Call `broadcast_multiply`. This will call function `broadcast_multiply` in package `MATFrostWorkflowExample` of environment `MATFrostWorkflowExample`.
    ```matlab
