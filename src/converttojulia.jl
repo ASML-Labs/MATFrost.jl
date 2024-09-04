@@ -8,15 +8,6 @@ function new_array(::Type{T}, dims::Ptr{Csize_t}, nel::Csize_t) where {T}
 end
 
 
-const new_array_c = @cfunction(new_array, Any, (Any, Ptr{Csize_t}, Csize_t))
-
-function new_primitive_array(T, dims::Ptr{Csize_t}, ndims::Csize_t, data::Ptr{Cvoid})
-    a = new_array(T, dims, ndims)
-    unsafe_copyto!(pointer(a), reinterpret(Ptr{eltype(T)}, data), length(a))
-    a
-end
-
-
 const LOGICAL = Int32(0)
 
 const CHAR = Int32(1)
@@ -214,6 +205,8 @@ expected_matlab_type(::Type{Complex{UInt32}})   = "complex uint32"
 expected_matlab_type(::Type{Complex{Int32}})    = "complex int32"
 expected_matlab_type(::Type{Complex{UInt64}})   = "complex uint64"
 expected_matlab_type(::Type{Complex{Int64}})    = "complex int64"
+
+expected_matlab_type(::Type{Array{T, N}}) where {T <: Number, N} = expected_matlab_type(T)
 
 function incompatible_datatypes_exception(::Type{T}, mfa::MATFrostArray) where {T}
     MATFrostException(
@@ -516,29 +509,6 @@ function convert_to_julia(::Type{T}, mfa::MATFrostArray) where {T <: Tuple}
         ntuple(i-> unsafe_load(unsafe_load(mfadata, i)), Val(length(fieldnames(T))))
     )
 end
-
-struct MATFrostOutput
-    value::Any
-    exception::Bool
-end
-
-function convert_to_julia_main(::Type{T}, mfa::MATFrostArray) where {T}
-    try
-        return MATFrostOutput(convert_to_julia(T, mfa), false)
-    catch e
-        if isa(e, MATFrostException)
-            return MATFrostOutput(e, true)
-        else
-            return MATFrostOutput(MATFrostException("MATFrost crashed", sprint(showerror, e, catch_backtrace())), true)
-        end
-    end
-
-end
-
-
-const convert_to_julia_c() = @cfunction(convert_to_julia_main, Any, (Any, MATFrostArray))
-
-
 
 
 end

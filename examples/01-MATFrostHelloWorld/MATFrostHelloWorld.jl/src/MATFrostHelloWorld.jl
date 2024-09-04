@@ -27,6 +27,19 @@ matfrost_polynomial_quadratic_multiplication(p1::PolynomialQuadratic, p2::Polyno
 )
 
 
+struct City
+   name::String
+   population::Int64
+end
+
+struct Country
+   cities::Vector{City}
+   area::Float64
+end
+
+total_population(country::Country) = sum((city.population for city in country.cities))
+
+
 
 
 end # module MATFrostHelloWorld
