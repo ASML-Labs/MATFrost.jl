@@ -17,55 +17,62 @@ Characteristics:
 3. Leveraging Julia environments for reproducible builds.
 4. Julia runs in its own mexhost process.
 
-# Prerequisites: MATLAB MEX C++ compiler configured
-1. Windows: MinGW-w64 installed: https://mathworks.com/support/requirements/supported-compilers.html 
-   ```matlab
-   % Install official MATLAB MinGW-w64 add-on.
-   websave("mingw.mlpkginstall", "https://mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/52848/versions/22/download/mlpkginstall")
-   uiopen("mingw.mlpkginstall",1)
-   ```
-   Alternatively, install MinGW-w64 manually and link with MATLAB using `MW_MINGW64_LOC` environment variable.
-<!-- 2. Linux: GCC installed: https://mathworks.com/support/requirements/supported-compilers-linux.html -->
 
 # Linux not supported yet!
-Linux not supported at this point. Default library `libunwind.so` bundled with MATLAB is incompatible with Julia.  
+Linux not supported at this point. Default library `libunwind.so` bundled with MATLAB is incompatible with Julia. 
 
 
 # Quick start 🚀
 ```matlab
 % MATLAB
-system('julia --project="@MATFrostEnvironment" -e "import Pkg ; Pkg.add(name=""MATFrost"")"');
-   % Install MATFrost
+system('julia -e "import Pkg ; Pkg.generate(""MATFrostHelloWorld"") ; Pkg.activate(""./MATFrostHelloWorld"") ; Pkg.add(name=""MATFrost"")" ; Pkg.instantiate()');
+   % Generate a MATFrost Julia project and add MATFrost.
 
-[~, matfrostmatlabpath] = system('julia --project="@MATFrostEnvironment" -e "import MATFrost ; print(MATFrost.matlabpathexamples())"');
-addpath(matfrostmatlabpath);
-   % Bootstrap MATFrost (including examples)
+system('julia --project="./MATFrostHelloWorld" -e "import MATFrost ; MATFrost.install()"');
+   % Generate MATLAB bindings for MATFrostHelloWorld
 
-mjl = matfrostjulia(...
-    environment=matfrost_helloworld_environment(), ... % Example Hello World environment. 
+writelines(...
+   "module MATFrostHelloWorld" + newline + ...
+      "matfrost_hello_world()=""Hello Julia! :)""" + newline + ...
+   "end", ...
+   fullfile("MATFrostHelloWorld", "src", "MATFrostHelloWorld.jl"))
+   % Add simple hello_world function
+
+mjl = MATFrostHelloWorld(...
     instantiate=true); 
    % Spawn a matfrostjulia process running JULIA
 
-mjl.MATFrostHelloWorld.matfrost_hello_world() % 'Hello Julia! :)'
-   % (See: examples/01-MATFrostHelloWorld/MATFrostHelloWorld.jl)
+mjl.MATFrostHelloWorld.matfrost_hello_world() 
+   % 'Hello Julia! :)'
 ```
 
 
 For more examples see the examples folder. 
 
 # Workflow
-To call a Julia function using MATFrost, the Julia function needs to satisfy some conditions. These conditions include fully typed input signatures and single method implementation (see later section for more info on these conditions). These conditions have been set to remove interface ambiguities but goes against the overall Julia vision of aiming for high extensibility. What this means in practice is that to be able to call Julia functions from MATLAB, very likely, a MATFrost Julia interface function needs to be created that wraps around Julia functionality. 
+In this section we would like to explain the workflow of integrating Julia functionality into MATLAB using MATFrost. 
 
-In this section we would like to give you a simple example of integrating Julia functionality.
-
-1. Generate new Julia package/environment
+1. Generate a new Julia environment. 
    ```
    (@v1.10) pkg> generate MATFrostWorkflowExample
       Generating  project MATFrostWorkflowExample:
         MATFrostWorkflowExample/Project.toml
         MATFrostWorkflowExample/src/MATFrostWorkflowExample.jl
    ```
-2. Edit `MATFrostWorkflowExample/src/MATFrostWorkflowExample.jl`
+2. Activate environment
+   ```
+   (@v1.10) pkg> activate ./MATFrostWorkflowExample
+   ```
+3. Add MATFrost dependency
+   ```
+   (MATFrostWorkflowExample) pkg> add MATFrost
+   ```
+4. Generate MATLAB bindings. This will create a new class folder `@MATFrostWorkflowExample` acting as the MATLAB entrypoint.
+   ```julia
+   using MATFrost
+   MATFrost.install()
+   ```
+5. Edit `MATFrostWorkflowExample/src/MATFrostWorkflowExample.jl`
    ```julia
    module MATFrostWorkflowExample
 
@@ -73,12 +80,12 @@ In this section we would like to give you a simple example of integrating Julia 
 
    end # module MATFrostWorkflowExample
    ```
-3. Construct `matfrostjulia` object with `environment` set to the path to the newly created Julia environment `MATFrostWorkflowExample`.
+6. Construct a `MATFrostWorkflowExample` object. This will spawn a Julia process with the `MATFrostWorkflowExample` environment.
    ```matlab
-   mjl = matfrostjulia(...
+   mjl = MATFrostWorkflowExample(...
       environment = <MATFrostWorkflowExample>);
    ```
-4. Call `broadcast_multiply`
+7. Call `broadcast_multiply`. This will call function `broadcast_multiply` in package `MATFrostWorkflowExample` of environment `MATFrostWorkflowExample`.
    ```matlab
    mjl.MATFrostWorkflowExample.broadcast_multiply(3.0, [1.0; 2.0; 3.0]) % [3.0; 6.0; 9.0]
    ``` 
@@ -86,33 +93,29 @@ In this section we would like to give you a simple example of integrating Julia 
 
 # API
 
-## Construct `matfrostjulia`
-Constructing a `matfrostjulia` object will spawn a new process with Julia loaded. The constructor will need information such that it can find the Julia binaries and it will need the path to the Julia environment.
+## Construct MATFrost object
+Constructing a MATFrost object, which from now on we call `MATFrostHelloWorld`, will spawn a new process with Julia loaded. The Julia binaries are specified in the constructor. Three options are given to locate the Julia binaries.
 
 * Option 1 (recommended): Julia version to link to Julia binaries - requires Juliaup:
    ```matlab
-   mjl = matfrostjulia(...
-      environment = <environment_dir>, ... % Directory containing Julia environment.
+   mjl = MATFrostHelloWorld(...
       version = "1.10");                   % Julia version. (Accepted values are Juliaup channels)
    ```
 * Option 2: Julia binary directory:
    ```matlab
-   mjl = matfrostjulia(...
-      environment = <environment_dir>, ... % Directory containing Julia environment.
+   mjl = MATFrostHelloWorld(...
       bindir = <bindir>);                  % Directory containing Julia binaries
    ```
 * Option 3: Based on Julia configured in PATH
    ```matlab
-   mjl = matfrostjulia(...              
-      environment = <environment_dir>);    % Directory containing Julia environment.
+   mjl = MATFrostHelloWorld();    % Directory containing Julia environment.
    ```
 
 ### Option: Instantiate
-An additional option instantiate will resolve project environment at construction of `matfrostjulia`. This will call `Pkg.instantiate()`. 
+An additional option instantiate will resolve project environment at construction of `MATFrostHelloWorld`. This will call `Pkg.instantiate()`. 
 
 ```matlab
-mjl = matfrostjulia(...
-   environment = <environment_dir>, ... 
+mjl = MATFrostHelloWorld(...
    version = "1.10", ...
    instantiate = true);  % By default is turned off.              
 ```
@@ -135,8 +138,7 @@ Package1.function1(arg1, arg2)
 And to increase readability:
 ```matlab
 % MATLAB
-mjl = matfrostjulia(...
-    environment = matfrost_helloworld_environment());
+mjl = MATFrostHelloWorld();
     
 hwjl = mjl.MATFrostHelloWorld; 
 
@@ -144,7 +146,7 @@ hwjl.matfrost_hello_world(); % 'Hello Julia! :)'
 ```
 
 ## Conditions Julia functions
-To be able to call Julia functions through `matfrostjulia` it needs to satisfy some conditions.
+To be able to call Julia functions through MATFrost it needs to satisfy some conditions.
 
 1. The Julia function should have a single method implementation.
 2. The function input signature should be fully typed and concrete entirely (meaning any nested type is concrete as well). 
@@ -235,11 +237,11 @@ end
 
 ```matlab
 % MATLAB
-cities      = struct("name", "Amsterdam", "population", int64(920));
-cities(2,1) = struct("name", "Den Haag",  "population", int64(565));
-cities(3,1) = struct("name", "Eindhoven", "population", int64(246));
+cities = [struct(name="Amsterdam", population=int64(920)); ...
+          struct(name="Den Haag",  population=int64(565)); ...
+          struct(name="Eindhoven", population=int64(246))];
 
-country = struct("cities", cities, "area", 321.0)
+country = struct(cities=cities, area=321.0)
 
 mjl.Population.total_population(cities) % 920+565+246 = 1731
 ```

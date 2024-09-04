@@ -6,27 +6,54 @@ classdef matfrost_abstract_test < matlab.unittest.TestCase
 
     properties (ClassSetupParameter)
         julia_version = get_julia_version()
+
+        mexbinaries = {"COMPILE", "PRECOMPILED_ARTIFACTS"}
     end    
     
     properties
-        mjl matfrostjulia
+        mjl
     end
 
     methods(TestClassSetup)
-        function setup_matfrost(tc, julia_version)
+        function setup_matfrost(tc, julia_version, mexbinaries)
 
-           tc.mjl = matfrostjulia(...
-                environment = tc.environment, ...
-                version     = julia_version, ...
-                instantiate = false);
-            
+            delete(fullfile(fileparts(mfilename("fullpath")), "@MATFrostTest/*"));
+            delete(fullfile(fileparts(mfilename("fullpath")), "@MATFrostTest/private/*"));
+
+
+            [~, bindir] = shell('julia', ['+' char(version)], '-e',  'println(Sys.BINDIR)');
+
             matfpath = strrep(fileparts(fileparts(mfilename('fullpath'))), "\", "\\");
             
-            env.JULIA_PROJECT = tc.mjl.environment;
-            env.PATH = fileparts(tc.mjl.julia);
-            env.LD_LIBRARY_PATH = fullfile(fileparts(fileparts(tc.mjl.julia)), "lib");
+            env.JULIA_PROJECT = tc.environment;
+            env.PATH = fileparts(bindir);
+            env.LD_LIBRARY_PATH = fullfile(fileparts(bindir), "lib");
 
-            [status, output] = shell('julia', ['+' char(julia_version)], '-e',  "import Pkg ; Pkg.develop(path=\"""+ matfpath + "\"") ; Pkg.instantiate()", environmentVariables=env, echo=true);
+            shell('julia', ['+' char(julia_version)], '-e',  "import Pkg ; Pkg.develop(path=\"""+ matfpath + "\"") ; Pkg.resolve() ; using MATFrost ; MATFrost.install()", environmentVariables=env, echo=true);
+
+            if mexbinaries == "COMPILE"
+                addpath(fullfile(fileparts(fileparts(mfilename("fullpath"))), "src/matfrostjuliacall"));
+
+                matv = regexp(version, "R20\d\d[ab]", "match");
+                matv = matv{1};
+                mjlname = "matfrostjuliacall_r" + string(matv(2:end));
+
+
+                mjlfile = mjlname + "." + mexext();
+                if ~exist(fullfile(fileparts(fileparts(mfilename("fullpath"))), "src/matfrostjuliacall/bin", mjlfile), "file")
+                    matfrostmake(mjlname);
+                end
+
+                delete(fullfile(fileparts(mfilename("fullpath")), "@MATFrostTest/private/matfrostjuliacall_*"))
+
+                copyfile( ...
+                    fullfile(fileparts(fileparts(mfilename("fullpath"))), "src/matfrostjuliacall/bin", mjlfile), ...
+                    fullfile(fileparts(mfilename("fullpath")), "@MATFrostTest/private", mjlfile));
+            end
+
+            tc.mjl = MATFrostTest(...
+                version     = julia_version, ...
+                instantiate = true);
 
         end
     end
