@@ -1,7 +1,14 @@
 
-% Spawn a MATFrost process running JULIA
-mjl = matfrostjulia(...
-    environment = matfrost_helloworld_environment());
+%% Install MATFrost environment
+
+system('julia --project="./MATFrostHelloWorld.jl" -e "import Pkg ; Pkg.instantiate()"');
+
+system('julia --project="./MATFrostHelloWorld.jl" -e "import MATFrost ; MATFrost.install()"');
+
+
+
+%% Spawn a MATFrost process running JULIA
+mjl = MATFrostHelloWorld(instantiate=true);
 
 mjl = mjl.MATFrostHelloWorld;
 
