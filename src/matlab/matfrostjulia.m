@@ -11,7 +11,7 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
 % - Julia runs in its own mexhost process.
 
     properties (SetAccess=immutable)
-        environment       (1,1) string = fullfile(fileparts(fileparts(mfilename("fullpath"))), "matfrostjulia")
+        environment       (1,1) string = fullfile(fileparts(fileparts(mfilename("fullpath"))), "{{ relative_environment }}")
         julia             (1,1) string
     end
 
