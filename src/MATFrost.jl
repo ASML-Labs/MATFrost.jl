@@ -1,11 +1,6 @@
 module MATFrost
-using Scratch
-
-mexdir() = @get_scratch!("mexbin") 
-
-matlabpath() = joinpath(pkgdir(MATFrost), "src", "matlab")
-
-matlabpathexamples() = matlabpath() * ";" * joinpath(pkgdir(MATFrost), "examples", "01-MATFrostHelloWorld")
+using Artifacts
+using TOML
 
 struct _MATFrostArray
     type::Cint
@@ -24,5 +19,6 @@ end
 include("converttojulia.jl")
 include("converttomatlab.jl")
 include("juliacall.jl")
+include("install.jl")
 
 end

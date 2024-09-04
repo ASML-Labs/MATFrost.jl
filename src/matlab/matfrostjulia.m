@@ -11,7 +11,7 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
 % - Julia runs in its own mexhost process.
 
     properties (SetAccess=immutable)
-        environment       (1,1) string
+        environment       (1,1) string = fullfile(fileparts(fileparts(mfilename("fullpath"))), "matfrostjulia")
         julia             (1,1) string
     end
 
@@ -30,27 +30,10 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                     % The directory where the Julia environment is located.
                     % This will overrule the version specification.
                     % NOTE: Only needed if version is not specified.
-                argstruct.environment (1,1) string
-                    % Julia environment.
                 argstruct.instantiate (1,1) logical = false
                     % Resolve project environment
             end
             
-            
-            % Check if environment is a relative path
-            if isfolder(fullfile(pwd(), argstruct.environment))    
-                argstruct.environment = fullfile(pwd(), argstruct.environment);
-            
-            % Check if environment is a system-wide environment. 
-            elseif startsWith(argstruct.environment, "@")
-
-            % Check if environment is an absolute path
-            elseif ~isfolder(argstruct.environment)
-                error("matfrostjulia:environment", "Can't find Julia environment");
-            end
-
-            obj.environment = argstruct.environment;
-
             if isfield(argstruct, 'bindir')
                 bindir = argstruct.bindir;
             elseif isfield(argstruct, 'version')
@@ -64,7 +47,8 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
             if ispc
                 obj.julia = fullfile(bindir, "julia.exe");
             elseif isunix
-                obj.julia = fullfile(bindir, "julia");
+                error("matfrostjulia:osNotSupported", "Linux not supported yet.");
+                % obj.julia = fullfile(bindir, "julia");
             else
                 error("matfrostjulia:osNotSupported", "MacOS not supported yet.");
             end
@@ -72,8 +56,11 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
             if argstruct.instantiate
                 environmentinstantiate(obj.julia, obj.environment);
             end
-
-            obj.matfrostjuliacall = getmatfrostjuliacall(obj.julia);
+            
+            matv = regexp(version, "R20\d\d[ab]", "match");
+            matv = matv{1};
+            obj.matfrostjuliacall = "matfrostjuliacall_r" + string(matv(2:end));
+            
             
             obj.spawn_mexhost();
 

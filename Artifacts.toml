@@ -1,0 +1,8 @@
+[[matfrost-mex]]
+arch = "x86_64"
+git-tree-sha1 = "7cc3492dc37c558b0282302c3ecb373a07b0f0f7"
+os = "windows"
+
+    [[matfrost-mex.download]]
+    sha256 = "9a67fd67e35b60436928b20adc2f818d4ad3c44ceafd9402fcd4e46f8e449e63"
+    url = "https://github.com/ASML-Labs/MATFrost.jl/releases/download/matfrost-mex-v0.4.0-alpha.1/matfrost-mex-v0.4.0-alpha.1-win-x64.tar.gz"
