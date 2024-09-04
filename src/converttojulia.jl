@@ -215,6 +215,8 @@ expected_matlab_type(::Type{Complex{Int32}})    = "complex int32"
 expected_matlab_type(::Type{Complex{UInt64}})   = "complex uint64"
 expected_matlab_type(::Type{Complex{Int64}})    = "complex int64"
 
+expected_matlab_type(::Type{Array{T, N}}) where {T <: Number, N} = expected_matlab_type(T)
+
 function incompatible_datatypes_exception(::Type{T}, mfa::MATFrostArray) where {T}
     MATFrostException(
         "matfrostjulia:conversion:incompatibleDatatypes",
