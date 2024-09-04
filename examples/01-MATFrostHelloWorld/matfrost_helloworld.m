@@ -26,3 +26,12 @@ mjl.matfrost_polynomial_quadratic_multiplication( ...
     struct('c0', 6, 'c1', 5, 'c2', 4)) 
     % = struct('c0', 6, 'c1', 17, 'c2', 32, 'c3', 23, 'c4', 12)
 
+
+%% Ex4: Count population of a country.  
+cities = [struct(name="Amsterdam", population=int64(920)); ...
+          struct(name="Den Haag",  population=int64(565)); ...
+          struct(name="Eindhoven", population=int64(246))];
+
+country = struct(cities=cities, area=321.0);
+
+mjl.Population.total_population(country) % 920+565+246 = 1731
