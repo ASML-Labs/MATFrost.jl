@@ -3,6 +3,8 @@ function install()
 
 projectname = TOML.parsefile(Base.active_project())["name"]
 
+projectdirrel = splitpath(Base.active_project())[end-1]
+
 joinpath(pkgdir(MATFrost), "src", "matlab")
 
 matdir = joinpath(Base.active_project(), "..", "..", "TEMP_" * projectname)
@@ -14,7 +16,7 @@ matfrostjulia = read(joinpath(pkgdir(MATFrost), "src", "matlab", "matfrostjulia.
 
 matfrostjulia = replace(matfrostjulia, " matfrostjulia " => " " * projectname * " ")
 matfrostjulia = replace(matfrostjulia, "matfrostjulia(argstruct)" => (projectname * "(argstruct)"))
-matfrostjulia = replace(matfrostjulia, "\"matfrostjulia\"" =>  "\"" * projectname * "\"")
+matfrostjulia = replace(matfrostjulia, "\"matfrostjulia\"" =>  "\"" * projectdirrel * "\"") # Environment
 
 write(joinpath(matdir, projectname * ".m"), matfrostjulia)
 
