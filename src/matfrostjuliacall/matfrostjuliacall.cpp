@@ -39,7 +39,9 @@ private:
     
     bool                          exception_triggered = false;
     matlab::engine::MATLABException exception_matlab;
-    
+
+    MATFrostArray (*juliacall)(MATFrostArray);
+    void (*freematfrostmemory)(MATFrostArray);
     // std::string julia_environment_path;
 
 
@@ -75,8 +77,6 @@ public:
             inputs_p = &inputs;
             outputs_p = &outputs;
 
-
-
             // Start Julia worker Job
             cv_jl.notify_one();
             cv_jl.wait(lk);
@@ -94,7 +94,10 @@ public:
         std::unique_lock<std::mutex> lk(mtx_jl);
         jl_init();
 
-        jl_eval_string("using MATFrost: MATFrost");
+        void* matf = jl_eval_string("using MATFrost: MATFrost");
+
+        juliacall          = (MATFrostArray (*)(MATFrostArray))  jl_unbox_voidpointer(jl_eval_string("MATFrost._JuliaCall.juliacall_c()"));
+        freematfrostmemory = (void (*)(MATFrostArray))           jl_unbox_voidpointer(jl_eval_string("MATFrost._JuliaCall.freematfrostmemory_c()"));
 
         while(true){
             cv_jl.notify_one();
@@ -121,9 +124,6 @@ public:
             jl_eval_string(("import " + pack).c_str());
 
             auto mfa = MATFrost::ConvertToJulia::convert(inputs[0]);
-
-            auto juliacall = (MATFrostArray (*)(MATFrostArray))  jl_unbox_voidpointer(jl_eval_string("MATFrost._JuliaCall.juliacall_c()"));
-            auto freematfrostmemory    = (void (*)(MATFrostArray))  jl_unbox_voidpointer(jl_eval_string("MATFrost._JuliaCall.freematfrostmemory_c()"));
 
             MATFrostArray   jlo = juliacall(mfa->matfrostarray);
 
