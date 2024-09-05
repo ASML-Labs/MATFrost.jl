@@ -40,8 +40,8 @@ private:
     bool                          exception_triggered = false;
     matlab::engine::MATLABException exception_matlab;
 
-    MATFrostArray (*juliacall)(MATFrostArray);
-    void (*freematfrostmemory)(MATFrostArray);
+    MATFrostArray (*juliacall)(MATFrostArray) = nullptr;
+    void (*freematfrostmemory)(MATFrostArray) = nullptr;
     // std::string julia_environment_path;
 
 
@@ -56,7 +56,6 @@ public:
         
         // wait for Julia init to finish.
         cv_jl.wait(lk);
-        
 
     }
 
@@ -94,10 +93,14 @@ public:
         std::unique_lock<std::mutex> lk(mtx_jl);
         jl_init();
 
-        void* matf = jl_eval_string("using MATFrost: MATFrost");
+        void* matf                 = jl_eval_string("using MATFrost: MATFrost");
+        void* juliacall_c          = jl_eval_string("MATFrost._JuliaCall.juliacall_c()");
+        void* freematfrostmemory_c = jl_eval_string("MATFrost._JuliaCall.freematfrostmemory_c()");
 
-        juliacall          = (MATFrostArray (*)(MATFrostArray))  jl_unbox_voidpointer(jl_eval_string("MATFrost._JuliaCall.juliacall_c()"));
-        freematfrostmemory = (void (*)(MATFrostArray))           jl_unbox_voidpointer(jl_eval_string("MATFrost._JuliaCall.freematfrostmemory_c()"));
+        if (matf != nullptr && juliacall_c != nullptr && freematfrostmemory_c != nullptr) {
+            juliacall          = (MATFrostArray (*)(MATFrostArray))  jl_unbox_voidpointer(juliacall_c);
+            freematfrostmemory = (void (*)(MATFrostArray))           jl_unbox_voidpointer(freematfrostmemory_c);
+        }
 
         while(true){
             cv_jl.notify_one();
@@ -111,9 +114,15 @@ public:
 
 
     int juliaworkerjob() {
+        if (juliacall == nullptr || freematfrostmemory == nullptr) {
+            exception_triggered = true;
+            exception_matlab = matlab::engine::MATLABException(
+                "matfrostjulia:MATFrostPackageMissingInEnvironment",
+                u"Configurd Julia environment cannot load required MATFrost package. Either Julia environment is missing MATFrost dependency or environment has not been properly instantiated.");
+            return 0;
+        }
         try
         {
-
             ArgumentList& outputs = *outputs_p;
             ArgumentList& inputs = *inputs_p;
             matlab::data::ArrayFactory factory;
