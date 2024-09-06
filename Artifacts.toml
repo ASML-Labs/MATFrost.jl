@@ -1,7 +1,6 @@
-[[matfrost-mex]]
-arch = "x86_64"
+[matfrost-mex]
 git-tree-sha1 = "3c64e8d2a2e9720abcb9edfdfae4bae4882d0d40"
-os = "windows"
+
 
     [[matfrost-mex.download]]
     sha256 = "26cea9dca7b408b84a9a66e0974aa121253d8c4314687d97bf5c9989e16479e1"
