@@ -63,6 +63,6 @@ function version = get_julia_version()
     if strcmp(getenv('GITHUB_ACTIONS'), 'true')
         version = { getenv('JULIA_VERSION') };
     else
-        version = {'1.7', '1.8', '1.9', '1.10'};
+        version = {'1.7', '1.8', '1.9', '1.10', '1.11'};
     end
 end

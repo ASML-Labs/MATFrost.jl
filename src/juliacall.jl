@@ -97,15 +97,10 @@ module _JuliaCall
 
     end    
 
-    juliacall_c() = @cfunction(juliacall, MATFrostArray, (MATFrostArray,))
-
     function freematfrostmemory(mfa::MATFrostArray)
         delete!(MATFROSTMEMORY, mfa)
         return nothing
     end
-
-    freematfrostmemory_c() = @cfunction(freematfrostmemory, Cvoid, (MATFrostArray,))
-
-
+    
 
 end

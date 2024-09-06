@@ -171,7 +171,8 @@ matlab::data::Array convert(const MATFrostArray mfa) {
         case matlab::data::ArrayType::COMPLEX_INT64:
             return convert_primitive<std::complex<int64_t>>(mfa);
 
-
+        default:
+            throw matlab::engine::MATLABException("matfrostjulia:conversion:typeNotSupported", u"MATFrost does not support conversions to MATLAB from Julia with array_type: " + mfa.type);
 
     }
 }

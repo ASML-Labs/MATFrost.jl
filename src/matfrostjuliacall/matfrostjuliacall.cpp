@@ -39,7 +39,9 @@ private:
     
     bool                          exception_triggered = false;
     matlab::engine::MATLABException exception_matlab;
-    
+
+    MATFrostArray (*juliacall)(MATFrostArray) = nullptr;
+    void (*freematfrostmemory)(MATFrostArray) = nullptr;
     // std::string julia_environment_path;
 
 
@@ -54,7 +56,6 @@ public:
         
         // wait for Julia init to finish.
         cv_jl.wait(lk);
-        
 
     }
 
@@ -75,8 +76,6 @@ public:
             inputs_p = &inputs;
             outputs_p = &outputs;
 
-
-
             // Start Julia worker Job
             cv_jl.notify_one();
             cv_jl.wait(lk);
@@ -94,7 +93,14 @@ public:
         std::unique_lock<std::mutex> lk(mtx_jl);
         jl_init();
 
-        jl_eval_string("using MATFrost: MATFrost");
+        void* matf                 = jl_eval_string("using MATFrost: MATFrost");
+        void* juliacall_c          = jl_eval_string("MATFrost.MEX.juliacall_c()");
+        void* freematfrostmemory_c = jl_eval_string("MATFrost.MEX.freematfrostmemory_c()");
+
+        if (matf != nullptr && juliacall_c != nullptr && freematfrostmemory_c != nullptr) {
+            juliacall          = (MATFrostArray (*)(MATFrostArray))  jl_unbox_voidpointer(juliacall_c);
+            freematfrostmemory = (void (*)(MATFrostArray))           jl_unbox_voidpointer(freematfrostmemory_c);
+        }
 
         while(true){
             cv_jl.notify_one();
@@ -108,9 +114,15 @@ public:
 
 
     int juliaworkerjob() {
+        if (juliacall == nullptr || freematfrostmemory == nullptr) {
+            exception_triggered = true;
+            exception_matlab = matlab::engine::MATLABException(
+                "matfrostjulia:MATFrostPackageMissingInEnvironment",
+                u"Configurd Julia environment cannot load required MATFrost package. Either Julia environment is missing MATFrost dependency or environment has not been properly instantiated.");
+            return 0;
+        }
         try
         {
-
             ArgumentList& outputs = *outputs_p;
             ArgumentList& inputs = *inputs_p;
             matlab::data::ArrayFactory factory;
@@ -120,10 +132,13 @@ public:
             std::string pack = matlab::engine::convertUTF16StringToUTF8String(parr[0]);
             jl_eval_string(("import " + pack).c_str());
 
-            auto mfa = MATFrost::ConvertToJulia::convert(inputs[0]);
+            // During testing it occurred that function pointers became dangling. This issue occurred on Julia 1.8.
+            // Likely this is happening due to package import statement one line above. For safety we retrieve the
+            // pointer for every call.
+            juliacall          = (MATFrostArray (*)(MATFrostArray)) jl_unbox_voidpointer(jl_eval_string("MATFrost.MEX.juliacall_c()"));
+            freematfrostmemory = (void (*)(MATFrostArray))          jl_unbox_voidpointer(jl_eval_string("MATFrost.MEX.freematfrostmemory_c()"));
 
-            auto juliacall = (MATFrostArray (*)(MATFrostArray))  jl_unbox_voidpointer(jl_eval_string("MATFrost._JuliaCall.juliacall_c()"));
-            auto freematfrostmemory    = (void (*)(MATFrostArray))  jl_unbox_voidpointer(jl_eval_string("MATFrost._JuliaCall.freematfrostmemory_c()"));
+            auto mfa = MATFrost::ConvertToJulia::convert(inputs[0]);
 
             MATFrostArray   jlo = juliacall(mfa->matfrostarray);
 

@@ -20,5 +20,7 @@ include("converttojulia.jl")
 include("converttomatlab.jl")
 include("juliacall.jl")
 include("install.jl")
+include("mex.jl")
+
 
 end

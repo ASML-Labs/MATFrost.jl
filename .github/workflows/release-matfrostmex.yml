@@ -11,7 +11,7 @@ jobs:
   build-mex-binary:
     strategy:
       matrix:
-        matlab-version: ['2021b', '2022a', '2022b', '2023a', '2023b'] #, '2024a']
+        matlab-version: ['2021b', '2022a', '2022b', '2023a', '2023b', '2024a']
     runs-on: windows-latest
     name: windows-R${{ matrix.matlab-version }}
     steps:
