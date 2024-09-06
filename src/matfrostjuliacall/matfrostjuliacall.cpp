@@ -94,8 +94,8 @@ public:
         jl_init();
 
         void* matf                 = jl_eval_string("using MATFrost: MATFrost");
-        void* juliacall_c          = jl_eval_string("MATFrost._JuliaCall.juliacall_c()");
-        void* freematfrostmemory_c = jl_eval_string("MATFrost._JuliaCall.freematfrostmemory_c()");
+        void* juliacall_c          = jl_eval_string("MATFrost.MEX.juliacall_c()");
+        void* freematfrostmemory_c = jl_eval_string("MATFrost.MEX.freematfrostmemory_c()");
 
         if (matf != nullptr && juliacall_c != nullptr && freematfrostmemory_c != nullptr) {
             juliacall          = (MATFrostArray (*)(MATFrostArray))  jl_unbox_voidpointer(juliacall_c);
@@ -131,6 +131,12 @@ public:
             const matlab::data::StringArray parr  = sarr[0]["package"];
             std::string pack = matlab::engine::convertUTF16StringToUTF8String(parr[0]);
             jl_eval_string(("import " + pack).c_str());
+
+            // During testing it occurred that function pointers became dangling. This issue occurred on Julia 1.8.
+            // Likely this is happening due to package import statement one line above. For safety we retrieve the
+            // pointer for every call.
+            juliacall          = (MATFrostArray (*)(MATFrostArray)) jl_unbox_voidpointer(jl_eval_string("MATFrost.MEX.juliacall_c()"));
+            freematfrostmemory = (void (*)(MATFrostArray))          jl_unbox_voidpointer(jl_eval_string("MATFrost.MEX.freematfrostmemory_c()"));
 
             auto mfa = MATFrost::ConvertToJulia::convert(inputs[0]);
 
