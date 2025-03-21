@@ -25,7 +25,7 @@ Linux not supported at this point. Default library `libunwind.so` bundled with M
 # Quick start 🚀
 ```matlab
 % MATLAB
-system('julia -e "import Pkg ; Pkg.generate(""MATFrostHelloWorld"") ; Pkg.activate(""./MATFrostHelloWorld"") ; Pkg.add(name=""MATFrost"")" ; Pkg.instantiate()');
+system('julia -e "import Pkg ; Pkg.generate(\"MATFrostHelloWorld\") ; Pkg.activate(\"./MATFrostHelloWorld\") ; Pkg.add(name=\"MATFrost\") ; Pkg.instantiate()"');
    % Generate a MATFrost Julia project and add MATFrost.
 
 system('julia --project="./MATFrostHelloWorld" -e "import MATFrost ; MATFrost.install()"');
