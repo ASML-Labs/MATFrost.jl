@@ -19,12 +19,43 @@ on:
         default: "1.10"
         type: string
 
-
-env:
-  GCC_VERSION: ${{ (startsWith(inputs.matlab-version, 'R2021') || (startsWith(inputs.matlab-version, 'R2022')) && '9' || '10') }}
-
 jobs:
+  config:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Parse MATLAB version
+        id: parse_matlab_version
+        run: |
+          VERSION="${{ inputs.matlab-version }}"
+          YEAR=$(echo "$VERSION" | grep -oP 'R\K[0-9]{4}')
+          RELEASE=$(echo "$VERSION" | grep -oP '[ab]$')
+          echo "MATLAB_YEAR=$YEAR" >> $GITHUB_ENV
+          echo "MATLAB_RELEASE=$RELEASE" >> $GITHUB_ENV
+
+      - name: Set GCC version
+        id: set_gcc_version
+        run: |
+          if [[ "${{ env.MATLAB_YEAR }}" -lt 2021 ]]; then
+            echo "gcc_version=9" >> $GITHUB_OUTPUT
+          else
+            echo "gcc_version=10" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set Windows GCC products
+        id: set_windows_products
+        run: |
+          if [[ "${{ env.MATLAB_YEAR }}" -ge 2024 ]]; then
+            echo "windows_products=MATLAB_Support_for_MinGW-w64_C/C++/Fortran_Compiler" >> $GITHUB_OUTPUT
+          else
+            echo "windows_products=MATLAB_Support_for_MinGW-w64_C/C++_Compiler" >> $GITHUB_OUTPUT
+          fi
+
+    outputs:
+      gcc_version: ${{ steps.set_gcc_version.outputs.gcc_version }}
+      windows_products: ${{ steps.set_windows_products.outputs.windows_products }}
+
   test:
+    needs: [config]
     runs-on:  ${{ inputs.os }}
     name: ${{ inputs.os }}-${{ inputs.matlab-version }}-${{ inputs.julia-version }}
     steps:
@@ -32,10 +63,10 @@ jobs:
       - name: Configure compatible linux GCC compiler for MATLAB.
         if: ${{ startsWith(inputs.os , 'ubuntu') }}
         run: |
-          sudo apt-get install g++-${{ env.GCC_VERSION }}
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${{ env.GCC_VERSION }} 100
+          sudo apt-get install g++-${{ needs.config.outputs.gcc_version }}
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${{ needs.config.outputs.gcc_version }} 100
           sudo update-alternatives --config g++
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${{ env.GCC_VERSION }} 100
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${{ needs.config.outputs.gcc_version }} 100
           sudo update-alternatives --config gcc
           g++ --version
           gcc --version
@@ -47,9 +78,9 @@ jobs:
         with:
           channel: ${{ inputs.julia-version }}
 
-      - name: Set up MATLAB on Unix/Mac
+      - name: Set up MATLAB on Unix
         uses: matlab-actions/setup-matlab@v2
-        if: ${{ !contains( inputs.os, 'windows') }}
+        if: ${{ startsWith(inputs.os , 'ubuntu') }}
         with:
           release: ${{ inputs.matlab-version }}
           cache: true
@@ -60,8 +91,7 @@ jobs:
         with:
           release: ${{ inputs.matlab-version }}
           cache: true
-          products: >
-            ${{ contains(inputs.matlab-version, '2024') && 'MATLAB_Support_for_MinGW-w64_C/C++/Fortran_Compiler' || 'MATLAB_Support_for_MinGW-w64_C/C++_Compiler' }}
+          products: ${{ needs.config.outputs.windows_products }}
         
       - name: Run tests
         uses: matlab-actions/run-tests@v2

@@ -64,6 +64,7 @@ jobs:
   summary:
     name: Summary
     needs: [changed-files, test-matrix]
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
