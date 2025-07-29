@@ -33,7 +33,7 @@ jobs:
         with:
           files_yaml: |
             workflows:
-              - .github/workflows/run-tests*.yaml
+              - .github/workflows/run-tests*.yml
             src:
               - src/**
               - Project.toml

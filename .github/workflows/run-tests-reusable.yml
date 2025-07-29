@@ -35,7 +35,7 @@ jobs:
       - name: Set GCC version
         id: set_gcc_version
         run: |
-          if [[ "${{ env.MATLAB_YEAR }}" -lt 2021 ]]; then
+          if [[ "${{ env.MATLAB_YEAR }}" -le 2021 ]]; then
             echo "gcc_version=9" >> $GITHUB_OUTPUT
           else
             echo "gcc_version=10" >> $GITHUB_OUTPUT
