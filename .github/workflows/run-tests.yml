@@ -9,12 +9,6 @@ on:
       - reopened
       - synchronize
       - ready_for_review
-    paths:
-      - 'src/**'
-      - 'test/**'
-      - 'Project.toml'
-      - '.github/workflows/run-tests.yml'
-      - '.github/workflows/run-tests-reusable.yml'
 
 concurrency:
   group: "${{ github.workflow }}-${{ github.ref }}-${{ github.event.pull_request.merged }}"
