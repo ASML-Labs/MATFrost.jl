@@ -21,7 +21,7 @@ on:
 
 
 env:
-  GCC_VERSION: ${{ (startsWith(inputs.matlab-version, 'R2022') && '9' || '10') }}
+  GCC_VERSION: ${{ (startsWith(inputs.matlab-version, 'R2021') || (startsWith(inputs.matlab-version, 'R2022')) && '9' || '10') }}
 
 jobs:
   test:
@@ -63,8 +63,6 @@ jobs:
           products: >
             ${{ contains(inputs.matlab-version, '2024') && 'MATLAB_Support_for_MinGW-w64_C/C++/Fortran_Compiler' || 'MATLAB_Support_for_MinGW-w64_C/C++_Compiler' }}
         
-
-       
       - name: Run tests
         uses: matlab-actions/run-tests@v2
         env:

@@ -11,7 +11,7 @@ jobs:
   build-mex-binary:
     strategy:
       matrix:
-        matlab-version: ['2021b', '2022a', '2022b', '2023a', '2023b', '2024a']
+        matlab-version: ['2021b', '2022a', '2022b', '2023a', '2023b', '2024a', '2024b', '2025a']
     runs-on: windows-latest
     name: windows-R${{ matrix.matlab-version }}
     steps:
@@ -34,26 +34,27 @@ jobs:
         with: 
           path: src/matfrostjuliacall/bin
           name: matfrost-mex-win-r${{ matrix.matlab-version }}-x64
-  release-mex-binary:
-    needs: build-mex-binary
-    runs-on: ubuntu-latest
-    name: Release-MEX-Binary
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4         
-      - name: Download MEX artifacts
-        uses: actions/download-artifact@v4
-        with: 
-          path: mexbinwin
-          merge-multiple: true
-      - name: Display structure of downloade MEX binaries.
-        run: ls -R mexbinwin
-      - name: Upload MEX binaries
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cd mexbinwin 
-          tar -czvf ../matfrost-mex-v${{ inputs.matfrost-mex-version }}-win-x64.tar.gz *
-          cd ..
-          gh release create matfrost-mex-v${{ inputs.matfrost-mex-version }} --latest=false matfrost-mex-v${{ inputs.matfrost-mex-version }}-win-x64.tar.gz
+
+  # release-mex-binary:
+  #   needs: build-mex-binary
+  #   runs-on: ubuntu-latest
+  #   name: Release-MEX-Binary
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4         
+  #     - name: Download MEX artifacts
+  #       uses: actions/download-artifact@v4
+  #       with: 
+  #         path: mexbinwin
+  #         merge-multiple: true
+  #     - name: Display structure of downloade MEX binaries.
+  #       run: ls -R mexbinwin
+  #     - name: Upload MEX binaries
+  #       env:
+  #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       run: |
+  #         cd mexbinwin 
+  #         tar -czvf ../matfrost-mex-v${{ inputs.matfrost-mex-version }}-win-x64.tar.gz *
+  #         cd ..
+  #         gh release create matfrost-mex-v${{ inputs.matfrost-mex-version }} --latest=false matfrost-mex-v${{ inputs.matfrost-mex-version }}-win-x64.tar.gz
 
