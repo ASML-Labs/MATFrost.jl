@@ -1,4 +1,4 @@
-name: Run Tests Automation
+name: Testing
 
 on:
   pull_request:
@@ -15,6 +15,10 @@ on:
       - 'Project.toml'
       - '.github/workflows/run-tests.yml'
       - '.github/workflows/run-tests-reusable.yml'
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}-${{ github.event.pull_request.merged }}"
+  cancel-in-progress: true
 
 jobs:
   changed-files:
@@ -46,13 +50,12 @@ jobs:
               - examples/**
   
   test-matrix:
-    name: Test Matrix
     needs: [changed-files]
     if: ${{ needs.changed-files.outputs.changed-workflows || needs.changed-files.outputs.changed-src || needs.changed-files.outputs.changed-test || needs.changed-files.outputs.changed-examples }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [winodws-latest']
         julia-version: ['1.7', '1.8', '1.9', '1.10', '1.11']
         matlab-version: ['R2021b', 'R2022a', 'R2022b', 'R2023a', 'R2023b', 'R2024a', 'R2024b', 'R2025a']
     uses: ./.github/workflows/run-tests-reusable.yml
