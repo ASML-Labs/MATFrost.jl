@@ -55,7 +55,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [winodws-latest']
+        os: [winodws-latest]
         julia-version: ['1.7', '1.8', '1.9', '1.10', '1.11']
         matlab-version: ['R2021b', 'R2022a', 'R2022b', 'R2023a', 'R2023b', 'R2024a', 'R2024b', 'R2025a']
     uses: ./.github/workflows/run-tests-reusable.yml
