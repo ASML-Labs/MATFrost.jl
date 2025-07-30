@@ -73,40 +73,46 @@ jobs:
       checks: write
       pull-requests: write
     env:
-      os: windows-latest
-      julia-version: 1.7 1.8 1.9 1.10 1.11
-      matlab-version: R2021b R2022a R2022b R2023a R2023b R2024a R2024b R2025a
+      OS: windows-latest
+      JULIA_VERSION: 1.7 1.8 1.9 1.10 1.11
+      MATLAB_VERSION: R2021b R2022a R2022b R2023a R2023b R2024a R2024b R2025a
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
 
       - name: Generate outcome tables
+        continue-on-error: true
         shell: bash
         run: |
           set -e
-          os_list=($os)
-          julia_versions=($julia_version)
-          matlab_versions=($matlab_version)
-          for os_name in "${os_list[@]}"; do
-            table="| #{os_name} |"
-              for julia in "${julia_versions[@]}"; do
+          os_list=($OS)
+          julia_versions=($JULIA_VERSION)
+          matlab_versions=($MATLAB_VERSION)
+          for os_name in ${os_list[@]}; do
+            echo "Generating outcome table for ${os_name}..."
+            table="| ${os_name} |"
+              for julia in ${julia_versions[@]}; do
                 table+=" $julia |"
               done
-              table+="\n|---|"$(printf '---|' $(seq 1 ${#julia_versions[@]}))"\n"
+              table+="\n|---|"
+              for ((i=0; i<${#julia_versions[@]}; i++)); do
+                table+="---|"
+              done
+              table+="\n"
               for matlab in ${matlab_versions[@]}; do
                 row="| $matlab |"
-                for julia in "${julia_versions[@]}"; do
-                  outcome_file="results-${os_name}-${matlab}-${julia}/outcome.txt"
+                for julia in ${julia_versions[@]}; do
+                  outcome_file=outcome.txt
                   if [[ -f "$outcome_file" ]]; then
-                outcome=$(cat "$outcome_file")
+                    outcome=$(cat "$outcome_file")
                   else
-                outcome="N/A"
+                    outcome="N/A"
                   fi
                   row+=" $outcome |"
                 done
                 table+="$row\n"
               done
-            echo -e "\n### Results for \`$os_name\`\n$table" | tee -a outcome_tables.md
+            echo -e "\n### Results for \`${os_name}\`\n\n$table" | tee -a outcome_tables.md
           done
           cat outcome_tables.md
           echo "" >> $GITHUB_STEP_SUMMARY
