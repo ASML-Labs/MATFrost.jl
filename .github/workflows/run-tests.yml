@@ -18,6 +18,8 @@ jobs:
   changed-files:
     name: Check for changed files
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       changed-workflows: ${{ steps.changed-files.outputs.workflows_any_changed }}
       changed-src: ${{ steps.changed-files.outputs.src_any_changed }}
@@ -46,6 +48,8 @@ jobs:
   test-matrix:
     needs: [changed-files]
     if: ${{ needs.changed-files.outputs.changed-workflows || needs.changed-files.outputs.changed-src || needs.changed-files.outputs.changed-test || needs.changed-files.outputs.changed-examples }}
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -63,13 +67,16 @@ jobs:
     needs: [changed-files, test-matrix]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
 
-      - name: Generate JUnit summary
+      - name: Generate test summary
         if: ${{ needs.changed-files.outputs.changed-workflows || needs.changed-files.outputs.changed-src || needs.changed-files.outputs.changed-test || needs.changed-files.outputs.changed-examples }}
-        uses: mikepenz/action-junit-report@v5
+        uses: EnricoMi/publish-unit-test-result-action@v2
         with:
-          report_paths: results-*/results.xml
-          fail_on_error: true
+          files: results-*/results.xml
+          action_fail: true
