@@ -14,6 +14,11 @@ concurrency:
   group: "${{ github.workflow }}-${{ github.ref }}-${{ github.event.pull_request.merged }}"
   cancel-in-progress: true
 
+env:
+  os: '["windows-latest"]'
+  julia-version: '["1.7", "1.8", "1.9", "1.10", "1.11"]'
+  matlab-version: '["R2021b", "R2022a", "R2022b", "R2023a", "R2023b", "R2024a", "R2024b", "R2025a"]'
+
 jobs:
   changed-files:
     name: Check for changed files
@@ -53,9 +58,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest]
-        julia-version: ['1.7', '1.8', '1.9', '1.10', '1.11']
-        matlab-version: ['R2021b', 'R2022a', 'R2022b', 'R2023a', 'R2023b', 'R2024a', 'R2024b', 'R2025a']
+        os: ${{ fromJson(env.os) }}
+        julia-version: ${{ fromJson(env.julia-version) }}
+        matlab-version: ${{ fromJson(env.matlab-version) }}
+
     uses: ./.github/workflows/run-tests-reusable.yml
     with:
       os: ${{ matrix.os }}
@@ -68,11 +74,45 @@ jobs:
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
-      checks: write
       contents: read
+      checks: write
+      pull-requests: write
+
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
+
+      - name: Generate outcome tables
+        shell: bash
+        run: |
+          set -e
+          os_list=($(echo "$os" | jq -r '.[]'))
+          julia_versions=($(echo "$julia_version" | jq -r '.[]'))
+          matlab_versions=($(echo "$matlab_version" | jq -r '.[]'))
+          for os_name in "${os_list[@]}"; do
+            table="| MATLAB / Julia |"
+              for julia in "${julia_versions[@]}"; do
+                table+=" $julia |"
+              done
+              table+="\n|---|"$(printf '---|' $(seq 1 ${#julia_versions[@]}))"\n"
+              for matlab in ${matlab_versions[@]}; do
+                row="| $matlab |"
+                for julia in "${julia_versions[@]}"; do
+                  outcome_file="results-${os_name}-${matlab}-${julia}/outcome.txt"
+                  if [[ -f "$outcome_file" ]]; then
+                    outcome=$(cat "$outcome_file")
+                  else
+                    outcome="N/A"
+                  fi
+                  row+=" $outcome |"
+                done
+                table+="$row\n"
+              done
+            echo -e "\n### Results for \`$os_name\`\n$table" | tee -a outcome_tables.md
+          done
+          cat outcome_tables.md
+          echo "" >> $GITHUB_STEP_SUMMARY
+          cat outcome_tables.md >> $GITHUB_STEP_SUMMARY
 
       - name: Generate test summary
         if: ${{ needs.changed-files.outputs.changed-workflows || needs.changed-files.outputs.changed-src || needs.changed-files.outputs.changed-test || needs.changed-files.outputs.changed-examples }}

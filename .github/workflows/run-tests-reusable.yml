@@ -94,6 +94,7 @@ jobs:
           products: ${{ needs.config.outputs.windows_products }}
         
       - name: Run tests
+        id: tests
         uses: matlab-actions/run-tests@v2
         env:
           JULIA_VERSION: ${{ inputs.julia-version }}
@@ -101,12 +102,28 @@ jobs:
           source-folder: 'src/matlab'
           select-by-folder: 'test'
           strict: false
-          test-results-junit: test-reults/results.xml
-          code-coverage-cobertura: test-reults/coverage.xml
+          test-results-junit: test-results/results.xml
+          code-coverage-cobertura: test-results/coverage.xml
+      
+      - name: Write test result status
+        if: always()
+        env:
+          outcome: ${{ steps.tests.outcome }}
+        run: |
+          mkdir -p test-results
+          if [ "$outcome" = "success" ]; then
+            echo "✅" > test-results/outcome.txt
+          elif [ "$outcome" = "failure" ]; then
+            echo "❌" > test-results/outcome.txt
+          elif [ "$outcome" = "skipped" ]; then
+            echo "⏭️" > test-results/outcome.txt
+          else
+            echo "❔" > test-results/outcome.txt
+          fi
 
       - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with: 
-          path: test-reults
+          path: test-results
           name: results-${{ inputs.os }}-${{ inputs.matlab-version }}-${{ inputs.julia-version }}
