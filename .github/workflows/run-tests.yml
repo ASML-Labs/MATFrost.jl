@@ -14,11 +14,6 @@ concurrency:
   group: "${{ github.workflow }}-${{ github.ref }}-${{ github.event.pull_request.merged }}"
   cancel-in-progress: true
 
-env:
-  os: '["windows-latest"]'
-  julia-version: '["1.7", "1.8", "1.9", "1.10", "1.11"]'
-  matlab-version: '["R2021b", "R2022a", "R2022b", "R2023a", "R2023b", "R2024a", "R2024b", "R2025a"]'
-
 jobs:
   changed-files:
     name: Check for changed files
@@ -58,16 +53,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJson(env.os) }}
-        julia-version: ${{ fromJson(env.julia-version) }}
-        matlab-version: ${{ fromJson(env.matlab-version) }}
+        os: [windows-latest]
+        julia-version: [1.7, 1.8, 1.9, 1.10, 1.11]
+        matlab-version: [R2021b, R2022a, R2022b, R2023a, R2023b, R2024a, R2024b, R2025a]
 
     uses: ./.github/workflows/run-tests-reusable.yml
     with:
       os: ${{ matrix.os }}
       julia-version: ${{ matrix.julia-version }}
       matlab-version: ${{ matrix.matlab-version }}
-        
+
   summary:
     name: Summary
     needs: [changed-files, test-matrix]
@@ -77,7 +72,10 @@ jobs:
       contents: read
       checks: write
       pull-requests: write
-
+    env:
+      os: windows-latest
+      julia-version: 1.7 1.8 1.9 1.10 1.11
+      matlab-version: R2021b R2022a R2022b R2023a R2023b R2024a R2024b R2025a
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -86,11 +84,11 @@ jobs:
         shell: bash
         run: |
           set -e
-          os_list=($(echo "$os" | jq -r '.[]'))
-          julia_versions=($(echo "$julia_version" | jq -r '.[]'))
-          matlab_versions=($(echo "$matlab_version" | jq -r '.[]'))
+          os_list=($os)
+          julia_versions=($julia_version)
+          matlab_versions=($matlab_version)
           for os_name in "${os_list[@]}"; do
-            table="| MATLAB / Julia |"
+            table="| #{os_name} |"
               for julia in "${julia_versions[@]}"; do
                 table+=" $julia |"
               done
@@ -100,9 +98,9 @@ jobs:
                 for julia in "${julia_versions[@]}"; do
                   outcome_file="results-${os_name}-${matlab}-${julia}/outcome.txt"
                   if [[ -f "$outcome_file" ]]; then
-                    outcome=$(cat "$outcome_file")
+                outcome=$(cat "$outcome_file")
                   else
-                    outcome="N/A"
+                outcome="N/A"
                   fi
                   row+=" $outcome |"
                 done
