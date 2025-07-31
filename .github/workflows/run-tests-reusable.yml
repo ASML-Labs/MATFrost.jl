@@ -106,20 +106,24 @@ jobs:
           code-coverage-cobertura: test-results/coverage.xml
       
       - name: Write test result status
+        shell: python
         if: always()
         env:
           outcome: ${{ steps.tests.outcome }}
         run: |
-          mkdir -p test-results
-          if [ "$outcome" = "success" ]; then
-            echo "✅" > test-results/outcome.txt
-          elif [ "$outcome" = "failure" ]; then
-            echo "❌" > test-results/outcome.txt
-          elif [ "$outcome" = "skipped" ]; then
-            echo "⏭️" > test-results/outcome.txt
-          else
-            echo "❔" > test-results/outcome.txt
-          fi
+          import os
+          os.makedirs('test-results', exist_ok=True)
+          outcome = os.environ.get('outcome', '').lower()
+          if outcome == 'success':
+              symbol = '✅'
+          elif outcome == 'failure':
+              symbol = '❌'
+          elif outcome == 'skipped':
+              symbol = '⏭️'
+          else:
+              symbol = '❔'
+          with open('test-results/outcome.txt', 'w', encoding='utf-8') as f:
+              f.write(symbol)
 
       - name: Upload artifacts
         if: always()
