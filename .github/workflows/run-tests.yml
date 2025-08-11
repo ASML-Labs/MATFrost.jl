@@ -139,3 +139,4 @@ jobs:
         with:
           files: results-*/results.xml
           action_fail: true
+          ignore_runs: true
