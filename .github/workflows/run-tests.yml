@@ -45,8 +45,19 @@ jobs:
             examples:
               - examples/**
   
-  test-matrix:
+  test-single:
     needs: [changed-files]
+    if: ${{ needs.changed-files.outputs.changed-workflows || needs.changed-files.outputs.changed-src || needs.changed-files.outputs.changed-test || needs.changed-files.outputs.changed-examples }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/run-tests-reusable.yml
+    with:
+      os: windows-latest
+      julia-version: 1.11
+      matlab-version: R2025a
+
+  test-matrix:
+    needs: [changed-files, test-single]
     if: ${{ needs.changed-files.outputs.changed-workflows || needs.changed-files.outputs.changed-src || needs.changed-files.outputs.changed-test || needs.changed-files.outputs.changed-examples }}
     permissions:
       contents: read
@@ -56,6 +67,10 @@ jobs:
         os: [windows-latest]
         julia-version: [1.7, 1.8, 1.9, 1.10, 1.11]
         matlab-version: [R2021b, R2022a, R2022b, R2023a, R2023b, R2024a, R2024b, R2025a]
+        exclude:
+          - os: windows-latest
+            julia-version: 1.11
+            matlab-version: 2025a
 
     uses: ./.github/workflows/run-tests-reusable.yml
     with:
