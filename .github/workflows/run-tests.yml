@@ -6,6 +6,13 @@ on:
   pull_request:
     branches:
       - main
+    types:
+      - opened
+      - closed
+      - synchronize
+      - reopened
+      - labelled
+      - unlabelled
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
