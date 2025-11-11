@@ -90,7 +90,7 @@ jobs:
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
-          files: "results/**/test.xml"
+          files: "results/**/results.xml"
 
       - name: Check all jobs
         run: |
