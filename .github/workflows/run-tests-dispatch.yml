@@ -24,6 +24,10 @@ on:
           - 'R2024b'
           - 'R2025a'
           - 'R2025b'
+      julia-versions:
+        required: false
+        description: "Comma-separated Julia versions to test"
+        default: "1.12"
     
       mex-recompile:
         required: true
@@ -36,5 +40,6 @@ jobs:
     with:
       os: ${{ inputs.os }}
       matlab-version: ${{ inputs.matlab-version }}
+      julia-versions: ${{ inputs.julia-versions }}
       mex-recompile: ${{ inputs.mex-recompile }}
 

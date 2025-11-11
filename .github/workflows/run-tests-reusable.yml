@@ -13,6 +13,11 @@ on:
         description: "MATLAB version"
         default: "R2022b"
         type: string
+      julia-versions:
+        required: false
+        description: "Comma-separated Julia versions to test"
+        default: "1.7,1.8,1.9,1.10,1.11,1.12"
+        type: string
       mex-recompile:
         required: true
         description: "Recompile MEX binary"
@@ -71,22 +76,35 @@ jobs:
           path: |
             ~/.julia
             ~/.juliaup
-          key: ${{ inputs.os }}-${{ inputs.matlab-version }}-julia-1.7-1.12
+            C:\hostedtoolcache\windows\juliaup
+          key: ${{ inputs.os }}-${{ inputs.matlab-version }}-julia-${{ inputs.julia-versions }}
+
+      - name: Get latest Julia version
+        if: steps.cache-julia.outputs.cache-hit != 'true'
+        id: julia-version
+        run: |
+          VERSIONS="${{ inputs.julia-versions }}"
+          LATEST="${VERSIONS##*,}"
+          echo "latest=$LATEST" >> $GITHUB_OUTPUT
+        shell: bash
 
       - name: Setup Juliaup
         uses: julia-actions/install-juliaup@v2
         if: steps.cache-julia.outputs.cache-hit != 'true'
         with:
-          channel: '1.12'
+          channel: '${{ steps.julia-version.outputs.latest }}'
 
       - name: Add remaining Julia versions to test
         if: steps.cache-julia.outputs.cache-hit != 'true'
         run: |
-          juliaup add 1.7
-          juliaup add 1.8
-          juliaup add 1.9
-          juliaup add 1.10
-          juliaup add 1.11
+          IFS=',' read -ra VERSIONS <<< "${{ inputs.julia-versions }}"
+          LATEST="${{ steps.julia-version.outputs.latest }}"
+          for version in "${VERSIONS[@]}"; do
+            if [ "$version" != "$LATEST" ]; then
+              juliaup add "$version"
+            fi
+          done
+        shell: bash
 
       - name: Checkout
         uses: actions/checkout@v5
@@ -112,6 +130,8 @@ jobs:
         
       - name: Run tests
         uses: matlab-actions/run-tests@v2
+        env:
+          JULIA_VERSIONS: ${{ inputs.julia-versions }}
         with:
           source-folder: 'src'
           select-by-folder: 'test'
