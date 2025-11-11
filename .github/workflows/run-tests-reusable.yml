@@ -69,18 +69,7 @@ jobs:
           install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-toolchain
           cache: true
 
-      - name: Cache Julia installations
-        uses: actions/cache@v4
-        id: cache-julia
-        with:
-          path: |
-            ~/.julia
-            ~/.juliaup
-            C:\hostedtoolcache\windows\juliaup
-          key: ${{ inputs.os }}-${{ inputs.matlab-version }}-julia-${{ inputs.julia-versions }}
-
       - name: Get latest Julia version
-        if: steps.cache-julia.outputs.cache-hit != 'true'
         id: julia-version
         run: |
           VERSIONS="${{ inputs.julia-versions }}"
@@ -90,12 +79,10 @@ jobs:
 
       - name: Setup Juliaup
         uses: julia-actions/install-juliaup@v2
-        if: steps.cache-julia.outputs.cache-hit != 'true'
         with:
           channel: '${{ steps.julia-version.outputs.latest }}'
 
       - name: Add remaining Julia versions to test
-        if: steps.cache-julia.outputs.cache-hit != 'true'
         run: |
           IFS=',' read -ra VERSIONS <<< "${{ inputs.julia-versions }}"
           LATEST="${{ steps.julia-version.outputs.latest }}"

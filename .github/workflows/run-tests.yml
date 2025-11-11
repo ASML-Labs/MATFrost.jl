@@ -76,6 +76,11 @@ jobs:
     name: Test summary
     runs-on: ubuntu-latest
     if: (!cancelled())
+    permissions: # Required set of permissions for OICD token and reporting
+      contents: read
+      checks: write
+      id-token: write
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v5
