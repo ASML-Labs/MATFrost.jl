@@ -69,6 +69,12 @@ jobs:
           install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-toolchain
           cache: true
 
+      - name: Set up MATLAB
+        uses: matlab-actions/setup-matlab@v2
+        with:
+          release: ${{ inputs.matlab-version }}
+          cache: true
+
       - name: Get latest Julia version
         id: julia-version
         run: |
@@ -100,12 +106,6 @@ jobs:
         if: ${{ !inputs.mex-recompile }}
         run: |
           julia --project="." -e "import Pkg ; Pkg.instantiate() ; using MATFrost ; foreach(fp -> cp(joinpath(MATFrost.mexbinaryartifact(), fp), joinpath(ARGS[1], fp)), readdir(MATFrost.mexbinaryartifact()) )" "src/matlab/private"
-          
-      - name: Set up MATLAB
-        uses: matlab-actions/setup-matlab@v2
-        with:
-          release: ${{ inputs.matlab-version }}
-          cache: true
        
       - name: Build MATFrost MEX
         uses: matlab-actions/run-command@v2
