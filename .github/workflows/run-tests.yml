@@ -92,6 +92,19 @@ jobs:
         with:
           files: "results/**/results.xml"
 
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          use_oidc: true
+          directory: results
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          use_oidc: true
+          directory: results
+
       - name: Check all jobs
         run: |
           SINGLE_RESULT="${{ needs.test-single.result }}"
