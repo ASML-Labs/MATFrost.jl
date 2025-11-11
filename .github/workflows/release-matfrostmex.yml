@@ -39,6 +39,7 @@ jobs:
         with: 
           path: src/matfrostjuliacall/bin
           name: matfrost-mex-win-x64
+
   release-mex-binary:
     needs: build-mex-binary
     runs-on: ubuntu-latest
@@ -77,6 +78,3 @@ jobs:
           git add Artifacts.toml
           git commit -m "Integrate MATFrost MEX: ${{ inputs.matfrost-mex-version }}"
           git push
-
-
-

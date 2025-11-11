@@ -5,38 +5,97 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'src/**'
-      - 'test/**'
-      - 'Project.toml'
-      - '.github/workflows/run-tests.yml'
-      - '.github/workflows/run-tests-reusable.yml'
   pull_request:
     branches:
       - main
-    types: 
-      - opened
-      - reopened
-      - synchronize
-      - ready_for_review
-    paths:
-      - 'src/**'
-      - 'test/**'
-      - 'Project.toml'
-      - '.github/workflows/run-tests.yml'
-      - '.github/workflows/run-tests-reusable.yml'
 
 jobs:
-  tests:
+  precondition:
+    name: Check testing precondition
+    runs-on: ubuntu-latest
+    # Do not run in forked repositories
+    if: github.repository == 'ASML-labs/MATFrost.jl' 
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Get changed files
+        id: changed-files-yaml
+        uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47
+        with:
+          files_yaml: |
+            test:
+              - test/**
+              - .github/workflows/run-tests.yml
+              - .github/workflows/run-tests-reusable.yml
+              - .github/workflows/run-tests-dispatch.yml
+            src:
+              - src/**
+              - Artifacts.toml
+              - Project.toml
+    outputs:
+      test_changed: ${{ steps.changed-files-yaml.outputs.test_any_changed }}
+      src_changed: ${{ steps.changed-files-yaml.outputs.src_any_changed }}
+
+  test-single:
+    needs: precondition
+    name: Run tests on a single configuration
+    if: ${{ needs.precondition.outputs.test_changed == 'true' || needs.precondition.outputs.src_changed == 'true' }}
+    secrets: inherit
+    uses: ./.github/workflows/run-tests-reusable.yml
+    with:
+      os: windows-latest
+      matlab-version: R2021b
+      mex-recompile: true
+
+  test-matrix:
+    needs: test-single
+    name: Run tests on multiple configurations
     uses: ./.github/workflows/run-tests-reusable.yml    
-    if: ${{ ((github.event_name == 'pull_request') && !github.event.pull_request.draft) || (github.event_name == 'push') || (github.event_name == 'workflow_dispatch') }}
     secrets: inherit
     strategy:
       fail-fast: false
       matrix:
-        matlab-version: ['R2021b', 'R2022b', 'R2024b', 'R2025a']
+        matlab-version: ['R2021b', 'R2022b', 'R2023b', 'R2024b', 'R2025b']
         os: ['windows-latest']
+        exclude:
+          - os: 'windows-latest'
+            matlab-version: 'R2021b'  # Already tested in test-single job
     with:
       os: ${{ matrix.os }}
       matlab-version: ${{ matrix.matlab-version }}
       mex-recompile: true
+
+  summary:
+    needs: [precondition, test-single, test-matrix]
+    name: Test summary
+    runs-on: ubuntu-latest
+    if: (!cancelled())
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v6
+        with:
+          path: results
+
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: "results/**/test.xml"
+
+      - name: Check all jobs
+        run: |
+          if [[ "${{ needs.test-single.result }}" == "failure" ]] || [[ "${{ needs.test-matrix.result }}" == "failure" ]] ]]; then
+            echo "❌ Some versions failed CI checks"
+            echo "## ❌ CI Summary" >> $GITHUB_STEP_SUMMARY
+            echo "Some tests failed. Check individual job results for details." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "✅ All versions passed CI checks"
+            echo "## 🎉 CI Summary" >> $GITHUB_STEP_SUMMARY
+            echo "All tests passed across versions." >> $GITHUB_STEP_SUMMARY
+          fi
