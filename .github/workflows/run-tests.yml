@@ -54,7 +54,7 @@ jobs:
   test-matrix:
     needs: test-single
     name: Run tests on multiple configurations
-    if: ${{ github.event_name == 'schedule' || contains(github.event.pull_request.labels.*.name, 'release') }}
+    if: ${{ github.event_name == 'schedule' || contains(github.event.pull_request.labels.*.name, 'integrate') }}
     uses: ./.github/workflows/run-tests-reusable.yml
     secrets: inherit
     strategy:
@@ -105,13 +105,13 @@ jobs:
           elif [[ "$MATRIX_RESULT" == "skipped" ]]; then
             echo "✅ Single configuration test passed"
             echo "## 🎉 CI Summary" >> $GITHUB_STEP_SUMMARY
-            echo "Single configuration test passed. Matrix tests skipped (not a release or scheduled run)." >> $GITHUB_STEP_SUMMARY
+            echo "Single configuration test passed. Matrix tests skipped (not an integration or scheduled run)." >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "⚠️ **Note**: To release this PR, the \`release\` label must be added to run the full test matrix across all MATLAB versions." >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Note**: To integrate this PR, the \`integrate\` label must be added to run the full test matrix across all MATLAB versions." >> $GITHUB_STEP_SUMMARY
           else
             echo "✅ All versions passed CI checks"
             echo "## 🎉 CI Summary" >> $GITHUB_STEP_SUMMARY
             echo "All tests passed across versions." >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "✅ Full test matrix completed. This PR is ready for release." >> $GITHUB_STEP_SUMMARY
+            echo "✅ Full test matrix completed. This PR is ready for integration." >> $GITHUB_STEP_SUMMARY
           fi

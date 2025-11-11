@@ -19,12 +19,12 @@ This provides quick feedback on whether your changes break core functionality.
 > [!TIP]
 > Mark your PR as a **draft** while developing to test against only Julia 1.12, providing much faster feedback. Convert to a regular PR when ready for full validation.
 
-### 2. Full Test Matrix (Release PRs & Scheduled)
+### 2. Full Test Matrix (Integration PRs & Scheduled)
 
 The full test matrix runs across multiple MATLAB versions and is triggered by:
 
 - **Weekly Schedule**: Runs automatically every Sunday at 3 AM UTC
-- **Release Label**: Add the `release` label to your PR to trigger the full test suite
+- **Integration Label**: Add the `integrate` label to your PR to trigger the full test suite
 
 The full matrix includes:
 - **MATLAB Versions**: R2021b, R2022b, R2023b, R2024b, R2025b
@@ -32,17 +32,17 @@ The full matrix includes:
 - **Julia Versions**: All supported versions (1.7-1.12)
 - **MEX Compilation**: Enabled
 
-### When to Use the Release Label
+### When to Use the Integration Label
 
-Add the `release` label to your PR when:
+Add the `integrate` label to your PR when:
 
-- You're preparing a PR for release/merge to main
+- You're preparing a PR for integration/merge to main
 - Your changes affect MATLAB version compatibility
 - You've made significant changes that require comprehensive validation
 - You need to verify behavior across all supported MATLAB versions
 
 > [!IMPORTANT]
-> PRs must pass the full test matrix before being released. The CI summary will indicate when the release label should be added.
+> PRs must pass the full test matrix before being integrated. The CI summary will indicate when the integrate label should be added.
 
 ## Caching Strategy
 
@@ -64,7 +64,7 @@ This significantly reduces setup time for subsequent workflow runs.
 3. **Open a pull request** (optionally as a draft for faster iteration with Julia 1.12 only)
 4. **Address any test failures** from the single configuration test
 5. **Convert from draft** (if applicable) to test against all Julia versions
-6. **When ready for release**, add the `release` label to trigger the full test matrix
+6. **When ready for integration**, add the `integrate` label to trigger the full test matrix
 7. **Ensure all tests pass** before merging
 
 ## Questions or Issues?
