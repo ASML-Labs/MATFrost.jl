@@ -6,6 +6,10 @@ on:
   workflow_dispatch:
     inputs:
       lookback:
+        description: >
+          By default, TagBot checks for new releases that are at most 3 days old. 
+          Therefore, if you only run TagBot every five days, it might miss some releases.
+          To fix this, you can specify a custom number of days to look back in time with the lookback input.
         default: "3"
 permissions:
   actions: read

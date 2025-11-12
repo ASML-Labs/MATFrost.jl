@@ -1,42 +1,142 @@
-name: Run Tests Automation
+name: 🔴🟢🟣 Tests
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'src/**'
-      - 'test/**'
-      - 'Project.toml'
-      - '.github/workflows/run-tests.yml'
-      - '.github/workflows/run-tests-reusable.yml'
+  schedule:
+    - cron: '0 3 * * 0'  # Every Sunday at 3 AM UTC
   pull_request:
     branches:
       - main
-    types: 
+    types:
       - opened
-      - reopened
+      - closed
       - synchronize
-      - ready_for_review
-    paths:
-      - 'src/**'
-      - 'test/**'
-      - 'Project.toml'
-      - '.github/workflows/run-tests.yml'
-      - '.github/workflows/run-tests-reusable.yml'
+      - reopened
+      - labelled
+      - unlabelled
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
-  tests:
-    uses: ./.github/workflows/run-tests-reusable.yml    
-    if: ${{ ((github.event_name == 'pull_request') && !github.event.pull_request.draft) || (github.event_name == 'push') || (github.event_name == 'workflow_dispatch') }}
+  precondition:
+    name: Check testing precondition
+    runs-on: ubuntu-latest
+    # Do not run in forked repositories
+    if: github.repository == 'ASML-labs/MATFrost.jl' 
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Get changed files
+        id: changed-files-yaml
+        uses: tj-actions/changed-files@v47
+        with:
+          files_yaml: |
+            test:
+              - test/**
+              - .github/workflows/run-tests.yml
+              - .github/workflows/run-tests-reusable.yml
+              - .github/workflows/run-tests-dispatch.yml
+            src:
+              - src/**
+              - Artifacts.toml
+              - Project.toml
+    outputs:
+      test_changed: ${{ steps.changed-files-yaml.outputs.test_any_changed }}
+      src_changed: ${{ steps.changed-files-yaml.outputs.src_any_changed }}
+
+  test-single:
+    needs: precondition
+    name: Run tests on a single configuration
+    if: ${{ needs.precondition.outputs.test_changed == 'true' || needs.precondition.outputs.src_changed == 'true' }}
+    secrets: inherit
+    uses: ./.github/workflows/run-tests-reusable.yml
+    with:
+      os: windows-latest
+      matlab-version: R2021b
+      mex-recompile: true
+      julia-versions: ${{ github.event.pull_request.draft && '1.12' || '1.7,1.8,1.9,1.10,1.11,1.12' }}
+
+  test-matrix:
+    needs: test-single
+    name: Run tests on multiple configurations
+    if: ${{ github.event_name == 'schedule' || contains(github.event.pull_request.labels.*.name, 'integrate') }}
+    uses: ./.github/workflows/run-tests-reusable.yml
     secrets: inherit
     strategy:
       fail-fast: false
       matrix:
-        matlab-version: ['R2021b', 'R2022b', 'R2024b', 'R2025a']
+        matlab-version: ['R2021b', 'R2022b', 'R2023b', 'R2024b', 'R2025b']
         os: ['windows-latest']
+        exclude:
+          - os: 'windows-latest'
+            matlab-version: 'R2021b'  # Already tested in test-single job
     with:
       os: ${{ matrix.os }}
       matlab-version: ${{ matrix.matlab-version }}
       mex-recompile: true
+      julia-versions: ${{ github.event.pull_request.draft && '1.12' || '1.7,1.8,1.9,1.10,1.11,1.12' }}
+
+  summary:
+    needs: [precondition, test-single, test-matrix]
+    name: Test summary
+    runs-on: ubuntu-latest
+    if: (!cancelled())
+    permissions: # Required set of permissions for OICD token and reporting
+      contents: read
+      checks: write
+      id-token: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v6
+        with:
+          path: results
+
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: "results/**/results.xml"
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          use_oidc: true
+          directory: results
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          use_oidc: true
+          directory: results
+
+      - name: Check all jobs
+        run: |
+          SINGLE_RESULT="${{ needs.test-single.result }}"
+          MATRIX_RESULT="${{ needs.test-matrix.result }}"
+
+          if [[ "$SINGLE_RESULT" == "failure" ]] || [[ "$MATRIX_RESULT" == "failure" ]]; then
+            echo "❌ Some versions failed CI checks"
+            echo "## ❌ CI Summary" >> $GITHUB_STEP_SUMMARY
+            echo "Some tests failed. Check individual job results for details." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          elif [[ "$MATRIX_RESULT" == "skipped" ]]; then
+            echo "✅ Single configuration test passed"
+            echo "## 🎉 CI Summary" >> $GITHUB_STEP_SUMMARY
+            echo "Single configuration test passed. Matrix tests skipped (not an integration or scheduled run)." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Note**: To integrate this PR, the \`integrate\` label must be added to run the full test matrix across all MATLAB versions." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ All versions passed CI checks"
+            echo "## 🎉 CI Summary" >> $GITHUB_STEP_SUMMARY
+            echo "All tests passed across versions." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Full test matrix completed. This PR is ready for integration." >> $GITHUB_STEP_SUMMARY
+          fi
