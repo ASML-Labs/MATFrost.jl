@@ -1,6 +1,17 @@
 name: 🔴🟢🟣 Tests
 
 on:
+  workflow_dispatch:
+    inputs:
+      julia-versions:
+        description: "Comma-separated Julia versions to test"
+        default: "1.12"
+        required: false
+      test-matrix:
+        description: "Run full test matrix across MATLAB versions"
+        default: false
+        required: false
+        type: boolean
   schedule:
     - cron: '0 3 * * 0'  # Every Sunday at 3 AM UTC
   pull_request:
@@ -11,9 +22,8 @@ on:
       - closed
       - synchronize
       - reopened
-      - labelled
-      - unlabelled
-
+      - labeled
+      - unlabeled
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
@@ -56,12 +66,12 @@ jobs:
       os: windows-latest
       matlab-version: R2021b
       mex-recompile: true
-      julia-versions: ${{ github.event.pull_request.draft && '1.12' || '1.7,1.8,1.9,1.10,1.11,1.12' }}
+      julia-versions: ${{ inputs.julia-versions || (github.event.pull_request.draft && '1.12' || '1.7,1.8,1.9,1.10,1.11,1.12') }}
 
   test-matrix:
     needs: test-single
     name: Run tests on multiple configurations
-    if: ${{ github.event_name == 'schedule' || contains(github.event.pull_request.labels.*.name, 'integrate') }}
+    if: ${{ inputs.test-matrix || github.event_name == 'schedule' || contains(github.event.pull_request.labels.*.name, 'integrate') }}
     uses: ./.github/workflows/run-tests-reusable.yml
     secrets: inherit
     strategy:
@@ -76,7 +86,7 @@ jobs:
       os: ${{ matrix.os }}
       matlab-version: ${{ matrix.matlab-version }}
       mex-recompile: true
-      julia-versions: ${{ github.event.pull_request.draft && '1.12' || '1.7,1.8,1.9,1.10,1.11,1.12' }}
+      julia-versions: ${{ inputs.julia-versions || (github.event.pull_request.draft && '1.12' || '1.7,1.8,1.9,1.10,1.11,1.12') }}
 
   summary:
     needs: [precondition, test-single, test-matrix]
