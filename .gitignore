@@ -7,3 +7,5 @@ CMakeLists.txt
 *.asv
 Manifest.toml
 test/@MATFrostTest
+testlog.xml
+lcov.info

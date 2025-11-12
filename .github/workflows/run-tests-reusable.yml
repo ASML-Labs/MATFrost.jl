@@ -88,6 +88,44 @@ jobs:
         with:
           channel: '${{ steps.julia-version.outputs.latest }}'
 
+      - name: Run julia tests
+        run: >
+          julia --project="." -e 
+          'using Pkg ; 
+          Pkg.add("TestReports") ;
+          using TestReports ; 
+          TestReports.test(coverage=true)'
+
+      - uses: julia-actions/julia-processcoverage@v1
+        with:
+          directories: src
+
+      - name: Copy output files
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p test-results
+
+          # Check testlog.xml
+          if [ -f testlog.xml ]; then
+            echo "::notice::✓ testlog.xml found, copying to test-results/julia-results.xml"
+            cp testlog.xml test-results/julia-results.xml
+          else
+            echo "::warning::testlog.xml not found in $(pwd)"
+            echo "Files in current directory:"
+            ls -1 *.xml *.info 2>/dev/null || echo "  No .xml or .info files found"
+          fi
+
+          # Check lcov.info
+          if [ -f lcov.info ]; then
+            echo "::notice::✓ lcov.info found, copying to test-results/julia-lcov.info"
+            cp lcov.info test-results/julia-lcov.info
+          else
+            echo "::warning::lcov.info not found in $(pwd)"
+            echo "Files in current directory:"
+            ls -1 *.xml *.info 2>/dev/null || echo "  No .xml or .info files found"
+          fi
+
       - name: Add remaining Julia versions to test
         run: |
           IFS=',' read -ra VERSIONS <<< "${{ inputs.julia-versions }}"
@@ -104,8 +142,17 @@ jobs:
 
       - name: Configure precompiled MEX-artifacts
         if: ${{ !inputs.mex-recompile }}
-        run: |
-          julia --project="." -e "import Pkg ; Pkg.instantiate() ; using MATFrost ; foreach(fp -> cp(joinpath(MATFrost.mexbinaryartifact(), fp), joinpath(ARGS[1], fp)), readdir(MATFrost.mexbinaryartifact()) )" "src/matlab/private"
+        run: >
+          julia --project="." -e 
+          "import Pkg ;
+          Pkg.instantiate() ;
+          using MATFrost ;
+          foreach(fp ->
+            cp(joinpath(MATFrost.mexbinaryartifact(), fp), 
+            joinpath(ARGS[1], fp)),
+            readdir(MATFrost.mexbinaryartifact())
+          )"
+          "src/matlab/private"
        
       - name: Build MATFrost MEX
         uses: matlab-actions/run-command@v2
@@ -123,8 +170,8 @@ jobs:
           source-folder: 'src'
           select-by-folder: 'test'
           strict: false
-          test-results-junit: test-results/results.xml
-          code-coverage-cobertura: test-results/coverage.xml
+          test-results-junit: test-results/matlab-results.xml
+          code-coverage-cobertura: test-results/matlab-coverage.xml
 
       - name: Upload artifacts
         if: always()
