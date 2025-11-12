@@ -1,6 +1,6 @@
 name = "MATFrost"
 uuid = "406cae98-a0f7-4766-b83f-8510a556e0e7"
-version = "0.5.0-beta.1"
+version = "0.5.0"
 authors = ["Joris Belier <joris.belier@asml.com>", "Paolo Accordini <paolo.accordini@asml.com>", "Mark Hu <mark.hu@asml.com>"]
 
 [deps]
