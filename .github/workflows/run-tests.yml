@@ -112,20 +112,24 @@ jobs:
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
-          files: "results/**/*results.xml"
+          files: results/**/*results.xml
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:
           use_oidc: true
-          directory: results
+          report_type: coverage
+          files: |
+            results/**/*lcov.info
+            results/**/*coverage.xml
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
-        uses: codecov/test-results-action@v1
+        uses: codecov/codecov-action@v5
         with:
           use_oidc: true
-          directory: results
+          report_type: test_results
+          directory: results/**/*results.xml
 
       - name: Check all jobs
         run: |

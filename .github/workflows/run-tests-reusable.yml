@@ -70,7 +70,6 @@ jobs:
 
           # Check testlog.xml
           if [ -f testlog.xml ]; then
-            echo "::notice::✓ testlog.xml found, copying to test-results/julia-results.xml"
             cp testlog.xml test-results/julia-results.xml
           else
             echo "::warning::testlog.xml not found in $(pwd)"
@@ -80,7 +79,6 @@ jobs:
 
           # Check lcov.info
           if [ -f lcov.info ]; then
-            echo "::notice::✓ lcov.info found, copying to test-results/julia-lcov.info"
             cp lcov.info test-results/julia-lcov.info
           else
             echo "::warning::lcov.info not found in $(pwd)"
