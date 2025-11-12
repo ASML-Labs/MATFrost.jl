@@ -112,7 +112,7 @@ jobs:
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
-          files: "results/**/results.xml"
+          files: "results/**/*results.xml"
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
