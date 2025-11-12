@@ -48,7 +48,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4         
       - name: Download MEX artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with: 
           path: mexbinwin
           merge-multiple: true
