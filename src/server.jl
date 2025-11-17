@@ -162,9 +162,10 @@ function getMethod(meta::CallMeta)
     mtds = methods(f)
     if !isempty(meta.signature)
         # Use the signature directly to construct argument types
-        sigexpr = Meta.parse("Tuple{" * meta.signature * "}")
+        sigexpr = Meta.parse(meta.signature)
         Args = Main.eval(sigexpr)
-        return (f, Args)
+        ArgsTuple = Tuple{Args...}
+        return (f, ArgsTuple)
     else
         if length(mtds) == 1
             sig = Base.unwrap_unionall(mtds[1].sig)
