@@ -154,7 +154,12 @@ function getMethod(meta::CallMeta)
             if isa(f, Function)
                 continue
             else
-                throw(ErrorException("Function $(meta.fully_qualified_name) not found"))
+                throw(MATFrostException("matfrostjulia:call:functionNotFound",
+                """
+                Function not found exception:
+                Function $(meta.fully_qualified_name) 
+                """
+                ))
             end
         end
     end
@@ -168,7 +173,7 @@ function getMethod(meta::CallMeta)
         return (f, ArgsTuple)
     else
         if length(mtds) == 1
-            sig = Base.unwrap_unionall(mtds[1].sig)
+            sig = mtds[1].sig
             Args = Tuple{sig.types[2:end]...}
             return (f, Args)
         else
@@ -228,21 +233,14 @@ end
 
 function ambiguous_method_error(f)
     mtd = methods(f)
-    numbered = [
-        "[$i] $(strip(split(string(sig), '@')[1]))"
-        for (i, sig) in enumerate(mtd)
-    ]
+    numbered = ["   [$i] $(strip(split(string(sig), '@')[1]))" for (i, sig) in enumerate(mtd)]
     example = split(numbered[1], "] ")[2]
     m = match(r"^([^(]+)(\(.*\))$", example)
-    if m !== nothing
-        name = m.captures[1]
-        args = m.captures[2]
-        example_name = strip(name)
-        example_args = strip(args, ['(', ')'])
-    else
-        example_name = example
-        example_args = ""
-    end
+    example_name, example_args = m !== nothing ? (strip(m.captures[1]), strip(m.captures[2])) : (example, "")
+    raw_types = split(strip(example_args, ['(', ')']), ",")
+types = [occursin("::", p) ? strip(split(split(p, "::"; limit=2)[2], "="; limit=2)[1]) : "Any"
+         for p in raw_types if !isempty(strip(p))]
+    sigstring = join(types, ",")
     return """
         Ambiguous function call: The function $(f) has multiple methods.
         Please specify the desired method signature to disambiguate your call.
@@ -251,7 +249,7 @@ function ambiguous_method_error(f)
         $(join(numbered, "\n"))
 
         Example usage:
-        CallMeta(\"$(example_name)\", \"$(example_args)\")
+        CallMeta(\"$(example_name)\", \"$(sigstring)\")
         """
 end
 

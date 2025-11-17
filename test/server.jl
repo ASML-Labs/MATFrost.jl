@@ -40,10 +40,11 @@ end
 
     # Test: non-existing function should throw error
     callMeta = MATFrost._Server.CallMeta("MATFrost.nonExistentFunction")
-    @test_throws ErrorException MATFrost._Server.getMethod(callMeta)
+    @test_throws MATFrost._Types.MATFrostException MATFrost._Server.getMethod(callMeta)
     try
         MATFrost._Server.getMethod(callMeta)
     catch e
-        @test occursin("Function MATFrost.nonExistentFunction not found", e.msg)
+        @test e.message == "Function not found exception:\nFunction MATFrost.nonExistentFunction \n"
+        @test e.id == "matfrostjulia:call:functionNotFound"
     end
 end

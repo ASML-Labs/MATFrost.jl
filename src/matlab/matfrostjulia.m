@@ -148,7 +148,7 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                 % Extracts 'signature' name-value pair if present, leaves other arguments untouched.
                 signature = "";
                 possibleKey = find(cellfun(@(x) ischar(x) || isstring(x), varargin));
-                isKey = cellfun(@(x) any(strcmpi(x, "signature")),varargin(possibleKey));
+                isKey = cellfun(@(x) isequal(x, "signature"),varargin(possibleKey));
                 idx = possibleKey(find(isKey, 1, 'first'));
                 if ~isempty(idx) && idx < numel(varargin)
                     signature = varargin{idx+1};
