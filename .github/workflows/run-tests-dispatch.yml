@@ -10,7 +10,6 @@ on:
         options:
           - 'windows-latest'
           - 'ubuntu-latest'
-          # - 'macos-latest'
       matlab-version:
         required: true
         description: "MATLAB version"
@@ -24,17 +23,12 @@ on:
           - 'R2024a'
           - 'R2024b'
           - 'R2025a'
-      # julia-version:
-      #   required: true
-      #   description: "Julia version"
-      #   type: choice
-      #   options:
-      #     - '1.7'
-      #     - '1.8'
-      #     - '1.9'
-      #     - '1.10'
-      #     - '1.11'
-      #     - '1.12'      
+          - 'R2025b'
+      julia-versions:
+        required: false
+        description: "Comma-separated Julia versions to test"
+        default: "1.12"
+    
       mex-recompile:
         required: true
         description: "Recompile MEX binary"
@@ -46,6 +40,6 @@ jobs:
     with:
       os: ${{ inputs.os }}
       matlab-version: ${{ inputs.matlab-version }}
-      # julia-version: ${{ inputs.julia-version }}
+      julia-versions: ${{ inputs.julia-versions }}
       mex-recompile: ${{ inputs.mex-recompile }}
 
