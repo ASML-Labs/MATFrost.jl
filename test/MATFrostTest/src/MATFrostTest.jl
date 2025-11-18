@@ -74,8 +74,14 @@ function sum_nest2(v::Nest2) :: Float64
     acc
 end
 
-multiple_method_definitions(x::Float64)="First"
-multiple_method_definitions(x::Int64)="Second"
+function multiple_method_definitions(x::Float64)
+    y = x + 2.0
+    return y
+end
+function multiple_method_definitions(x::Int64)
+    y = 2 * x
+    return y
+end
 multiple_method_definitions(x::Float64, y::Int64)="Third"
 
 

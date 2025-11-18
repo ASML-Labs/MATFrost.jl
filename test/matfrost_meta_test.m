@@ -19,8 +19,15 @@ classdef matfrost_meta_test < matfrost_abstract_test
             tc.verifyError(@() tc.mjl.MATFrostTest.multiple_method_definitions(23.0), 'matfrostjulia:call:multipleMethodDefinitions');
         end
         
+        function missingParenthesis_test(tc)
+            tc.verifyError(@() tc.mjl.MATFrostTest.multiple_method_definitions, "matfrostjulia:invalidCallSignature");
+        end
+
+        function specify_method_test(tc)
+            res = tc.mjl.MATFrostTest.multiple_method_definitions(23,signature="Int64");
+            tc.verifyEqual(res, 46);
+        end
 
     end
 
-    
 end
