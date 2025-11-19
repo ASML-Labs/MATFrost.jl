@@ -150,9 +150,20 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                 possibleKey = find(cellfun(@(x) ischar(x) || isstring(x), varargin));
                 isKey = cellfun(@(x) isequal(x, "signature"),varargin(possibleKey));
                 idx = possibleKey(find(isKey, 1, 'first'));
-                if ~isempty(idx) && idx < numel(varargin)
-                    signature = varargin{idx+1};
+                if ~isempty(idx) && idx < numel(varargin) && validateSignature(varargin{idx+1},varargin(1:idx-1))
+                    signature = join(string(varargin{idx+1}),", ");
                     varargin(idx:idx+1) = [];
+                end
+                function ok = validateSignature(x,varargin)
+                    if numel(x) ~= numel(varargin)
+                        throw(MException("matfrostjulia:invalidSignature", ...
+                            "Cannot parse 'signature': number of signature entries (%d) does not equal number of arguments (%d).", ...
+                            numel(x), numel(varargin)))
+                    elseif any(~cellfun(@(s) ischar(s) || isstring(s), x))
+                        throw(MException("matfrostjulia:invalidSignature", ...
+                            "Cannot parse 'signature': all signature entries must be strings."));
+                    end
+                    ok = true;
                 end
             end
                 

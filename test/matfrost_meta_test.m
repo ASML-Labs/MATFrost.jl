@@ -17,18 +17,18 @@ classdef matfrost_meta_test < matfrost_abstract_test
     end
     methods(Test, TestTags="basic function call")
         function test_elementwise_addition(tc)
-            res = tc.mjl.MATFrostTest.elementwise_addition_f64(2.0, [1.0, 2.0, 3.0], signature="Float64,Vector{Float64}");
-            tc.verifyEqual(res, [3.0, 4.0, 5.0]);
+            res = tc.mjl.MATFrostTest.elementwise_addition_f64(2.0, [1.0, 2.0, 3.0], signature=["Float64","Vector{Float64}"]);
+            tc.verifyEqual(res, [3.0, 4.0, 5.0]');
         end
 
         function test_compute_measure_population(tc)
-            pop = tc.mjl.MATFrostTest.SimplePopulationType("A", 100);
+            pop = tc.mjl.MATFrostTest.SimplePopulationType("A", int64(100),signature=["String","Int64"]);
             res = tc.mjl.MATFrostTest.compute_measure(pop, signature="SimplePopulationType");
             tc.verifyEqual(res, 100.0);
         end
 
         function test_repeat_string(tc)
-            res = tc.mjl.MATFrostTest.repeat_string("ab", 3, signature="String,Int64");
+            res = tc.mjl.MATFrostTest.repeat_string("ab", int64(3), signature=["String","Int64"]);
             tc.verifyEqual(res, "ababab");
         end
 
@@ -49,7 +49,7 @@ classdef matfrost_meta_test < matfrost_abstract_test
         end
 
         function test_multiple_method_string(tc)
-            res = tc.mjl.MATFrostTest.multiple_method_definitions("foo", 7, signature="String,Int64");
+            res = tc.mjl.MATFrostTest.multiple_method_definitions("foo", 7, signature=["String","Int64"]);
             tc.verifyEqual(res, "foo_7");
         end
     end
