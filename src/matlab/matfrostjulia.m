@@ -148,7 +148,7 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                 % Elegant argument parsing using inputParser and validateSignature
                 
                 p = inputParser;p.KeepUnmatched=true;
-                addParameter(p, 'signature', "", @(x) isstring(x) || iscellstr(x));
+                addParameter(p, 'signature', "", @(x) validateSignature(x));
                 firstParameter = find(cellfun(@(x) isstring(x)&&isscalar(x)&&any(ismember(x,string(p.Parameters))), varargin),1);
                 if isempty(firstParameter)
                     args = varargin; signature = "";
@@ -161,7 +161,7 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                 end
                 
                 function ok = validateSignature(x, nArgs)
-                    if numel(x) ~= nArgs
+                    if nargin>1 && numel(x) ~= nArgs
                         throw(MException("matfrostjulia:invalidSignatureSize", ...
                             "Cannot parse 'signature': number of signature entries (%d) does not equal number of arguments (%d).", ...
                             numel(x), nArgs))
