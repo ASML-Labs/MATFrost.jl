@@ -149,7 +149,7 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                 
                 p = inputParser;p.KeepUnmatched=true;
                 addParameter(p, 'signature', "", @(x) isstring(x) || iscellstr(x));
-                firstParameter = find(cellfun(@(x) isstring(x)&&any(ismember(x,string(p.Parameters))), varargin),1);
+                firstParameter = find(cellfun(@(x) isstring(x)&&isscalar(x)&&any(ismember(x,string(p.Parameters))), varargin),1);
                 if isempty(firstParameter)
                     args = varargin; signature = "";
                 else
