@@ -54,3 +54,11 @@ using MATFrostTest
     @test MATFrostTest.compute_measure(p) == 150.0  
     @test MATFrostTest.compute_measure(cnt) == 15.0
 end
+
+@testset "Base.+ for Point" begin
+    p1 = MATFrostTest.Point(1, 2)
+    p2 = MATFrostTest.Point(3, 4)
+    res = Base.:+(p1, p2)
+    @test res == MATFrostTest.Point(4, 6)
+    @test typeof(res) == MATFrostTest.Point
+end

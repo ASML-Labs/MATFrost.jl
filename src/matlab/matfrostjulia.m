@@ -144,24 +144,31 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                 end
             end
 
-            function [varargin, signature] = parseArguments(varargin)
-                % Extracts 'signature' name-value pair if present, leaves other arguments untouched.
-                signature = "";
-                possibleKey = find(cellfun(@(x) ischar(x) || isstring(x), varargin));
-                isKey = cellfun(@(x) isequal(x, "signature"),varargin(possibleKey));
-                idx = possibleKey(find(isKey, 1, 'first'));
-                if ~isempty(idx) && idx < numel(varargin) && validateSignature(varargin{idx+1},varargin(1:idx-1))
-                    signature = join(string(varargin{idx+1}),", ");
-                    varargin(idx:idx+1) = [];
+            function [args, signature] = parseArguments(varargin)
+                % Elegant argument parsing using inputParser and validateSignature
+                
+                p = inputParser;p.KeepUnmatched=true;
+                addParameter(p, 'signature', "", @(x) isstring(x) || iscellstr(x));
+                firstParameter = find(cellfun(@(x) isstring(x)&&any(ismember(x,string(p.Parameters))), varargin),1);
+                if isempty(firstParameter)
+                    args = varargin; signature = "";
+                else
+                    parse(p, varargin{firstParameter:end});
+                    args = varargin(1:firstParameter-1);
+                    if validateSignature(p.Results.signature,numel(args))
+                        signature = join(p.Results.signature,", ");
+                    end
                 end
-                function ok = validateSignature(x,varargin)
-                    if numel(x) ~= numel(varargin)
-                        throw(MException("matfrostjulia:invalidSignature", ...
+                
+                function ok = validateSignature(x, nArgs)
+                    if numel(x) ~= nArgs
+                        throw(MException("matfrostjulia:invalidSignatureSize", ...
                             "Cannot parse 'signature': number of signature entries (%d) does not equal number of arguments (%d).", ...
-                            numel(x), numel(varargin)))
-                    elseif any(~cellfun(@(s) ischar(s) || isstring(s), x))
+                            numel(x), nArgs))
+                    elseif ~isstring(x)
                         throw(MException("matfrostjulia:invalidSignature", ...
-                            "Cannot parse 'signature': all signature entries must be strings."));
+                        "Cannot parse 'signature': all signature entries must be strings. Got: %s", ...
+                        evalc('disp(x)')))
                     end
                     ok = true;
                 end

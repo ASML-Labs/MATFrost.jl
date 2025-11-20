@@ -85,38 +85,48 @@ Package1.function1(arg1, arg2)
 
 Additionally nested modules are supported:
 ```matlab
-% MATLAB
-jl.Package1.NestedModule1.function1(arg1, arg2)
+%MATLAB
+jl.Package1.NestedModule1.function1(arg1, arg2)    
 ```
 
-## Conditions Julia functions
-To be able to call Julia functions through MATFrost it needs to satisfy some conditions.
+## Handling ambiguous Julia functions with `signature`
 
-1. The Julia function should have a single method implementation.
-2. The function input signature should be fully typed and concrete entirely (meaning any nested type is concrete as well). 
+MATFrost now supports calling overloaded Julia functions by specifying the targeted method using the `signature` argument from MATLAB.
 
+Suppose you define a custom `Point` type and overload the `Base.+` operator in Julia:
 
 ```julia
-# Bad
-struct Point # `Point` is not concrete entirely as `Number` is abstract.
-   x :: Number # Number is abstract
-   y :: Number
+module MyGeometry
+
+struct Point
+    x::Int
+    y::Int
 end
 
 Base.:(+)(p1::Point, p2::Point) = Point(p1.x + p2.x, p1.y + p2.y)
-# `Base.+` function contains many method implementations.
-```
 
-```julia
-# Good
-struct Point # `Point` is concrete entirely as `Float64` is concrete.
-   x :: Float64 
-   y :: Float64
 end
-
-matfrost_addition(p1::Point, p2::Point) = Point(p1.x + p2.x, p1.y + p2.y)
-# `matfrost_addition` function has a single method implementation
 ```
+
+You can then use MATFrost from MATLAB to create and add `Point` objects, specifying the method signature to ensure the correct overload is called:
+
+```matlab
+% MATLAB
+% Create two Julia Point objects
+p1 = tc.mjl.MATFrostTest.Point(int64(1), int64(2),signature=["Int64","Int64"]);
+p2 = tc.mjl.MATFrostTest.Point(int64(3), int64(4),signature=["Int64","Int64"]);
+
+% Call the overloaded Base.+ method for Point
+res = tc.mjl.Base.('+')(p1, p2, signature=["MATFrostTest.Point", "MATFrostTest.Point"]);  % returns Point(4, 6)
+```
+
+Here, `signature=["MyGeometry.Point", "MyGeometry.Point"]` ensures the correct method for adding two `Point` objects is called.
+
+**Notes:**
+- Use a string for a single type, or a cell/string array for multiple types.
+- The types in `signature` must match the Julia method’s argument types exactly.
+
+This feature allows you to disambiguate overloaded Julia functions directly from MATLAB.
 
 ## Type mapping
 

@@ -79,6 +79,13 @@ multiple_method_definitions(x::Int64)=x+2
 multiple_method_definitions(x::String, y::Int64)= string(x, "_", y)
 abstract type AbstractMeasure end
 
+struct Point
+    x::Int
+    y::Int
+end
+
+Base.:(+)(p1::Point, p2::Point) = Point(p1.x + p2.x, p1.y + p2.y)
+
 # declare the abstract function (no body)
 function compute_measure(::AbstractMeasure) end
 

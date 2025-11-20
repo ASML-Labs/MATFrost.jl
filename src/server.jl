@@ -169,7 +169,7 @@ function getMethod(meta::CallMeta)
         # Use the signature directly to construct argument types
         sigexpr = Meta.parse(meta.signature)
         Args = Main.eval(sigexpr)
-        ArgsTuple = Tuple{Args...}
+        ArgsTuple = Args isa Type ? Tuple{Args} : Tuple{Args...}
         return (f, ArgsTuple)
     else
         if length(mtds) == 1
