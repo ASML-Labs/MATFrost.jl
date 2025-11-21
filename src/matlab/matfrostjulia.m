@@ -148,15 +148,15 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                 % Elegant argument parsing using inputParser and validateSignature
                 
                 p = inputParser;p.KeepUnmatched=true;
-                addParameter(p, 'signature', "", @(x) validateSignature(x));
+                addParameter(p, 'signature', [], @(x) validateSignature(x));
                 firstParameter = find(cellfun(@(x) isstring(x)&&isscalar(x)&&any(ismember(x,string(p.Parameters))), varargin),1);
                 if isempty(firstParameter)
-                    args = varargin; signature = "";
+                    args = varargin; signature = [];
                 else
                     parse(p, varargin{firstParameter:end});
                     args = varargin(1:firstParameter-1);
                     if validateSignature(p.Results.signature,numel(args))
-                        signature = join(p.Results.signature,", ");
+                        signature = p.Results.signature;
                     end
                 end
                 

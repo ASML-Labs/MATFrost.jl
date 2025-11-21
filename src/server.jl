@@ -12,9 +12,19 @@ using ..MATFrost._ConvertToMATLAB: _ConvertToMATLAB
 
 struct CallMeta
     fully_qualified_name::String
-    signature::String 
+    signature::Vector{String}
+    # Inner constructors
+    function CallMeta(fully_qualified_name::String, signature::Vector{String})
+        new(fully_qualified_name, signature)
+    end
+    function CallMeta(fully_qualified_name::String, signature::String)
+        new(fully_qualified_name, [signature])
+    end
+    function CallMeta(fully_qualified_name::String)
+        new(fully_qualified_name, String[])
+    end
 end
-CallMeta(fully_qualified_name::String) = CallMeta(fully_qualified_name, "")
+
 struct MATFrostResultMATLAB{T}
     status::String # ERROR/SUCCESFUL
     log::String
@@ -165,24 +175,18 @@ function getMethod(meta::CallMeta)
     end
 
     mtds = methods(f)
-    if !isempty(meta.signature)
-        # Use the signature directly to construct argument types
-        sigexpr = Meta.parse(meta.signature)
-        Args = Main.eval(sigexpr)
-        ArgsTuple = Args isa Type ? Tuple{Args} : Tuple{Args...}
-        return (f, ArgsTuple)
-    else
-        if length(mtds) == 1
-            sig = mtds[1].sig
-            Args = Tuple{sig.types[2:end]...}
-            return (f, Args)
-        else
-            throw(MATFrostException(
-                "matfrostjulia:call:multipleMethodDefinitions",
-                ambiguous_method_error(f)
-            ))
-        end
+    argtypes = !isempty(meta.signature) ?
+        [Main.eval(Meta.parse(s)) for s in meta.signature] :
+        (length(mtds) == 1 ? mtds[1].sig.types[2:end] : nothing)
+
+    if argtypes === nothing
+        throw(MATFrostException(
+            "matfrostjulia:call:multipleMethodDefinitions",
+            ambiguous_method_error(f)
+        ))
     end
+
+    return (f, Tuple{argtypes...})
 end
 
 function matfrostinputconversionexception(e::MATFrostConversionException)
