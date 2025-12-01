@@ -10,4 +10,5 @@ Manifest.toml
 test/@MATFrostTest
 testlog.xml
 lcov.info
+**/*.cov
 
