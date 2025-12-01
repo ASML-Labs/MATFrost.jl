@@ -1,7 +1,16 @@
 name = "MATFrost"
 uuid = "406cae98-a0f7-4766-b83f-8510a556e0e7"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Joris Belier <joris.belier@asml.com>", "Paolo Accordini <paolo.accordini@asml.com>", "Mark Hu <mark.hu@asml.com>"]
+description = "Seamless embedding of Julia in MATLAB"
+license = "MIT"
+repo = "https://github.com/ASML-Labs/MATFrost.jl"
+keywords = [
+  "MATLAB", 
+  "interop",
+  "MEX", 
+  "embedding"
+]
 
 [deps]
 Artifacts = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
