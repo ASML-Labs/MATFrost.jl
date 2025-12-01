@@ -142,7 +142,6 @@ jobs:
           cache: true
 
       ## Build or configure MEX artifacts and run MATLAB tests
-
       - name: Configure precompiled MEX-artifacts
         if: ${{ !inputs.mex-recompile }}
         run: >

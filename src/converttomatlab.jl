@@ -53,7 +53,7 @@ end
 
 
 @generated function convert_matfrostarray(arr::Array{T,N}) where {T,N}
-    if isstructtype(T)
+    if isstructtype(T) && isconcretetype(T)
         quote
             if length(arr) == 0
                 return MATFrostArrayEmpty()

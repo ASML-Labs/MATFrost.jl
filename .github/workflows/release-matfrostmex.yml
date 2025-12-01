@@ -16,7 +16,7 @@ jobs:
     name: windows
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5 
+        uses: actions/checkout@v6 
       - uses: msys2/setup-msys2@v2
         id: msys2
         with:
@@ -46,7 +46,7 @@ jobs:
     name: Release-MEX-Binary
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5         
+        uses: actions/checkout@v6         
       - name: Download MEX artifacts
         uses: actions/download-artifact@v6
         with: 

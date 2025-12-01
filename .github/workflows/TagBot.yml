@@ -1,29 +1,9 @@
-name: Julia TagBot
+name: TagBot
 on:
   issue_comment:
     types:
       - created
   workflow_dispatch:
-    inputs:
-      lookback:
-        description: >
-          By default, TagBot checks for new releases that are at most 3 days old. 
-          Therefore, if you only run TagBot every five days, it might miss some releases.
-          To fix this, you can specify a custom number of days to look back in time with the lookback input.
-        default: "3"
-permissions:
-  actions: read
-  checks: read
-  contents: write
-  deployments: read
-  issues: read
-  discussions: read
-  packages: read
-  pages: read
-  pull-requests: read
-  repository-projects: read
-  security-events: read
-  statuses: read
 jobs:
   TagBot:
     if: github.event_name == 'workflow_dispatch' || github.actor == 'JuliaTagBot'
@@ -33,3 +13,4 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           ssh: ${{ secrets.DOCUMENTER_KEY }}
+  

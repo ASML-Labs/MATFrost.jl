@@ -6,6 +6,8 @@ CMakeLists.txt
 *.mexa64
 *.asv
 Manifest.toml
+@matfrostjulia
 test/@MATFrostTest
 testlog.xml
 lcov.info
+

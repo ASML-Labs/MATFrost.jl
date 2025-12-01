@@ -39,7 +39,13 @@ end
 
 total_population(country::Country) = sum((city.population for city in country.cities))
 
+function matfrost_multi_dispatch(x::Int, y::Int)
+    return x + y
+end
 
+function matfrost_multi_dispatch(x::String, y::String)
+    return string(x, y)
+end
 
 
 end # module MATFrostHelloWorld

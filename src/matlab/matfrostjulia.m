@@ -112,22 +112,19 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
     methods (Access=protected)
         function varargout = dotReference(obj,indexOp)
             % Calls into the loaded julia package.
-            
             if indexOp(end).Type ~= matlab.indexing.IndexingOperationType.Paren
                 throw(MException("matfrostjulia:invalidCallSignature", "Call signature is missing parentheses."));
             end
-
             fully_qualified_name_arr = arrayfun(@(in) string(in.Name), indexOp(1:end-1));
-             
-            args = indexOp(end).Indices;
-
+            % Remove any name-value pair for 'signature' from the call-site indices so
+            % that parseArguments only sees the real positional arguments.
+            [arguments, signature] = parseArguments( indexOp(end).Indices{:} );
+            % This is the object being sent to MATLAB 
             callstruct.id = obj.id;
             callstruct.action = "CALL";
-
             callmeta.fully_qualified_name = join(fully_qualified_name_arr, ".");
-
-            % This is the object being sent to MATLAB 
-            callstruct.callstruct = {callmeta; args(:)};
+            callmeta.signature = signature;
+            callstruct.callstruct = {callmeta; arguments(:)};
 
             if obj.USE_MEXHOST
                 jlo = obj.mh.feval("matfrostjuliacall", callstruct);
@@ -147,6 +144,36 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                 end
             end
 
+            function [args, signature] = parseArguments(varargin)
+                % Elegant argument parsing using inputParser and validateSignature
+                
+                p = inputParser;p.KeepUnmatched=true;
+                addParameter(p, 'signature', [], @(x) validateSignature(x));
+                firstParameter = find(cellfun(@(x) isstring(x)&&isscalar(x)&&any(ismember(x,string(p.Parameters))), varargin),1);
+                if isempty(firstParameter)
+                    args = varargin; signature = [];
+                else
+                    parse(p, varargin{firstParameter:end});
+                    args = varargin(1:firstParameter-1);
+                    if validateSignature(p.Results.signature,numel(args))
+                        signature = p.Results.signature;
+                    end
+                end
+                
+                function ok = validateSignature(x, nArgs)
+                    if nargin>1 && numel(x) ~= nArgs
+                        throw(MException("matfrostjulia:invalidSignatureSize", ...
+                            "Cannot parse 'signature': number of signature entries (%d) does not equal number of arguments (%d).", ...
+                            numel(x), nArgs))
+                    elseif ~isstring(x)
+                        throw(MException("matfrostjulia:invalidSignature", ...
+                        "Cannot parse 'signature': all signature entries must be strings. Got: %s", ...
+                        evalc('disp(x)')))
+                    end
+                    ok = true;
+                end
+            end
+                
         end
 
         function obj = dotAssign(obj,indexOp,varargin)

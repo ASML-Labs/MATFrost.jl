@@ -1,7 +1,7 @@
 module MATFrostTest
 
 
-
+export compute_measure
 elementwise_addition_f64(c::Float64, x::Vector{Float64}) = c .+ x
 
 kron_product_matrix_f64(A::Matrix{Float64}, B::Matrix{Float64}) = kron(A, B)
@@ -73,11 +73,38 @@ function sum_nest2(v::Nest2) :: Float64
 
     acc
 end
+# Define multiple methods for testing method dispatch from MATLAB
+multiple_method_definitions(x::Float64)=2*x
+multiple_method_definitions(x::Int64)=x+2
+multiple_method_definitions(x::String, y::Int64)= string(x, "_", y)
+abstract type AbstractMeasure end
 
-multiple_method_definitions(x::Float64)="First"
-multiple_method_definitions(x::Int64)="Second"
-multiple_method_definitions(x::Float64, y::Int64)="Third"
+struct Point
+    x::Int
+    y::Int
+end
 
+Base.:(+)(p1::Point, p2::Point) = Point(p1.x + p2.x, p1.y + p2.y)
+
+# declare the abstract function (no body)
+function compute_measure(::AbstractMeasure) end
+
+# Concrete wrappers that subtype the abstract type
+struct PopulationMeasure <: AbstractMeasure
+    p::SimplePopulationType
+end
+
+struct CompositeMeasure <: AbstractMeasure
+    c::CompositeNumberType
+end
+
+# Concrete implementations for the abstract function
+compute_measure(m::PopulationMeasure) = Float64(m.p.population)
+compute_measure(m::CompositeMeasure) = Float64(m.c.v1 + m.c.v2 + m.c.v3)
+
+# Convenient methods that accept existing concrete types by delegating to the wrappers
+compute_measure(p::SimplePopulationType) = compute_measure(PopulationMeasure(p))
+compute_measure(c::CompositeNumberType) = compute_measure(CompositeMeasure(c))
 
 nest2_identity(v::Nest2) = v
 
