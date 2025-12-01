@@ -176,7 +176,7 @@ function getMethod(meta::CallMeta)
 
     mtds = methods(f)
     argtypes = !isempty(meta.signature) ?
-        [Main.eval(Meta.parse(s)) for s in meta.signature] :
+        [Main.eval(Meta.parse(strip(s))) for sig in meta.signature for s in split(sig, ",")] :
         (length(mtds) == 1 ? mtds[1].sig.types[2:end] : nothing)
 
     if argtypes === nothing

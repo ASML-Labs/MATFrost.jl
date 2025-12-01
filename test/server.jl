@@ -5,17 +5,17 @@ using MATFrost
         name = "MATFrost._Convert.convert_matfrostarray"
         callMeta = MATFrost._Server.CallMeta(name)
         @test callMeta.fully_qualified_name == name
-        @test callMeta.signature === ""
+        @test callMeta.signature == String[]
 
         signature = "(:Type{String}, marr::MATFrost._Types.MATFrostArrayAbstract)"
         callMeta = MATFrost._Server.CallMeta(name,signature)
         @test callMeta.fully_qualified_name == name
-        @test callMeta.signature == signature
+        @test callMeta.signature == [signature]
 
 end
 @testset "MATFrost._Server.getMethod" begin
     # Test: function with one method
-    callMeta = MATFrost._Server.CallMeta("MATFrost._Server.getMethod")
+    callMeta = MATFrost._Server.CallMeta("MATFrost._Server.getMethod", "MATFrost._Server.CallMeta")
     (f,m) = MATFrost._Server.getMethod(callMeta)
     @test isa(f, Function)
     @test m==Tuple{MATFrost._Server.CallMeta}
