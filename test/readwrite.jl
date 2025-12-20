@@ -1,75 +1,36 @@
 module BufferPrimitives
 
-export _writebuffer!, _writebuffermatfrostarray!, _readbuffer!, _clearbuffer!
+export _writebuffer!, _writebuffermatfrostarray!, _readbuffer!, _clearbuffer!, _addbuffer!
 
 using ..Types
-using MATFrost._Stream: BufferedUDS, Buffer
-
-if VERSION < v"1.10"
-    function memcpy(pdest::Ptr, psrc::Ptr, nb::Integer)
-        @ccall memcpy(pdest::Ptr{UInt8}, psrc::Ptr{UInt8}, nb::Csize_t)::Cvoid
-    end
-else
-    import Base: memcpy
-end
 
 """
 This file contains inefficiently written code to map julia objects to matfrostarray. 
 This scripts will write purely to buffer (and increase if unsufficient size)
 """
-function _writebuffer!(io::Buffer, v::T) where T
-    while length(io.data) - io.available < sizeof(T)
-        resize!(io.data, 2*length(io.data))
-    end
-
-    p = reinterpret(Ptr{T}, pointer(io.data) + io.available)
-    unsafe_store!(p, v)
-    io.available += sizeof(T)
+function _writebuffer!(io::IOBuffer, v::T) where T
+    Base.write(io, v)
 end
 
-function _writebuffer!(io::Buffer, arr::Array{T,N}) where {T,N}
-    nb = length(arr) * sizeof(T)
-
-    while length(io.data) - io.available < nb
-        resize!(io.data, 2*length(io.data))
-    end
-
-    psrc = reinterpret(Ptr{UInt8}, pointer(arr))
-    pdest = pointer(io.data) + io.available
-    memcpy(pdest, psrc, nb)
-    io.available += nb
+function _writebuffer!(io::IOBuffer, arr::Array{T,N}) where {T,N}
+    Base.write(io, arr)
 end
 
-
-
-function _writebuffer!(io::Buffer, s::String)
-    _writebuffer!(io, ncodeunits(s))
-
-    while length(io.data) - io.available < ncodeunits(s)
-        resize!(io.data, 2*length(io.data))
-    end
-
-
-    psrc = reinterpret(Ptr{UInt8}, pointer(s))
-    pdest = pointer(io.data) + io.available
-
-    memcpy(pdest, psrc, ncodeunits(s))
-
-    io.available += ncodeunits(s)
-
+function _writebuffer!(io::IOBuffer, s::String)
+    _writebuffer!(io, Int64(ncodeunits(s)))
+    Base.write(io, s)
 end
-
 
 
 """
 Primitive arrays
 """
-function _writebuffermatfrostarray!(io::Buffer, arr::Array{T,N}) where {T <: Number,N}
+function _writebuffermatfrostarray!(io::IOBuffer, arr::Array{T,N}) where {T <: Number,N}
     _writebuffer!(io, expected_matlab_type(Array{T,N}))
     _writebuffer!(io, Int64(N))
     dims = size(arr)
     for dim in dims
-        _writebuffer!(io, dim)
+        _writebuffer!(io, Int64(dim))
     end
     _writebuffer!(io, arr)
 end
@@ -77,12 +38,12 @@ end
 """
 String arrays
 """
-function _writebuffermatfrostarray!(io::Buffer, arr::Array{String,N}) where {N}
+function _writebuffermatfrostarray!(io::IOBuffer, arr::Array{String,N}) where {N}
     _writebuffer!(io, expected_matlab_type(Array{String,N}))
     _writebuffer!(io, Int64(N))
     dims = size(arr)
     for dim in dims
-        _writebuffer!(io, dim)
+        _writebuffer!(io, Int64(dim))
     end
     for s in arr
         _writebuffer!(io,s)
@@ -93,12 +54,12 @@ end
 """
 Struct arrays and Named tuple arrays
 """
-function _writebuffermatfrostarray!(io::Buffer, arr::Array{T,N}) where {T,N}
+function _writebuffermatfrostarray!(io::IOBuffer, arr::Array{T,N}) where {T,N}
     _writebuffer!(io, expected_matlab_type(Array{T,N}))
     _writebuffer!(io, Int64(N))
     dims = size(arr)
     for dim in dims
-        _writebuffer!(io, dim)
+        _writebuffer!(io, Int64(dim))
     end
     _writebuffer!(io, Int64(fieldcount(T)))
     for fn in fieldnames(T)
@@ -118,10 +79,10 @@ end
 """
 Tuple
 """
-function _writebuffermatfrostarray!(io::Buffer, tup::T) where {T <: Tuple}
+function _writebuffermatfrostarray!(io::IOBuffer, tup::T) where {T <: Tuple}
     _writebuffer!(io, expected_matlab_type(T))
-    _writebuffer!(io, 1)
-    _writebuffer!(io, length(tup))
+    _writebuffer!(io, Int64(1))
+    _writebuffer!(io, Int64(length(tup)))
 
     for el in tup
         _writebuffermatfrostarray!(io, el)
@@ -133,12 +94,12 @@ end
 """
 Tuple arrays and Array of arrays
 """
-function _writebuffermatfrostarray!(io::Buffer, arr::Array{T,N}) where {T <: Union{Array, Tuple}, N}
+function _writebuffermatfrostarray!(io::IOBuffer, arr::Array{T,N}) where {T <: Union{Array, Tuple}, N}
     _writebuffer!(io, expected_matlab_type(Array{T,N}))
     _writebuffer!(io, Int64(N))
     dims = size(arr)
     for dim in dims
-        _writebuffer!(io, dim)
+        _writebuffer!(io, Int64(dim))
     end
     for i in eachindex(arr)
         el = arr[i]
@@ -151,22 +112,40 @@ end
 """
 Map scalar to array
 """
-function _writebuffermatfrostarray!(io::Buffer, v::T) where {T}
+function _writebuffermatfrostarray!(io::IOBuffer, v::T) where {T}
     _writebuffermatfrostarray!(io, T[v])
 end
 
 
 
 
-function _readbuffer!(io::Buffer, ::Type{T}) where T
-    p = reinterpret(Ptr{T}, pointer(io.data) + io.position)
-    io.position += sizeof(T)
-    unsafe_load(p)
+function _readbuffer!(io::IOBuffer, ::Type{T}) where T
+    Base.read(io, T)
 end
 
-function _clearbuffer!(io)
-    io.position = 0
-    io.available =0 
+# Transfer data from write buffer to read buffer for testing, adding padding
+function _addbuffer!(io::IOBuffer, padding_bytes::Int=0)
+    # Get current data
+    seekstart(io)
+    data = read(io)
+    
+    # Clear and rewrite with padding
+    seekstart(io)
+    truncate(io, 0)
+    Base.write(io, data)
+    
+    # Add padding
+    if padding_bytes > 0
+        Base.write(io, zeros(UInt8, padding_bytes))
+    end
+    
+    # Reset to start for reading
+    seekstart(io)
+end
+
+function _clearbuffer!(io::IOBuffer)
+    seekstart(io)
+    truncate(io, 0)
 end
 
 end
