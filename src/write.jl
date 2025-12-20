@@ -2,126 +2,124 @@
 module _Write
 
 
-import ..MATFrost._Stream: read!, write!, flush!, BufferedUDS
-
 using .._Constants
 using .._Types
 
 
-@noinline function write_matfrostarray_empty!(socket::BufferedUDS, ::MATFrostArrayEmpty)
-    write!(socket, DOUBLE)
-    write!(socket, 1)
-    write!(socket, 0)
+@noinline function write_matfrostarray_empty!(io::IO, ::MATFrostArrayEmpty)
+    write(io, DOUBLE)
+    write(io, 1)
+    write(io, 0)
 end
 
-@noinline function write_matfrostarray_primitive!(socket::BufferedUDS, marr::MATFrostArrayPrimitive{T}) where {T<: Number}
-    write!(socket, matlab_type(T))
-    write!(socket, length(marr.dims))
+@noinline function write_matfrostarray_primitive!(io::IO, marr::MATFrostArrayPrimitive{T}) where {T<: Number}
+    write(io, matlab_type(T))
+    write(io, length(marr.dims))
     for dim in marr.dims
-        write!(socket, dim)
+        write(io, dim)
     end
-    write!(socket, marr.values)
+    write(io, marr.values)
 end
 
-@noinline function write_matfrostarray_string!(socket::BufferedUDS, marr::MATFrostArrayString)
-    write!(socket, MATLAB_STRING)
-    write!(socket, length(marr.dims))
+@noinline function write_matfrostarray_string!(io::IO, marr::MATFrostArrayString)
+    write(io, MATLAB_STRING)
+    write(io, length(marr.dims))
     for dim in marr.dims
-        write!(socket, dim)
+        write(io, dim)
     end
     for s in marr.values
-        write!(socket, s)
+        write(io, s)
     end
 end
 
-@noinline function write_matfrostarray_cell!(socket::BufferedUDS, marr::MATFrostArrayCell)
-    write!(socket, CELL)
-    write!(socket, length(marr.dims))
+@noinline function write_matfrostarray_cell!(io::IO, marr::MATFrostArrayCell)
+    write(io, CELL)
+    write(io, length(marr.dims))
     for dim in marr.dims
-        write!(socket, dim)
+        write(io, dim)
     end
 
     for v in marr.values
-        write_matfrostarray!(socket, v)
+        write_matfrostarray!(io, v)
     end
 end
 
-@noinline function write_matfrostarray_struct!(socket::BufferedUDS, marr::MATFrostArrayStruct)
-    write!(socket, STRUCT)
-    write!(socket, length(marr.dims))
+@noinline function write_matfrostarray_struct!(io::IO, marr::MATFrostArrayStruct)
+    write(io, STRUCT)
+    write(io, length(marr.dims))
     for dim in marr.dims
-        write!(socket, dim)
+        write(io, dim)
     end
 
-    write!(socket, length(marr.fieldnames))
+    write(io, length(marr.fieldnames))
     for fn in marr.fieldnames
-        write!(socket, String(fn))
+        write(io, String(fn))
     end
 
     for v in marr.values
-        write_matfrostarray!(socket, v)
+        write_matfrostarray!(io, v)
     end
 end
 
-@noinline function write_matfrostarray!(socket::BufferedUDS, @nospecialize(marr::MATFrostArrayAbstract))
+@noinline function write_matfrostarray!(io::IO, @nospecialize(marr::MATFrostArrayAbstract))
     if marr isa MATFrostArrayEmpty
-        write_matfrostarray_empty!(socket, marr)
+        write_matfrostarray_empty!(io, marr)
 
     elseif marr isa MATFrostArrayStruct
-        write_matfrostarray_struct!(socket, marr)
+        write_matfrostarray_struct!(io, marr)
 
     elseif marr isa MATFrostArrayCell
-        write_matfrostarray_cell!(socket, marr)
+        write_matfrostarray_cell!(io, marr)
 
     elseif marr isa MATFrostArrayString
-        write_matfrostarray_string!(socket, marr)
+        write_matfrostarray_string!(io, marr)
         
     elseif marr isa MATFrostArrayPrimitive{Bool}
-        write_matfrostarray_primitive!(socket, marr)
+        write_matfrostarray_primitive!(io, marr)
 
     elseif marr isa MATFrostArrayPrimitive{Float64}
-        write_matfrostarray_primitive!(socket, marr)
+        write_matfrostarray_primitive!(io, marr)
     elseif marr isa MATFrostArrayPrimitive{Float32}
-        write_matfrostarray_primitive!(socket, marr)
+        write_matfrostarray_primitive!(io, marr)
 
     elseif marr isa MATFrostArrayPrimitive{Complex{Float64}}
-        write_matfrostarray_primitive!(socket, marr)
+        write_matfrostarray_primitive!(io, marr)
     elseif marr isa MATFrostArrayPrimitive{Complex{Float32}}
-        write_matfrostarray_primitive!(socket, marr)
+        write_matfrostarray_primitive!(io, marr)
 
     elseif marr isa MATFrostArrayPrimitive{Int8}
-        write_matfrostarray_primitive!(socket, marr)
+        write_matfrostarray_primitive!(io, marr)
     elseif marr isa MATFrostArrayPrimitive{UInt8}
-        write_matfrostarray_primitive!(socket, marr)
+        write_matfrostarray_primitive!(io, marr)
     elseif marr isa MATFrostArrayPrimitive{Int16}
-        write_matfrostarray_primitive!(socket, marr)
+        write_matfrostarray_primitive!(io, marr)
     elseif marr isa MATFrostArrayPrimitive{UInt16}
-        write_matfrostarray_primitive!(socket, marr)
+        write_matfrostarray_primitive!(io, marr)
     elseif marr isa MATFrostArrayPrimitive{Int32}
-        write_matfrostarray_primitive!(socket, marr)
+        write_matfrostarray_primitive!(io, marr)
     elseif marr isa MATFrostArrayPrimitive{UInt32}
-        write_matfrostarray_primitive!(socket, marr)
+        write_matfrostarray_primitive!(io, marr)
     elseif marr isa MATFrostArrayPrimitive{Int64}
-        write_matfrostarray_primitive!(socket, marr)
+        write_matfrostarray_primitive!(io, marr)
     elseif marr isa MATFrostArrayPrimitive{UInt64}
-        write_matfrostarray_primitive!(socket, marr)
+        write_matfrostarray_primitive!(io, marr)
 
     elseif marr isa MATFrostArrayPrimitive{Complex{Int8}}
-        write_matfrostarray_primitive!(socket, marr)
+        write_matfrostarray_primitive!(io, marr)
     elseif marr isa MATFrostArrayPrimitive{Complex{UInt8}}
-        write_matfrostarray_primitive!(socket, marr)
+        write_matfrostarray_primitive!(io, marr)
     elseif marr isa MATFrostArrayPrimitive{Complex{Int16}}
-        write_matfrostarray_primitive!(socket, marr)
+        write_matfrostarray_primitive!(io, marr)
     elseif marr isa MATFrostArrayPrimitive{Complex{UInt16}}
-        write_matfrostarray_primitive!(socket, marr)
+        write_matfrostarray_primitive!(io, marr)
     elseif marr isa MATFrostArrayPrimitive{Complex{Int32}}
-        write_matfrostarray_primitive!(socket, marr)
+        write_matfrostarray_primitive!(io, marr)
     elseif marr isa MATFrostArrayPrimitive{Complex{UInt32}}
-        write_matfrostarray_primitive!(socket, marr)
+        write_matfrostarray_primitive!(io, marr)
     elseif marr isa MATFrostArrayPrimitive{Complex{Int64}}
-        write_matfrostarray_primitive!(socket, marr)
+        write_matfrostarray_primitive!(io, marr)
     elseif marr isa MATFrostArrayPrimitive{Complex{UInt64}}
-        write_matfrostarray_primitive!(socket, marr)
+        write_matfrostarray_primitive!(io, marr)
     else
         error("Unrecoverable crash - MATFrost communication channel corrupted at write side")
     end

@@ -2,10 +2,7 @@ module MATFrost
 
 using Artifacts
 using TOML
-
-
-function _read! end
-function _write! end
+using Sockets
 
 function matfrostserve end
 
@@ -14,7 +11,6 @@ function matfrostserve end
 include("types.jl")
 include("constants.jl")
 
-include("stream.jl")
 
 include("read.jl")
 include("converttojulia.jl")

@@ -5,11 +5,10 @@ module IncompatiableDataTypesTest
 using Test
 using ..Types
 using ..BufferPrimitives
-using MATFrost._Stream: BufferedStream
 using MATFrost._Read2: read_matfrostarray!
 using MATFrost._Types
 
-stream = BufferedStream(C_NULL, Vector{UInt8}(undef, 2 << 16), 0, 0)
+stream = IOBuffer()
 
 struct StructTest1
     a::Float64
@@ -48,25 +47,25 @@ primitive_tests = (
         @testset "Scalar-Target" begin
             _clearbuffer!(stream)
             _writebuffermatfrostarray!(stream, pt2[2])
-            stream.available += 20
+            _addbuffer!(stream, 20)
             @test read_matfrostarray!(stream, pt[1]).x.x isa MATFrostException
-            @test stream.available - stream.position == 20
+            @test bytesavailable(stream) == 20
         end
         
         @testset "Vector-Target" begin
             _clearbuffer!(stream)
             _writebuffermatfrostarray!(stream, pt2[2])
-            stream.available += 20
+            _addbuffer!(stream, 20)
             @test read_matfrostarray!(stream, Vector{pt[1]}).x.x isa MATFrostException
-            @test stream.available - stream.position == 20
+            @test bytesavailable(stream) == 20
         end
         
         @testset "Matrix-Target" begin
             _clearbuffer!(stream)
             _writebuffermatfrostarray!(stream, pt2[2])
-            stream.available += 20
+            _addbuffer!(stream, 20)
             @test read_matfrostarray!(stream, Array{pt[1],2}).x.x isa MATFrostException
-            @test stream.available - stream.position == 20
+            @test bytesavailable(stream) == 20
         end
     end
 
