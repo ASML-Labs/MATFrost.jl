@@ -339,6 +339,7 @@ namespace MATFrost::Socket {
                     server->dump_logging(matlab);
                     return std::make_shared<BufferedUnixDomainSocket>(socket_path, socket_fd, timeout, timeout_ms);
                 }
+                std::cout << "Failed: " << rc << '\n';
                 closesocket(socket_fd);
 
                 server->dump_logging(matlab);

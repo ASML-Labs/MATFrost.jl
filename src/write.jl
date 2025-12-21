@@ -6,6 +6,19 @@ using .._Constants
 using .._Types
 
 
+@noinline function write_matfrost_vector(io::IO, ptr::Ptr, nb)
+    unsafe_write(io,Ptr{UInt8}(ptr), nb)
+    nothing
+end
+
+
+@noinline function write_matfrost_string!(io::IO, v::String)
+    nb = ncodeunits(v)
+    write(io, Int64(nb))
+    write_matfrost_vector(io, pointer(v), nb)
+    nothing
+end
+
 @noinline function write_matfrostarray_empty!(io::IO, ::MATFrostArrayEmpty)
     write(io, DOUBLE)
     write(io, 1)
@@ -18,7 +31,7 @@ end
     for dim in marr.dims
         write(io, dim)
     end
-    write(io, marr.values)
+    write_matfrost_vector(io, pointer(marr.values), sizeof(T) * length(marr.values)) # @todo: this is incorrect if data is stored with padding?
 end
 
 @noinline function write_matfrostarray_string!(io::IO, marr::MATFrostArrayString)
@@ -28,13 +41,13 @@ end
         write(io, dim)
     end
     for s in marr.values
-        write(io, s)
+        write_matfrost_string!(io, s)
     end
 end
 
 @noinline function write_matfrostarray_cell!(io::IO, marr::MATFrostArrayCell)
     write(io, CELL)
-    write(io, length(marr.dims))
+    write(io, length(marr.dims)) # @todo: using length here will cause a bug in x32 <-> x64 communication
     for dim in marr.dims
         write(io, dim)
     end
@@ -53,7 +66,7 @@ end
 
     write(io, length(marr.fieldnames))
     for fn in marr.fieldnames
-        write(io, String(fn))
+        write_matfrost_string!(io, String(fn))
     end
 
     for v in marr.values
