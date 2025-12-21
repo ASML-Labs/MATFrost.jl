@@ -18,7 +18,7 @@ struct CallMeta
         new(fully_qualified_name, signature)
     end
     function CallMeta(fully_qualified_name::String, signature::String)
-        new(fully_qualified_name, [signature])
+        new(fully_qualified_name, split(signature, ",") .|> strip)
     end
     function CallMeta(fully_qualified_name::String)
         new(fully_qualified_name, String[])
@@ -41,19 +41,26 @@ function MATFrost.matfrostserve(socket_path::String)
     isfile(socket_path) && rm(socket_path)
     
     server = listen(socket_path)
-    
     client = accept(server)
-    
+        
     println("MATFrost server connected. Ready for requests.")
     
-    while true  
-        try 
+    try 
+        while true
             callsequence(client)
-        catch e
+        end
+    catch e
+        if e isa InterruptException
+            println("MATFrost server interrupted.")
+        else
             Base.showerror(stdout, e)
             Base.show_backtrace(stdout, Base.catch_backtrace())
             exit()
         end
+        println("MATFrost server stopped.")
+    finally
+        close(client)
+        close(server)
     end
 end
 
@@ -68,9 +75,8 @@ function package_is_loaded(packagename)
 end
 
 function callsequence(io::IO)
-
     callstruct = read_matfrostarray!(io)
-
+    
     marr = try
 
         if !(callstruct isa MATFrostArrayCell) || length(callstruct.values) != 2

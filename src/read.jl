@@ -69,7 +69,7 @@ const CLEAR_BUFFER = Vector{UInt8}(undef, 2<<15)
     p = pointer(CLEAR_BUFFER)
     while (br < nb)
         nr = min(length(CLEAR_BUFFER), nb-br)
-        read!(io, p, nr)
+        readbytes!(io, p, nr)
         br += nr
     end
     nothing

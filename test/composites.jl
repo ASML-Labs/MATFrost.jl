@@ -4,8 +4,6 @@ module CompositeTests
 using Test
 using JET
 
-using ..Types
-using ..BufferPrimitives
 using MATFrost._Read: read_matfrostarray!
 using MATFrost._ConvertToJulia: convert_matfrostarray
 
@@ -73,13 +71,12 @@ function deepequal(a, b)
 end
 
 @testset "Simple struct" begin
-    _clearbuffer!(buffer)
+    buffer = IOBuffer()
     v = StructTest1(3.0, 3, "Test1234")
     _writebuffermatfrostarray!(buffer, v)
-    _addbuffer!(buffer, 20)
 
     marr = read_matfrostarray!(buffer)
-    @test bytesavailable(buffer) == 20
+    @test bytesavailable(buffer) == 0
     @test convert_matfrostarray(StructTest1, marr) == v
 end
 
