@@ -36,11 +36,10 @@ AmbiguityError(f::Function) = MATFrostException("matfrostjulia:call:ambigiousFun
 """
 This function is the basis of the MATFrostServer.
 """
-function MATFrost.matfrostserve(socket_path::String)
-    # Remove existing socket file if it exists
-    isfile(socket_path) && rm(socket_path)
+function MATFrost.matfrostserve(host::String, port::Int)
     
-    server = listen(socket_path)
+    server = listen(port)
+    println("MATFrost server listening on $(port)...")
     client = accept(server)
         
     println("MATFrost server connected. Ready for requests.")
