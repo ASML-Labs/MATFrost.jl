@@ -7,12 +7,11 @@
 
 #include <cstdint>
 #include <winsock2.h>
+#include <ws2tcpip.h>
 #include <windows.h>
 #include <tchar.h>
 #include <cstdio>
 #include <strsafe.h>
-
-#include <afunix.h>
 
 #include <memory>
 
@@ -36,7 +35,8 @@ namespace MATFrost::Socket {
 
 
     class BufferedUnixDomainSocket {
-        const std::string socket_path;
+        const std::string host;
+        int port;
         SOCKET socket_fd = INVALID_SOCKET;
 
         timeval timeout = {5, 0};
@@ -49,8 +49,9 @@ namespace MATFrost::Socket {
 
         const long timeout_ms = 0;
 
-        BufferedUnixDomainSocket(const std::string &socket_path, SOCKET socket, timeval timeout, uint64_t timeout_ms) :
-            socket_path(socket_path),
+        BufferedUnixDomainSocket(const std::string &host, int port, SOCKET socket, timeval timeout, uint64_t timeout_ms) :
+            host(host),
+            port(port),
             socket_fd(socket),
             timeout(timeout),
             timeout_ms(timeout_ms)
@@ -290,8 +291,8 @@ namespace MATFrost::Socket {
             return false;
         }
 
+        static std::shared_ptr<BufferedUnixDomainSocket> connect_socket(const std::string host, const int port, const std::shared_ptr<MATFrostServer> server, std::shared_ptr<matlab::engine::MATLABEngine> matlab, const long timeout_ms) {
 
-        static std::shared_ptr<BufferedUnixDomainSocket> connect_socket(const std::string socket_path, const std::shared_ptr<MATFrostServer> server, std::shared_ptr<matlab::engine::MATLABEngine> matlab, const long timeout_ms) {
             if (!wsa_initialized) {
                 int rc = WSAStartup(MAKEWORD(2, 2), &wsa_data);
                 if (rc != 0) {
@@ -302,10 +303,25 @@ namespace MATFrost::Socket {
 
             matlab::data::ArrayFactory factory;
 
-            SOCKADDR_UN socket_addr = {0};
-            socket_addr.sun_family = AF_UNIX;
-            strncpy_s(socket_addr.sun_path, sizeof socket_addr.sun_path,
-                      socket_path.c_str(), socket_path.length());
+            // Resolve hostname to IP address
+            struct addrinfo hints = {0};
+            struct addrinfo *result = nullptr;
+            hints.ai_family = AF_INET;        // IPv4
+            hints.ai_socktype = SOCK_STREAM;  // TCP
+            
+            int getaddrinfo_result = getaddrinfo(host.c_str(), nullptr, &hints, &result);
+            if (getaddrinfo_result != 0) {
+                throw(matlab::engine::MATLABException("Failed to resolve hostname '" + host + "': " + 
+                                                     std::to_string(WSAGetLastError())));
+            }
+            
+            // Get the IP address from the first result
+            SOCKADDR_IN socket_addr = {0};
+            socket_addr.sin_family = AF_INET;
+            socket_addr.sin_addr = reinterpret_cast<struct sockaddr_in*>(result->ai_addr)->sin_addr;
+            socket_addr.sin_port = htons(static_cast<u_short>(port));
+            
+            freeaddrinfo(result);
 
 
             size_t connection_timeout_s = 3600;
@@ -318,7 +334,7 @@ namespace MATFrost::Socket {
                     throw(matlab::engine::MATLABException("MATFrost server not running"));
                 }
 
-                SOCKET socket_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+                SOCKET socket_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
                 if (socket_fd == INVALID_SOCKET) {
                     throw(matlab::engine::MATLABException("Failed to create socket: " +
@@ -337,9 +353,9 @@ namespace MATFrost::Socket {
                     timeout.tv_usec = (timeout_ms % 1000) * 1000;
 
                     server->dump_logging(matlab);
-                    return std::make_shared<BufferedUnixDomainSocket>(socket_path, socket_fd, timeout, timeout_ms);
+                    return std::make_shared<BufferedUnixDomainSocket>(host, port, socket_fd, timeout, timeout_ms);
                 }
-                std::cout << "Failed: " << rc << '\n';
+                
                 closesocket(socket_fd);
 
                 server->dump_logging(matlab);
@@ -350,7 +366,7 @@ namespace MATFrost::Socket {
             }
             throw(matlab::engine::MATLABException("Connection timeout after " +
                                      std::to_string(connection_timeout_s) +
-                                     " seconds: " + socket_path));
+                                     " seconds: " + host + ":" + std::to_string(port)));
 
         }
 

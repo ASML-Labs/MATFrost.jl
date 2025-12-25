@@ -9,11 +9,12 @@ using Sockets
 
 @testset "Simulated MATLAB-Julia Communication" begin  
     # Start the server in a separate task
-    pipe_path = "\\\\.\\pipe\\matfrost_test_1"
+    host = "127.0.0.1"
+    port = 10001
     
     server_task = Threads.@spawn begin
         try
-            MATFrost.matfrostserve(pipe_path)
+            MATFrost.matfrostserve(host, port)
         catch e
             if !(e isa InterruptException)
                 @error "Server error" exception=(e, catch_backtrace())
@@ -31,7 +32,7 @@ using Sockets
     client = nothing
     for attempt in 1:50
         try
-            client = connect(pipe_path)
+            client = connect(host, port)
             break
         catch e
             sleep(0.1)

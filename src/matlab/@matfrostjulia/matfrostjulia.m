@@ -20,7 +20,8 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
         id                (1,1) uint64
         mh                     matlab.mex.MexHost
         project           (1,1) string
-        socket            (1,1) string
+        host              (1,1) string
+        port              (1,1) int64
         timeout           (1,1) uint64
     end
 
@@ -39,13 +40,15 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                     % NOTE: Only needed if version is not specified.
                 argstruct.project     (1,1) string = ""
 
-                argstruct.socket      (1,1) string = string(tempname) + ".sock"
+                argstruct.host      (1,1) string = "localhost"
+                argstruct.port      (1,1) int64 = 10000
 
                 argstruct.timeout     (1,1) uint64 = 24*60*60*1000 % 1day
             end
             
             obj.id = uint64(randi(1e9, 'int32'));
-            obj.socket = argstruct.socket;
+            obj.host = argstruct.host;
+            obj.port = argstruct.port;
             obj.timeout = argstruct.timeout;
             obj.project = argstruct.project;
 
@@ -81,10 +84,10 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
             createstruct = struct;
             createstruct.id = obj.id;
             createstruct.action = "START";
-            createstruct.socket = obj.socket;
+            createstruct.host = obj.host;
+            createstruct.port = obj.port;
             createstruct.timeout = obj.timeout;
-            createstruct.cmdline = sprintf("%s %s ""%s"" ""%s""", obj.julia, project_cmdline, bootstrap, obj.socket);
-            createstruct.socket = obj.socket;
+            createstruct.cmdline = sprintf("%s %s ""%s"" ""%s"" %i", obj.julia, project_cmdline, bootstrap, obj.host, obj.port);
             
             if obj.USE_MEXHOST
                 obj.mh.feval("matfrostjuliacall", createstruct);

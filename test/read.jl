@@ -59,9 +59,9 @@ primitive_tests = (
     
 )
 
-function test_matfrostarray_read(v_write, v_exp)
+function test_matfrostarray_read(v_write, v_exp; raw=false)
     buffer = IOBuffer()
-    write_matfrostarray!(buffer, _ConvertToMATLAB.convert_matfrostarray(v_write))
+    write_matfrostarray!(buffer, raw ? v_write : _ConvertToMATLAB.convert_matfrostarray(v_write))
     seekstart(buffer)
     v_act = read_matfrostarray!(buffer)
 
@@ -71,12 +71,21 @@ function test_matfrostarray_read(v_write, v_exp)
     # test read conversion
     @test deepequal(v_act, v_exp)
     
-    # test reverse conversion
-    v_act2 = _ConvertToJulia.convert_matfrostarray(typeof(v_write), v_act)
-    @test deepequal(v_act2, v_write)
-
+    if ! raw
+        # test reverse conversion
+        v_act2 = _ConvertToJulia.convert_matfrostarray(typeof(v_write), v_act)
+        @test deepequal(v_act2, v_write)
+    end
 end
 
+@testset "Primitives-Empty-Struct" begin
+    # buffer = IOBuffer()
+    # write_matfrostarray!(buffer, v_write;)
+
+    v_write = MATFrostArrayStruct([0], [:one, :two], MATFrostArrayAbstract[])
+    v_exp = MATFrostArrayEmpty()
+    test_matfrostarray_read(v_write, v_exp; raw=true)
+end
 
 @testset "Primitives-Behavior-String" begin
     v_write = ["Hello",  "MATFrost!"]
@@ -151,8 +160,6 @@ end
         v_exp = MATFrostArrayPrimitive{Complex{pt[1]}}([5, 7], vec(v_write))
         test_matfrostarray_read(v_write, v_exp)
     end
-    
-
 end
 
 end

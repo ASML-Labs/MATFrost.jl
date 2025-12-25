@@ -7,10 +7,10 @@ using MATFrost
         @test callMeta.fully_qualified_name == name
         @test callMeta.signature == String[]
 
-        signature = "(:Type{String}, marr::MATFrost._Types.MATFrostArrayAbstract)"
+        signature = "::Type{String}, marr::MATFrost._Types.MATFrostArrayAbstract"
         callMeta = MATFrost._Server.CallMeta(name,signature)
         @test callMeta.fully_qualified_name == name
-        @test callMeta.signature == [signature]
+        @test callMeta.signature == ["::Type{String}", "marr::MATFrost._Types.MATFrostArrayAbstract"]
 
 end
 @testset "MATFrost._Server.getMethod" begin

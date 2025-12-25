@@ -63,7 +63,8 @@ public:
 
         if (action == u"START") {
             const std::string cmdline = static_cast<const matlab::data::StringArray>(input["cmdline"])[0];
-            const std::string socket_path = static_cast<const matlab::data::StringArray>(input["socket"])[0];
+            const std::string host = static_cast<const matlab::data::StringArray>(input["host"])[0];
+            const int port = static_cast<const matlab::data::TypedArray<int64_t>>(input["port"])[0];
             const uint64_t timeout = static_cast<const matlab::data::TypedArray<uint64_t>>(input["timeout"])[0];
 
             if (matfrost_server.find(id) != matfrost_server.end() || matfrost_connections.find(id) != matfrost_connections.end()) {
@@ -71,7 +72,7 @@ public:
             }
             auto matlab = getEngine();
             auto server = MATFrost::MATFrostServer::spawn(cmdline);
-            auto socket = MATFrost::Socket::BufferedUnixDomainSocket::connect_socket(socket_path, server, matlab, static_cast<long>(timeout));
+            auto socket = MATFrost::Socket::BufferedUnixDomainSocket::connect_socket(host, port, server, matlab, static_cast<long>(timeout));
 
             matfrost_server[id] = server;
             matfrost_connections[id] = socket;
