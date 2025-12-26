@@ -37,11 +37,7 @@ AmbiguityError(f::Function) = MATFrostException("matfrostjulia:call:ambigiousFun
 This function is the basis of the MATFrostServer.
 """
 function MATFrost.matfrostserve(host::String, port::Int)
-    
-    server = listen(port)
-    println("MATFrost server listening on $(port)...")
-    client = accept(server)
-        
+    client = connect(host, port)
     println("MATFrost server connected. Ready for requests.")
     
     try 
@@ -59,7 +55,6 @@ function MATFrost.matfrostserve(host::String, port::Int)
         println("MATFrost server stopped.")
     finally
         close(client)
-        close(server)
     end
 end
 

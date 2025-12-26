@@ -9,9 +9,11 @@ using Sockets
 
 @testset "Simulated MATLAB-Julia Communication" begin  
     # Start the server in a separate task
-    host = "127.0.0.1"
+    host = "0.0.0.0"
     port = 10001
     
+    server = listen(port)
+
     server_task = Threads.@spawn begin
         try
             MATFrost.matfrostserve(host, port)
@@ -26,18 +28,8 @@ using Sockets
     sleep(1)
 
     @test istaskstarted(server_task)
-
-    
-    # Try to connect multiple times (server might not be ready immediately)
-    client = nothing
-    for attempt in 1:50
-        try
-            client = connect(host, port)
-            break
-        catch e
-            sleep(0.1)
-        end
-    end
+    # Connect client
+    client = accept(server)
     @test client !== nothing
     
     try

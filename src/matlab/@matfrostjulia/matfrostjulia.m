@@ -87,7 +87,7 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
             createstruct.host = obj.host;
             createstruct.port = obj.port;
             createstruct.timeout = obj.timeout;
-            createstruct.cmdline = sprintf("%s %s ""%s"" ""%s"" %i", obj.julia, project_cmdline, bootstrap, obj.host, obj.port);
+            createstruct.cmdline = sprintf("%s %s ""%s""", obj.julia, project_cmdline, bootstrap);
             
             if obj.USE_MEXHOST
                 obj.mh.feval("matfrostjuliacall", createstruct);
