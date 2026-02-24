@@ -237,8 +237,26 @@ function ambiguous_method_error(f)
     example = split(numbered[1], "] ")[2]
     m = match(r"^([^(]+)(\(.*\))$", example)
     example_name, example_args = m !== nothing ? (strip(m.captures[1]), strip(m.captures[2])) : (example, "")
-    raw_types = split(strip(example_args, ['(', ')']), ",")
-types = [occursin("::", p) ? strip(split(split(p, "::"; limit=2)[2], "="; limit=2)[1]) : "Any"
+    
+    # Split by comma while respecting brace depth
+    raw_types = let parts = String[], current = "", depth = 0
+        for c in strip(example_args, ['(', ')'])
+            if c == '{' 
+                depth += 1
+            elseif c == '}' 
+                depth -= 1
+            elseif c == ',' && depth == 0
+                push!(parts, current)
+                current = ""
+                continue
+            end
+            current *= c
+        end
+        push!(parts, current)
+        parts
+    end
+    
+    types = [occursin("::", p) ? strip(split(split(p, "::"; limit=2)[2], "="; limit=2)[1]) : "Any"
          for p in raw_types if !isempty(strip(p))]
     sigstring = join(types, ",")
     return """

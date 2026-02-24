@@ -38,6 +38,12 @@ end
     @test isa(f, Function)
     @test m==Tuple{Type{String}, MATFrost._Types.MATFrostArrayAbstract}
 
+    # Test: signature with comma in type name
+    callMeta = MATFrost._Server.CallMeta("MATFrost._ConvertToJulia.convert_matfrostarray","Type{String}, Tuple{Int, String}")
+    (f,m) = MATFrost._Server.getMethod(callMeta)
+    @test isa(f, Function)
+    @test m==Tuple{Type{String}, Tuple{Int, String}}
+
     # Test: non-existing function should throw error
     callMeta = MATFrost._Server.CallMeta("MATFrost.nonExistentFunction")
     @test_throws MATFrost._Types.MATFrostException MATFrost._Server.getMethod(callMeta)
