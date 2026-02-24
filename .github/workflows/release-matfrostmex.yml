@@ -16,7 +16,7 @@ jobs:
     name: windows
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 
+        uses: actions/checkout@v6 
       - uses: msys2/setup-msys2@v2
         id: msys2
         with:
@@ -35,19 +35,20 @@ jobs:
           command: addpath(genpath("src")) ; matfrostmake()
       - name: Upload artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with: 
           path: src/matfrostjuliacall/bin
           name: matfrost-mex-win-x64
+
   release-mex-binary:
     needs: build-mex-binary
     runs-on: ubuntu-latest
     name: Release-MEX-Binary
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4         
+        uses: actions/checkout@v6         
       - name: Download MEX artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with: 
           path: mexbinwin
           merge-multiple: true
@@ -77,6 +78,3 @@ jobs:
           git add Artifacts.toml
           git commit -m "Integrate MATFrost MEX: ${{ inputs.matfrost-mex-version }}"
           git push
-
-
-

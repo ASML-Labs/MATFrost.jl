@@ -24,6 +24,9 @@ function install(destdir=pwd())
 # rm(joinpath(matdir, "matfrostjulia.m"))
 
 
+if isdir(joinpath(destdir, "@matfrostjulia"))
+    rm(joinpath(destdir, "@matfrostjulia"), recursive=true)
+end
 
 cp(joinpath(pkgdir(MATFrost), "src", "matlab"), joinpath(destdir, "@matfrostjulia"))
 

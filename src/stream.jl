@@ -15,12 +15,8 @@ const INVALID_SOCKET = UInt64(0)
 
 const SOCKADDR_UN = @NamedTuple{sun_family::UInt16, sun_path::NTuple{256,UInt8}}
 
-function memcpy_mat(pdest::Ptr{UInt8}, psrc::Ptr{UInt8}, nb::Csize_t)
+function memcpy_mat(pdest::Ptr{UInt8}, psrc::Ptr{UInt8}, nb::Integer)
     @ccall memcpy(pdest::Ptr{UInt8}, psrc::Ptr{UInt8}, nb::Csize_t)::Cvoid
-end
-
-function memcpy_mat(pdest::Ptr{UInt8}, psrc::Ptr{UInt8}, nb::Int64)
-    @ccall memcpy(pdest::Ptr{UInt8}, psrc::Ptr{UInt8}, nb::Int64)::Cvoid
 end
 
 function uds_socket()

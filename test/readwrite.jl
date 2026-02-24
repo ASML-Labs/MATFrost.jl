@@ -5,6 +5,13 @@ export _writebuffer!, _writebuffermatfrostarray!, _readbuffer!, _clearbuffer!
 using ..Types
 using MATFrost._Stream: BufferedUDS, Buffer
 
+if VERSION < v"1.10"
+    function memcpy(pdest::Ptr, psrc::Ptr, nb::Integer)
+        @ccall memcpy(pdest::Ptr{UInt8}, psrc::Ptr{UInt8}, nb::Csize_t)::Cvoid
+    end
+else
+    import Base: memcpy
+end
 
 """
 This file contains inefficiently written code to map julia objects to matfrostarray. 
@@ -29,7 +36,7 @@ function _writebuffer!(io::Buffer, arr::Array{T,N}) where {T,N}
 
     psrc = reinterpret(Ptr{UInt8}, pointer(arr))
     pdest = pointer(io.data) + io.available
-    Base.memcpy(pdest, psrc, nb)
+    memcpy(pdest, psrc, nb)
     io.available += nb
 end
 
@@ -46,7 +53,7 @@ function _writebuffer!(io::Buffer, s::String)
     psrc = reinterpret(Ptr{UInt8}, pointer(s))
     pdest = pointer(io.data) + io.available
 
-    Base.memcpy(pdest, psrc, ncodeunits(s))
+    memcpy(pdest, psrc, ncodeunits(s))
 
     io.available += ncodeunits(s)
 

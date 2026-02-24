@@ -144,15 +144,33 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                 end
             end
 
-            function [varargin, signature] = parseArguments(varargin)
-                % Extracts 'signature' name-value pair if present, leaves other arguments untouched.
-                signature = "";
-                possibleKey = find(cellfun(@(x) ischar(x) || isstring(x), varargin));
-                isKey = cellfun(@(x) isequal(x, "signature"),varargin(possibleKey));
-                idx = possibleKey(find(isKey, 1, 'first'));
-                if ~isempty(idx) && idx < numel(varargin)
-                    signature = varargin{idx+1};
-                    varargin(idx:idx+1) = [];
+            function [args, signature] = parseArguments(varargin)
+                % Elegant argument parsing using inputParser and validateSignature
+                
+                p = inputParser;p.KeepUnmatched=true;
+                addParameter(p, 'signature', [], @(x) validateSignature(x));
+                firstParameter = find(cellfun(@(x) isstring(x)&&isscalar(x)&&any(ismember(x,string(p.Parameters))), varargin),1);
+                if isempty(firstParameter)
+                    args = varargin; signature = [];
+                else
+                    parse(p, varargin{firstParameter:end});
+                    args = varargin(1:firstParameter-1);
+                    if validateSignature(p.Results.signature,numel(args))
+                        signature = p.Results.signature;
+                    end
+                end
+                
+                function ok = validateSignature(x, nArgs)
+                    if nargin>1 && numel(x) ~= nArgs
+                        throw(MException("matfrostjulia:invalidSignatureSize", ...
+                            "Cannot parse 'signature': number of signature entries (%d) does not equal number of arguments (%d).", ...
+                            numel(x), nArgs))
+                    elseif ~isstring(x)
+                        throw(MException("matfrostjulia:invalidSignature", ...
+                        "Cannot parse 'signature': all signature entries must be strings. Got: %s", ...
+                        evalc('disp(x)')))
+                    end
+                    ok = true;
                 end
             end
                 
