@@ -241,10 +241,10 @@ function ambiguous_method_error(f)
     example = split(numbered[1], "] ")[2]
     m = match(r"^([^(]+)(\(.*\))$", example)
     example_name, example_args = m !== nothing ? (strip(m.captures[1]), strip(m.captures[2])) : (example, "")
-    raw_types = split(strip(example_args, ['(', ')']), ",")
-types = [occursin("::", p) ? strip(split(split(p, "::"; limit=2)[2], "="; limit=2)[1]) : "Any"
+    raw_types = split_types_respecting_braces(example_args)
+    types = [occursin("::", p) ? strip(split(split(p, "::"; limit=2)[2], "="; limit=2)[1]) : "Any"
          for p in raw_types if !isempty(strip(p))]
-    sigstring = join(types, ",")
+    sigstring = join(types, ", ")
     return """
         Ambiguous function call: The function $(f) has multiple methods.
         Please specify the desired method signature to disambiguate your call.
@@ -255,6 +255,31 @@ types = [occursin("::", p) ? strip(split(split(p, "::"; limit=2)[2], "="; limit=
         Example usage:
         CallMeta(\"$(example_name)\", \"$(sigstring)\")
         """
+end
+
+function split_types_respecting_braces(signature_args::String)::Vector{String}
+    """
+    Split a comma-separated list of type parameters while respecting nested braces.
+    Only splits on commas at depth 0 (outside braces).
+    """
+    parts = String[]
+    current = ""
+    depth = 0
+    
+    for c in strip(signature_args, ['(', ')'])
+        if c == '{' 
+            depth += 1
+        elseif c == '}' 
+            depth -= 1
+        elseif c == ',' && depth == 0
+            push!(parts, current)
+            current = ""
+            continue
+        end
+        current *= c
+    end
+    push!(parts, current)
+    return parts
 end
 
 end
