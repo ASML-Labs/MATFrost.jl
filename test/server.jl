@@ -54,3 +54,24 @@ end
         @test e.id == "matfrostjulia:call:functionNotFound"
     end
 end
+@testset "MATFrost._Server._load_and_eval_type" begin
+    # Test 1: Load type from already-loaded package (no-op)
+    result = MATFrost._Server._load_and_eval_type("Base.String")
+    @test result == String
+
+    # Test 2: Load type from MATFrost (fully qualified)
+    result = MATFrost._Server._load_and_eval_type("MATFrost._Types.MATFrostArrayAbstract")
+    @test result == MATFrost._Types.MATFrostArrayAbstract
+
+    # Test 3: Simple type without package prefix
+    result = MATFrost._Server._load_and_eval_type("Int")
+    @test result == Int
+
+    # Test 4: Generic types with nested braces
+    result = MATFrost._Server._load_and_eval_type("Tuple{Int, String}")
+    @test result == Tuple{Int, String}
+
+    # Test 5: Non-existent package should throw
+    callMeta = MATFrost._Server.CallMeta("MATFrost._ConvertToJulia.convert_matfrostarray", "NonExistentPkg.SomeType")
+    @test_throws MATFrost._Types.MATFrostException MATFrost._Server.getMethod(callMeta)
+end
