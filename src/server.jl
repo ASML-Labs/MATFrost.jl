@@ -176,8 +176,8 @@ function getMethod(meta::CallMeta)
 
     mtds = methods(f)
     argtypes = !isempty(meta.signature) ?
-        [Main.eval(Meta.parse(s)) for s in meta.signature] :
-        (length(mtds) == 1 ? mtds[1].sig.types[2:end] : nothing)
+        [Main.eval(Meta.parse(strip(s))) for sig in meta.signature for s in split_types_respecting_braces(sig)] :
+        (length(mtds) == 1 ? collect(mtds[1].sig.types[2:end]) : nothing)
 
     if argtypes === nothing
         throw(MATFrostException(
@@ -241,7 +241,7 @@ function ambiguous_method_error(f)
     example = split(numbered[1], "] ")[2]
     m = match(r"^([^(]+)(\(.*\))$", example)
     example_name, example_args = m !== nothing ? (strip(m.captures[1]), strip(m.captures[2])) : (example, "")
-    raw_types = split_types_respecting_braces(example_args)
+    raw_types = split_types_respecting_braces(String(example_args))
     types = [occursin("::", p) ? strip(split(split(p, "::"; limit=2)[2], "="; limit=2)[1]) : "Any"
          for p in raw_types if !isempty(strip(p))]
     sigstring = join(types, ", ")

@@ -138,6 +138,18 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                 v = jlo.value;
 
                 if isfield(v, "id") && isfield(v,"message")
+                    switch v.id
+                        case "matfrostjulia:call:multipleMethodDefinitions"
+                            lines = splitlines(string(v.message));
+                            idx = find(startsWith(lines, ["Example usage:","Available methods:"]));
+                            if ~isempty(idx)
+                                pattern = '::(\w+(?:\{[^}]*\})?)';
+                                tokens = regexp(lines(idx(1)+1), pattern, 'tokens');
+                                % Format for the new error message
+                                lines(idx(2)+1) = sprintf("%s( ..., signature=[%s]) \n \t to uniquely identify [1] as the targeted method", callmeta.fully_qualified_name, strjoin("""" + tokens + """", ", "));
+                                v.message = join(lines(1:idx(2)+2),newline);
+                            end
+                    end
                     throw(MException(v.id, "%s", v.message));
                 else
                     throw(MException("matfrostjulia:error", v))
