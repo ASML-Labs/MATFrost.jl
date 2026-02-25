@@ -12,17 +12,7 @@ using ..MATFrost._ConvertToMATLAB: _ConvertToMATLAB
 
 struct CallMeta
     fully_qualified_name::String
-    signature::Vector{String}
-    # Inner constructors
-    function CallMeta(fully_qualified_name::String, signature::Vector{String})
-        new(fully_qualified_name, signature)
-    end
-    function CallMeta(fully_qualified_name::String, signature::String)
-        new(fully_qualified_name, [signature])
-    end
-    function CallMeta(fully_qualified_name::String)
-        new(fully_qualified_name, String[])
-    end
+    signature::String 
 end
 CallMeta(fully_qualified_name::String) = CallMeta(fully_qualified_name, "")
 struct MATFrostResultMATLAB{T}
