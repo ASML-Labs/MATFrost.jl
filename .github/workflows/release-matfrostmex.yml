@@ -35,7 +35,7 @@ jobs:
           command: addpath(genpath("src")) ; matfrostmake()
       - name: Upload artifacts
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with: 
           path: src/matfrostjuliacall/bin
           name: matfrost-mex-win-x64
@@ -48,7 +48,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6         
       - name: Download MEX artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with: 
           path: mexbinwin
           merge-multiple: true

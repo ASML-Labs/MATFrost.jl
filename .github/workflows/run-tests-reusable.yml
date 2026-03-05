@@ -62,11 +62,13 @@ jobs:
             echo "product=MATLAB_Support_for_MinGW-w64_C/C++_Compiler" >> $GITHUB_OUTPUT
           fi
 
+
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v2
         with:
           release: ${{ inputs.matlab-version }}
           products: ${{ steps.matlab-product.outputs.product }}
+
           cache: true
 
       - name: Configure precompiled MEX-artifacts
@@ -95,7 +97,7 @@ jobs:
 
       - name: Upload artifacts
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with: 
           path: test-results
           name: results-${{ inputs.os }}-${{ inputs.matlab-version }}-${{ inputs.julia-version }}
