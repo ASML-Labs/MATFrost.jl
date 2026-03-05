@@ -37,7 +37,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup Juliaup
-        uses: julia-actions/install-juliaup@v2
+        uses: julia-actions/install-juliaup@v3
         with:
           channel: ${{ inputs.julia-version }}
 

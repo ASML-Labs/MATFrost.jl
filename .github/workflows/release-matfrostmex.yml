@@ -64,7 +64,7 @@ jobs:
           gh release create matfrost-mex-v${{ inputs.matfrost-mex-version }} --latest=false matfrost-mex-v${{ inputs.matfrost-mex-version }}-win-x64.tar.gz
           sleep 10s
       
-      - uses: julia-actions/install-juliaup@v2
+      - uses: julia-actions/install-juliaup@v3
         with:
           channel: '1.12'
       
