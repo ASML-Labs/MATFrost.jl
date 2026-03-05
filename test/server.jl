@@ -10,7 +10,6 @@ using MATFrost
         signature = "::Type{String}, marr::MATFrost._Types.MATFrostArrayAbstract"
         callMeta = MATFrost._Server.CallMeta(name,signature)
         @test callMeta.fully_qualified_name == name
-        @test callMeta.signature == ["::Type{String}", "marr::MATFrost._Types.MATFrostArrayAbstract"]
         @test callMeta.signature == [signature]
 
 end
