@@ -10,10 +10,10 @@
 namespace MATFrost::Write {
 
 
-    void write(const std::shared_ptr<Socket::BufferedUnixDomainSocket> socket, const matlab::data::Array arr);
+    void write(const std::shared_ptr<Socket::BufferedTCPSocket> socket, const matlab::data::Array arr);
 
     template<typename T>
-    void write_primitive(const std::shared_ptr<Socket::BufferedUnixDomainSocket> socket, const matlab::data::TypedArray<T> arr) {
+    void write_primitive(const std::shared_ptr<Socket::BufferedTCPSocket> socket, const matlab::data::TypedArray<T> arr) {
         int32_t mattype = (int32_t) arr.getType();
         auto dims = arr.getDimensions();
         size_t ndims = dims.size();
@@ -30,7 +30,7 @@ namespace MATFrost::Write {
 
     }
 
-    void write_string(const std::shared_ptr<Socket::BufferedUnixDomainSocket> socket, const matlab::data::StringArray strarr) {
+    void write_string(const std::shared_ptr<Socket::BufferedTCPSocket> socket, const matlab::data::StringArray strarr) {
         int32_t mattype = static_cast<int32_t>(strarr.getType());
         auto dims = strarr.getDimensions();
         size_t ndims = dims.size();
@@ -49,7 +49,7 @@ namespace MATFrost::Write {
     }
 
 
-    void write_cell(const std::shared_ptr<Socket::BufferedUnixDomainSocket> socket, const matlab::data::CellArray mcarr) {
+    void write_cell(const std::shared_ptr<Socket::BufferedTCPSocket> socket, const matlab::data::CellArray mcarr) {
         int32_t mattype = static_cast<int32_t>(mcarr.getType());
         auto dims = mcarr.getDimensions();
         size_t ndims = dims.size();
@@ -64,7 +64,7 @@ namespace MATFrost::Write {
         }
     }
 
-    void write_struct(const std::shared_ptr<Socket::BufferedUnixDomainSocket> socket, const matlab::data::StructArray msarr) {
+    void write_struct(const std::shared_ptr<Socket::BufferedTCPSocket> socket, const matlab::data::StructArray msarr) {
         int32_t mattype = static_cast<int32_t>(msarr.getType());
         auto dims = msarr.getDimensions();
         size_t ndims = dims.size();
@@ -92,7 +92,7 @@ namespace MATFrost::Write {
 
     }
 
-    void write(const std::shared_ptr<Socket::BufferedUnixDomainSocket> socket,const matlab::data::Array arr) {
+    void write(const std::shared_ptr<Socket::BufferedTCPSocket> socket,const matlab::data::Array arr) {
         switch (arr.getType()) {
              case matlab::data::ArrayType::CELL:
                  return write_cell(socket, arr);
