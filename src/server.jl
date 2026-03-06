@@ -150,21 +150,31 @@ end
 function _load_and_eval_type(typestring::AbstractString)
     """
     Parse and evaluate a type string, loading any required packages first.
-    Handles fully qualified types like "myPkg.DataType" by extracting and loading the package.
+    Handles fully qualified types like "myPkg.DataType" and nested cases
+    like "Pkg1.Type{Pkg2.OtherType}" by importing all package prefixes.
     """
-    m = match(r"^([^.]+)\.", typestring)
-    if m !== nothing
-        pkg_name = m.captures[1]
+    pkg_names = Set{String}()
+
+    # Collect top-level package names from any qualified identifiers.
+    for m in eachmatch(r"\b([A-Za-z_][A-Za-z0-9_]*)\.(?:[A-Za-z_][A-Za-z0-9_]*)(?:\.[A-Za-z_][A-Za-z0-9_]*)*", typestring)
+        pkg = m.captures[1]
+        if !(pkg in ("Base", "Core", "Main"))
+            push!(pkg_names, pkg)
+        end
+    end
+
+    for pkg_name in pkg_names
         if !Base.invokelatest(package_is_loaded, Symbol(pkg_name))
             try
                 Main.eval(:(import $(Symbol(pkg_name))))
             catch e
-                throw(MATFrostException("matfrostjulia:call:packageNotFound", 
+                throw(MATFrostException("matfrostjulia:call:packageNotFound",
                     "Package not found: $pkg_name required for type $typestring"
                 ))
             end
         end
     end
+
     return Main.eval(Meta.parse(typestring))
 end
 
@@ -263,7 +273,7 @@ function ambiguous_method_error(f)
     m = match(r"^([^(]+)(\(.*\))$", example)
     example_name, example_args = m !== nothing ? (strip(m.captures[1]), strip(m.captures[2])) : (example, "")
     raw_types = split_types_respecting_braces(example_args)
-    types = [occursin("::", p) ? strip(split(split(p, "::"; limit=2)[2], "="; limit=2)[1]) : "Any"
+    types = [occursin("::", p) ? split(split(p, "::"; limit=2)[2], "="; limit=2)[1] : "Any"
          for p in raw_types if !isempty(strip(p))]
     sigstring = join(types, ", ")
     return """

@@ -71,7 +71,11 @@ end
     result = MATFrost._Server._load_and_eval_type("Tuple{Int, String}")
     @test result == Tuple{Int, String}
 
-    # Test 5: Non-existent package should throw
+    # Test 5: Nested type with non-leading package qualification
+    result = MATFrost._Server._load_and_eval_type("Vector{MATFrost._Types.MATFrostArrayAbstract}")
+    @test result == Vector{MATFrost._Types.MATFrostArrayAbstract}
+
+    # Test 6: Non-existent package should throw
     callMeta = MATFrost._Server.CallMeta("MATFrost._ConvertToJulia.convert_matfrostarray", "NonExistentPkg.SomeType")
     @test_throws MATFrost._Types.MATFrostException MATFrost._Server.getMethod(callMeta)
 end
