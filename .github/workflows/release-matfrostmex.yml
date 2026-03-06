@@ -35,7 +35,7 @@ jobs:
           command: addpath(genpath("src")) ; matfrostmake()
       - name: Upload artifacts
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with: 
           path: src/matfrostjuliacall/bin
           name: matfrost-mex-win-x64
@@ -48,7 +48,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6         
       - name: Download MEX artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with: 
           path: mexbinwin
           merge-multiple: true
@@ -64,7 +64,7 @@ jobs:
           gh release create matfrost-mex-v${{ inputs.matfrost-mex-version }} --latest=false matfrost-mex-v${{ inputs.matfrost-mex-version }}-win-x64.tar.gz
           sleep 10s
       
-      - uses: julia-actions/install-juliaup@v2
+      - uses: julia-actions/install-juliaup@v3
         with:
           channel: '1.12'
       
