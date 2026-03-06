@@ -71,7 +71,7 @@ public:
                 throw(matlab::engine::MATLABException("MATFrost server already started"));
             }
             auto matlab = getEngine();
-            auto socket = MATFrost::Socket::BufferedUnixDomainSocket::start_server();
+            auto socket = MATFrost::Socket::BufferedUnixDomainSocket::start_server(host, port);
             cmdline += " " + socket->get_host() + " " + std::to_string(socket->get_port());
             auto server = MATFrost::MATFrostServer::spawn(cmdline);
             socket->accept_connection(server, matlab, timeout);
