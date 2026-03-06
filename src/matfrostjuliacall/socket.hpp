@@ -34,7 +34,7 @@ namespace MATFrost::Socket {
     };
 
 
-    class BufferedUnixDomainSocket {
+    class BufferedTCPSocket {
         const std::string host;
         const int port;
         SOCKET socket_fd = INVALID_SOCKET;
@@ -49,7 +49,7 @@ namespace MATFrost::Socket {
 
         const long timeout_ms = 0;
 
-        BufferedUnixDomainSocket(const std::string &host, int port, SOCKET socket, timeval timeout, uint64_t timeout_ms) :
+        BufferedTCPSocket(const std::string &host, int port, SOCKET socket, timeval timeout, uint64_t timeout_ms) :
             host(host),
             port(port),
             socket_fd(socket),
@@ -57,7 +57,7 @@ namespace MATFrost::Socket {
             timeout_ms(timeout_ms)
         {  }
 
-        ~BufferedUnixDomainSocket() {
+        ~BufferedTCPSocket() {
             if (socket_fd != INVALID_SOCKET) {
                 closesocket(socket_fd);
             }
@@ -384,30 +384,30 @@ namespace MATFrost::Socket {
 
     public:
         // Start server - automatically choose port, accept any connection
-        static std::shared_ptr<BufferedUnixDomainSocket> start_server() {
+        static std::shared_ptr<BufferedTCPSocket> start_server() {
             int actual_port = 0;
             SOCKET listen_socket = create_and_bind_server_socket("0.0.0.0", 0, actual_port);
             
             timeval timeout = {24*60*60, 0};  // 24 hours
-            return std::make_shared<BufferedUnixDomainSocket>("0.0.0.0", actual_port, listen_socket, timeout, 24*60*60*1000);
+            return std::make_shared<BufferedTCPSocket>("0.0.0.0", actual_port, listen_socket, timeout, 24*60*60*1000);
         }
 
         // Start server on given port, accept any host
-        static std::shared_ptr<BufferedUnixDomainSocket> start_server(int port) {
+        static std::shared_ptr<BufferedTCPSocket> start_server(int port) {
             int actual_port = 0;
             SOCKET listen_socket = create_and_bind_server_socket("0.0.0.0", port, actual_port);
             
             timeval timeout = {24*60*60, 0};  // 24 hours
-            return std::make_shared<BufferedUnixDomainSocket>("0.0.0.0", actual_port, listen_socket, timeout, 24*60*60*1000);
+            return std::make_shared<BufferedTCPSocket>("0.0.0.0", actual_port, listen_socket, timeout, 24*60*60*1000);
         }
 
         // Start server on given port, accept only from specified host
-        static std::shared_ptr<BufferedUnixDomainSocket> start_server(const std::string &bind_host, int port) {
+        static std::shared_ptr<BufferedTCPSocket> start_server(const std::string &bind_host, int port) {
             int actual_port = 0;
             SOCKET listen_socket = create_and_bind_server_socket(bind_host, port, actual_port);
             
             timeval timeout = {24*60*60, 0};  // 24 hours
-            return std::make_shared<BufferedUnixDomainSocket>(bind_host, actual_port, listen_socket, timeout, 24*60*60*1000);
+            return std::make_shared<BufferedTCPSocket>(bind_host, actual_port, listen_socket, timeout, 24*60*60*1000);
         }
 
         // Accept connection - waits until client connects, closes server socket after accepting
@@ -485,7 +485,7 @@ namespace MATFrost::Socket {
                                                  std::to_string(timeout_ms) + " ms"));
         }
 
-        static std::shared_ptr<BufferedUnixDomainSocket> connect_socket(const std::string host, const int port, const std::shared_ptr<MATFrostServer> server, std::shared_ptr<matlab::engine::MATLABEngine> matlab, const long timeout_ms) {
+        static std::shared_ptr<BufferedTCPSocket> connect_socket(const std::string host, const int port, const std::shared_ptr<MATFrostServer> server, std::shared_ptr<matlab::engine::MATLABEngine> matlab, const long timeout_ms) {
 
             if (!wsa_initialized) {
                 int rc = WSAStartup(MAKEWORD(2, 2), &wsa_data);
@@ -547,7 +547,7 @@ namespace MATFrost::Socket {
                     timeout.tv_usec = (timeout_ms % 1000) * 1000;
 
                     server->dump_logging(matlab);
-                    return std::make_shared<BufferedUnixDomainSocket>(host, port, socket_fd, timeout, timeout_ms);
+                    return std::make_shared<BufferedTCPSocket>(host, port, socket_fd, timeout, timeout_ms);
                 }
                 
                 closesocket(socket_fd);
