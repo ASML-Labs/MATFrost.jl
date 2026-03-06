@@ -147,6 +147,37 @@ function callsequence_latest_world_age(callmeta, callargs)
 end
 
 
+function _load_and_eval_type(typestring::AbstractString)
+    """
+    Parse and evaluate a type string, loading any required packages first.
+    Handles fully qualified types like "myPkg.DataType" and nested cases
+    like "Pkg1.Type{Pkg2.OtherType}" by importing all package prefixes.
+    """
+    pkg_names = Set{String}()
+
+    # Collect top-level package names from any qualified identifiers.
+    for m in eachmatch(r"\b([A-Za-z_][A-Za-z0-9_]*)\.(?:[A-Za-z_][A-Za-z0-9_]*)(?:\.[A-Za-z_][A-Za-z0-9_]*)*", typestring)
+        pkg = m.captures[1]
+        if !(pkg in ("Base", "Core", "Main"))
+            push!(pkg_names, pkg)
+        end
+    end
+
+    for pkg_name in pkg_names
+        if !Base.invokelatest(package_is_loaded, Symbol(pkg_name))
+            try
+                Main.eval(:(import $(Symbol(pkg_name))))
+            catch e
+                throw(MATFrostException("matfrostjulia:call:packageNotFound",
+                    "Package not found: $pkg_name required for type $typestring"
+                ))
+            end
+        end
+    end
+
+    return Main.eval(Meta.parse(typestring))
+end
+
 function getMethod(meta::CallMeta)
     # Parse fully qualified name
     m = match(r"^([^.]+)\.([^(]+)$", meta.fully_qualified_name)
@@ -176,8 +207,8 @@ function getMethod(meta::CallMeta)
 
     mtds = methods(f)
     argtypes = !isempty(meta.signature) ?
-        [Main.eval(Meta.parse(s)) for s in meta.signature] :
-        (length(mtds) == 1 ? mtds[1].sig.types[2:end] : nothing)
+        [_load_and_eval_type(strip(s)) for sig in meta.signature for s in split_types_respecting_braces(sig)] :
+        (length(mtds) == 1 ? collect(mtds[1].sig.types[2:end]) : nothing)
 
     if argtypes === nothing
         throw(MATFrostException(
@@ -241,10 +272,10 @@ function ambiguous_method_error(f)
     example = split(numbered[1], "] ")[2]
     m = match(r"^([^(]+)(\(.*\))$", example)
     example_name, example_args = m !== nothing ? (strip(m.captures[1]), strip(m.captures[2])) : (example, "")
-    raw_types = split(strip(example_args, ['(', ')']), ",")
-types = [occursin("::", p) ? strip(split(split(p, "::"; limit=2)[2], "="; limit=2)[1]) : "Any"
+    raw_types = split_types_respecting_braces(example_args)
+    types = [occursin("::", p) ? split(split(p, "::"; limit=2)[2], "="; limit=2)[1] : "Any"
          for p in raw_types if !isempty(strip(p))]
-    sigstring = join(types, ",")
+    sigstring = join(types, ", ")
     return """
         Ambiguous function call: The function $(f) has multiple methods.
         Please specify the desired method signature to disambiguate your call.
@@ -255,6 +286,31 @@ types = [occursin("::", p) ? strip(split(split(p, "::"; limit=2)[2], "="; limit=
         Example usage:
         CallMeta(\"$(example_name)\", \"$(sigstring)\")
         """
+end
+
+function split_types_respecting_braces(signature_args::AbstractString)::Vector{String}
+    """
+    Split a comma-separated list of type parameters while respecting nested braces.
+    Only splits on commas at depth 0 (outside braces).
+    """
+    parts = String[]
+    current = ""
+    depth = 0
+    
+    for c in strip(signature_args, ['(', ')'])
+        if c == '{' 
+            depth += 1
+        elseif c == '}' 
+            depth -= 1
+        elseif c == ',' && depth == 0
+            push!(parts, current)
+            current = ""
+            continue
+        end
+        current *= c
+    end
+    push!(parts, current)
+    return parts
 end
 
 end
