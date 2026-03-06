@@ -240,7 +240,7 @@ namespace MATFrost::Socket {
                 if (getsockopt(socket_fd, SOL_SOCKET, SO_ERROR,
                               reinterpret_cast<char*>(&error), &error_len) == SOCKET_ERROR) {
                     throw matlab::engine::MATLABException("Write socket");
-                }
+                              }
                 
                 if (error == 0) {
                     return true;
@@ -289,6 +289,27 @@ namespace MATFrost::Socket {
             }
 
             return false;
+        }
+    };
+    class TCPServerSocket{
+        const std::string host;
+        const int port;
+        SOCKET socket_fd = INVALID_SOCKET;
+
+
+    public:
+
+
+        TCPServerSocket(const std::string &host, int port, SOCKET socket) :
+            host(host),
+            port(port),
+            socket_fd(socket)
+        {  }
+
+        ~TCPServerSocket() {
+            if (socket_fd != INVALID_SOCKET) {
+                closesocket(socket_fd);
+            }
         }
 
         // Getter methods for host and port
@@ -384,34 +405,31 @@ namespace MATFrost::Socket {
 
     public:
         // Start server - automatically choose port, accept any connection
-        static std::shared_ptr<BufferedTCPSocket> start_server() {
+        static std::shared_ptr<TCPServerSocket> start_server() {
             int actual_port = 0;
             SOCKET listen_socket = create_and_bind_server_socket("0.0.0.0", 0, actual_port);
-            
-            timeval timeout = {24*60*60, 0};  // 24 hours
-            return std::make_shared<BufferedTCPSocket>("0.0.0.0", actual_port, listen_socket, timeout, 24*60*60*1000);
+
+            return std::make_shared<TCPServerSocket>("0.0.0.0", actual_port, listen_socket);
         }
 
         // Start server on given port, accept any host
-        static std::shared_ptr<BufferedTCPSocket> start_server(int port) {
+        static std::shared_ptr<TCPServerSocket> start_server(int port) {
             int actual_port = 0;
             SOCKET listen_socket = create_and_bind_server_socket("0.0.0.0", port, actual_port);
-            
-            timeval timeout = {24*60*60, 0};  // 24 hours
-            return std::make_shared<BufferedTCPSocket>("0.0.0.0", actual_port, listen_socket, timeout, 24*60*60*1000);
+
+            return std::make_shared<TCPServerSocket>("0.0.0.0", actual_port, listen_socket);
         }
 
         // Start server on given port, accept only from specified host
-        static std::shared_ptr<BufferedTCPSocket> start_server(const std::string &bind_host, int port) {
+        static std::shared_ptr<TCPServerSocket> start_server(const std::string &bind_host, int port) {
             int actual_port = 0;
             SOCKET listen_socket = create_and_bind_server_socket(bind_host, port, actual_port);
-            
-            timeval timeout = {24*60*60, 0};  // 24 hours
-            return std::make_shared<BufferedTCPSocket>(bind_host, actual_port, listen_socket, timeout, 24*60*60*1000);
+
+            return std::make_shared<TCPServerSocket>(bind_host, actual_port, listen_socket);
         }
 
         // Accept connection - waits until client connects, closes server socket after accepting
-        void accept_connection(
+        std::shared_ptr<BufferedTCPSocket> accept_connection(
             const std::shared_ptr<MATFrostServer> server,
             std::shared_ptr<matlab::engine::MATLABEngine> matlab,
             uint64_t timeout_ms = 24*60*60*1000) {
@@ -437,9 +455,9 @@ namespace MATFrost::Socket {
                 FD_ZERO(&read_set);
                 FD_SET(socket_fd, &read_set);
 
-                timeval timeout = {0, 100000};  // 100ms timeout for each attempt
+                timeval timeout_accept = {0, 100000};  // 100ms timeout for each attempt
 
-                int select_result = select(0, &read_set, nullptr, nullptr, &timeout);
+                int select_result = select(0, &read_set, nullptr, nullptr, &timeout_accept);
                 
                 if (select_result == SOCKET_ERROR) {
                     throw(matlab::engine::MATLABException("Select failed on server socket: " + 
@@ -459,18 +477,13 @@ namespace MATFrost::Socket {
                                                              std::to_string(WSAGetLastError())));
                     }
 
-                    // Close the old server socket (no more connections allowed)
-                    closesocket(socket_fd);
-
-                    // Update this socket to be the client connection socket
-                    socket_fd = client_socket;
-
-                    // Update timeout structure for the client socket
+                    timeval timeout;
                     timeout.tv_sec = timeout_ms / 1000;
                     timeout.tv_usec = (timeout_ms % 1000) * 1000;
 
                     server->dump_logging(matlab);
-                    return;
+
+                    return std::make_shared<BufferedTCPSocket>(host, port, client_socket, timeout, timeout_ms);
                 }
 
                 // No connection yet, continue waiting
