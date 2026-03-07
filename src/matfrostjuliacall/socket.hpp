@@ -117,6 +117,16 @@ namespace MATFrost::Socket {
         using socklen_t_ = socklen_t;
     #endif
 
+    #ifdef _WIN32
+        inline int getsockopt_(socket_t_ s, int level, int optname, void* optval, socklen_t_* optlen) {
+            return getsockopt(s, level, optname, reinterpret_cast<char*>(optval), optlen);
+        }
+    #else
+        inline int getsockopt_(socket_t_ s, int level, int optname, void* optval, socklen_t_* optlen) {
+            return getsockopt(s, level, optname, optval, optlen);
+        }
+    #endif
+
     class SocketPlatform {
         public:
             SocketPlatform() {
@@ -354,9 +364,9 @@ namespace MATFrost::Socket {
             if (FD_ISSET(socket_fd, &write_set)) {
                 // Optionally verify connection is still good
                 int error = 0;
-                int error_len = sizeof(error);
-                if (getsockopt(socket_fd, SOL_SOCKET, SO_ERROR,
-                              reinterpret_cast<char*>(&error), &error_len) == SOCKET_ERROR_) {
+                socklen_t_ error_len = static_cast<socklen_t_>(sizeof(error));
+                if (getsockopt_(socket_fd, SOL_SOCKET, SO_ERROR,
+                              &error, &error_len) == SOCKET_ERROR_) {
                     throw matlab::engine::MATLABException("Write socket");
                               }
                 
@@ -399,8 +409,8 @@ namespace MATFrost::Socket {
                 // Verify no pending error
                 int error = 0;
                 int error_len = sizeof(error);
-                if (getsockopt(socket_fd, SOL_SOCKET, SO_ERROR,
-                              reinterpret_cast<char*>(&error), &error_len) == SOCKET_ERROR_) {
+                if (getsockopt_(socket_fd, SOL_SOCKET, SO_ERROR,
+                              &error, &error_len) == SOCKET_ERROR_) {
                     return false;
                               }
                 return error == 0;
@@ -478,7 +488,7 @@ namespace MATFrost::Socket {
                 if (getaddrinfo_result != 0) {
                     close_socket_(listen_socket);
                     throw(matlab::engine::MATLABException("Failed to resolve bind hostname '" + bind_host + "': " + 
-                                                         std::to_string(socket_last_error_())));
+                                                         std::to_string(getaddrinfo_result)));
                 }
                 
                 server_addr.sin_addr = reinterpret_cast<struct sockaddr_in*>(result->ai_addr)->sin_addr;
@@ -628,7 +638,7 @@ namespace MATFrost::Socket {
             int getaddrinfo_result = getaddrinfo(host.c_str(), nullptr, &hints, &result);
             if (getaddrinfo_result != 0) {
                 throw(matlab::engine::MATLABException("Failed to resolve hostname '" + host + "': " + 
-                                                     std::to_string(socket_last_error_())));
+                                                     std::to_string(getaddrinfo_result)));
             }
             
             // Get the IP address from the first result
