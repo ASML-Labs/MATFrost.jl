@@ -42,10 +42,21 @@ namespace MATFrost::Socket {
 
     #ifdef _WIN32
         using socket_t_ = SOCKET;
-        constexpr socket_t_ INVALID_SOCKET_ = INVALID_SOCKET;
     #else
         using socket_t_ = int;
+    #endif
+
+    #ifdef _WIN32
+        constexpr socket_t_ INVALID_SOCKET_ = INVALID_SOCKET;
+    #else
         constexpr socket_t_ INVALID_SOCKET_ = -1;
+    #endif
+
+
+    #ifdef _WIN32
+        inline constexpr auto SOCKET_ERROR_ = SOCKET_ERROR;
+    #else
+        inline constexpr auto SOCKET_ERROR_ = -1;
     #endif
 
 
@@ -278,7 +289,7 @@ namespace MATFrost::Socket {
 
             int result = select_(socket_fd, &read_set, nullptr, &error_set, &time_out);
 
-            if (result == SOCKET_ERROR) {
+            if (result == SOCKET_ERROR_) {
                 throw matlab::engine::MATLABException("Socket error: " + std::to_string(socket_last_error_()));
             }
 
@@ -322,7 +333,7 @@ namespace MATFrost::Socket {
 
             int result = select_(socket_fd, nullptr, &write_set, &error_set, &time_out);
 
-            if (result == SOCKET_ERROR) {
+            if (result == SOCKET_ERROR_) {
                 
                 throw matlab::engine::MATLABException("Socket error: " + std::to_string(socket_last_error_()));
                 // return false;
@@ -345,7 +356,7 @@ namespace MATFrost::Socket {
                 int error = 0;
                 int error_len = sizeof(error);
                 if (getsockopt(socket_fd, SOL_SOCKET, SO_ERROR,
-                              reinterpret_cast<char*>(&error), &error_len) == SOCKET_ERROR) {
+                              reinterpret_cast<char*>(&error), &error_len) == SOCKET_ERROR_) {
                     throw matlab::engine::MATLABException("Write socket");
                               }
                 
@@ -374,7 +385,7 @@ namespace MATFrost::Socket {
 
             int result = select_(socket_fd, nullptr, &write_set, &error_set, &timeout);
 
-            if (result == SOCKET_ERROR || result == 0) {
+            if (result == SOCKET_ERROR_ || result == 0) {
                 return false;
             }
 
@@ -389,7 +400,7 @@ namespace MATFrost::Socket {
                 int error = 0;
                 int error_len = sizeof(error);
                 if (getsockopt(socket_fd, SOL_SOCKET, SO_ERROR,
-                              reinterpret_cast<char*>(&error), &error_len) == SOCKET_ERROR) {
+                              reinterpret_cast<char*>(&error), &error_len) == SOCKET_ERROR_) {
                     return false;
                               }
                 return error == 0;
@@ -443,7 +454,7 @@ namespace MATFrost::Socket {
             if (bind_port != 0) {
                 int reuse = 1;
                 if (setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, 
-                              reinterpret_cast<char*>(&reuse), sizeof(reuse)) == SOCKET_ERROR) {
+                              reinterpret_cast<char*>(&reuse), sizeof(reuse)) == SOCKET_ERROR_) {
                     int error = socket_last_error_();
                     close_socket_(listen_socket);
                     throw(matlab::engine::MATLABException("Failed to set SO_REUSEADDR: " + std::to_string(error)));
@@ -474,7 +485,7 @@ namespace MATFrost::Socket {
                 freeaddrinfo(result);
             }
 
-            if (bind(listen_socket, reinterpret_cast<struct sockaddr*>(&server_addr), sizeof(server_addr)) == SOCKET_ERROR) {
+            if (bind(listen_socket, reinterpret_cast<struct sockaddr*>(&server_addr), sizeof(server_addr)) == SOCKET_ERROR_) {
                 int error = socket_last_error_();
                 close_socket_(listen_socket);
                 std::string addr_str = bind_host.empty() ? "0.0.0.0" : bind_host;
@@ -488,14 +499,14 @@ namespace MATFrost::Socket {
 
             // Get the actual port if it was auto-assigned
             int addr_len = sizeof(server_addr);
-            if (getsockname(listen_socket, reinterpret_cast<struct sockaddr*>(&server_addr), &addr_len) == SOCKET_ERROR) {
+            if (getsockname(listen_socket, reinterpret_cast<struct sockaddr*>(&server_addr), &addr_len) == SOCKET_ERROR_) {
                 int error = socket_last_error_();
                 close_socket_(listen_socket);
                 throw(matlab::engine::MATLABException("Failed to get socket name: " + std::to_string(error)));
             }
             actual_port = ntohs(server_addr.sin_port);
 
-            if (listen(listen_socket, 1) == SOCKET_ERROR) {
+            if (listen(listen_socket, 1) == SOCKET_ERROR_) {
                 int error = socket_last_error_();
                 close_socket_(listen_socket);
                 throw(matlab::engine::MATLABException("Failed to listen on server socket: " + std::to_string(error)));
@@ -563,7 +574,7 @@ namespace MATFrost::Socket {
 
                 int select_result = select_(socket_fd, &read_set, nullptr, nullptr, &timeout_accept);
                 
-                if (select_result == SOCKET_ERROR) {
+                if (select_result == SOCKET_ERROR_) {
                     throw(matlab::engine::MATLABException("Select failed on server socket: " + 
                                                          std::to_string(socket_last_error_())));
                 }
