@@ -127,6 +127,16 @@ namespace MATFrost::Socket {
         }
     #endif
 
+    #ifdef _WIN32
+        inline int setsockopt_(socket_t_ s, int level, int optname, const void* optval, socklen_t_ optlen) {
+            return setsockopt(s, level, optname, reinterpret_cast<const char*>(optval), optlen);
+        }
+    #else
+        inline int setsockopt_(socket_t_ s, int level, int optname, const void* optval, socklen_t_ optlen) {
+            return setsockopt(s, level, optname, optval, optlen);
+        }
+    #endif
+
     class SocketPlatform {
         public:
             SocketPlatform() {
@@ -463,8 +473,8 @@ namespace MATFrost::Socket {
             // Enable SO_REUSEADDR (except when port is 0)
             if (bind_port != 0) {
                 int reuse = 1;
-                if (setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, 
-                              reinterpret_cast<char*>(&reuse), sizeof(reuse)) == SOCKET_ERROR_) {
+                if (setsockopt_(listen_socket, SOL_SOCKET, SO_REUSEADDR,
+                              &reuse, sizeof(reuse)) == SOCKET_ERROR_) {
                     int error = socket_last_error_();
                     close_socket_(listen_socket);
                     throw(matlab::engine::MATLABException("Failed to set SO_REUSEADDR: " + std::to_string(error)));
