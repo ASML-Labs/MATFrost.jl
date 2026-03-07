@@ -34,76 +34,77 @@
 
 
 
-#ifdef _WIN32
-    using socket_t_ = SOCKET;
-    constexpr socket_t_ INVALID_SOCKET_ = INVALID_SOCKET;
-#else
-    using socket_t_ = int;
-    constexpr socket_t_ INVALID_SOCKET_ = -1;
-#endif
-
-
-inline int socket_last_error_() {
-    #ifdef _WIN32
-        return WSAGetLastError();
-    #else
-        return errno;
-    #endif
-}
-
-
-inline void close_socket_(socket_t_ s) {
-    #ifdef _WIN32
-        closesocket(s);
-    #else
-        close(s);
-    #endif
-}
-
-inline int select_(socket_t_ s,
-                         fd_set* read_set,
-                         fd_set* write_set,
-                         fd_set* error_set,
-                         timeval* timeout) {
-    #ifdef _WIN32
-        return select(0, read_set, write_set, error_set, timeout);
-    #else
-        return select(s + 1, read_set, write_set, error_set, timeout);
-    #endif
-}
-
-#ifdef _WIN32
-    inline int send_(socket_t_ socket_fd, const void* data, size_t nb, int flags) {
-        return send(socket_fd, reinterpret_cast<const char*>(data), static_cast<int>(nb), flags);
-    }
-#else
-    inline ssize_t send_(socket_t_ socket_fd, const void* data, size_t nb, int flags) {
-        return send(socket_fd, data, nb, MSG_NOSIGNAL | flags);
-    }
-#endif
-
-
-#ifdef _WIN32
-inline int recv_(socket_t_ socket_fd, void* data, size_t nb, int flags) {
-    return recv(socket_fd, reinterpret_cast<char*>(data), static_cast<int>(nb), flags);
-}
-#else
-inline ssize_t recv_(socket_t_ socket_fd, void* data, size_t nb, int flags) {
-    return recv(socket_fd, data, nb, flags);
-}
-#endif
-
-
-#ifdef _WIN32
-    using socklen_t_ = int;
-#else
-    using socklen_t_ = socklen_t;
-#endif
 
 
 #define BUFSIZE 65536 // 16384
 
 namespace MATFrost::Socket {
+
+    #ifdef _WIN32
+        using socket_t_ = SOCKET;
+        constexpr socket_t_ INVALID_SOCKET_ = INVALID_SOCKET;
+    #else
+        using socket_t_ = int;
+        constexpr socket_t_ INVALID_SOCKET_ = -1;
+    #endif
+
+
+        inline int socket_last_error_() {
+    #ifdef _WIN32
+            return WSAGetLastError();
+    #else
+            return errno;
+    #endif
+        }
+
+
+        inline void close_socket_(socket_t_ s) {
+    #ifdef _WIN32
+            closesocket(s);
+    #else
+            close(s);
+    #endif
+        }
+
+        inline int select_(socket_t_ s,
+                                 fd_set* read_set,
+                                 fd_set* write_set,
+                                 fd_set* error_set,
+                                 timeval* timeout) {
+    #ifdef _WIN32
+            return select(0, read_set, write_set, error_set, timeout);
+    #else
+            return select(s + 1, read_set, write_set, error_set, timeout);
+    #endif
+        }
+
+    #ifdef _WIN32
+        inline int send_(socket_t_ socket_fd, const void* data, size_t nb, int flags) {
+            return send(socket_fd, reinterpret_cast<const char*>(data), static_cast<int>(nb), flags);
+        }
+    #else
+        inline ssize_t send_(socket_t_ socket_fd, const void* data, size_t nb, int flags) {
+            return send(socket_fd, data, nb, MSG_NOSIGNAL | flags);
+        }
+    #endif
+
+
+    #ifdef _WIN32
+        inline int recv_(socket_t_ socket_fd, void* data, size_t nb, int flags) {
+            return recv(socket_fd, reinterpret_cast<char*>(data), static_cast<int>(nb), flags);
+        }
+    #else
+        inline ssize_t recv_(socket_t_ socket_fd, void* data, size_t nb, int flags) {
+            return recv(socket_fd, data, nb, flags);
+        }
+    #endif
+
+
+    #ifdef _WIN32
+        using socklen_t_ = int;
+    #else
+        using socklen_t_ = socklen_t;
+    #endif
 
     class SocketPlatform {
         public:
