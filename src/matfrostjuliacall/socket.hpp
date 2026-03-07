@@ -471,7 +471,7 @@ namespace MATFrost::Socket {
                 }
             }
 
-            SOCKADDR_IN server_addr = {0};
+            sockaddr_in server_addr = {0};
             server_addr.sin_family = AF_INET;
             server_addr.sin_port = htons(static_cast<u_short>(bind_port));
 
@@ -495,7 +495,9 @@ namespace MATFrost::Socket {
                 freeaddrinfo(result);
             }
 
-            if (bind(listen_socket, reinterpret_cast<struct sockaddr*>(&server_addr), sizeof(server_addr)) == SOCKET_ERROR_) {
+            socklen_t_ addr_len = sizeof(server_addr);
+
+            if (bind(listen_socket, reinterpret_cast<struct sockaddr*>(&server_addr), addr_len) == SOCKET_ERROR_) {
                 int error = socket_last_error_();
                 close_socket_(listen_socket);
                 std::string addr_str = bind_host.empty() ? "0.0.0.0" : bind_host;
@@ -508,7 +510,6 @@ namespace MATFrost::Socket {
             }
 
             // Get the actual port if it was auto-assigned
-            int addr_len = sizeof(server_addr);
             if (getsockname(listen_socket, reinterpret_cast<struct sockaddr*>(&server_addr), &addr_len) == SOCKET_ERROR_) {
                 int error = socket_last_error_();
                 close_socket_(listen_socket);
@@ -591,7 +592,7 @@ namespace MATFrost::Socket {
                 
                 if (select_result > 0) {
                     // Connection is ready to accept
-                    SOCKADDR_IN client_addr = {0};
+                    sockaddr_in client_addr = {0};
                     socklen_t client_addr_len = static_cast<socklen_t>(sizeof(client_addr));
                     socket_t_ client_socket = accept(socket_fd,
                                                  reinterpret_cast<struct sockaddr*>(&client_addr), 
@@ -642,7 +643,7 @@ namespace MATFrost::Socket {
             }
             
             // Get the IP address from the first result
-            SOCKADDR_IN socket_addr = {0};
+            sockaddr_in socket_addr = {0};
             socket_addr.sin_family = AF_INET;
             socket_addr.sin_addr = reinterpret_cast<struct sockaddr_in*>(result->ai_addr)->sin_addr;
             socket_addr.sin_port = htons(static_cast<u_short>(port));
