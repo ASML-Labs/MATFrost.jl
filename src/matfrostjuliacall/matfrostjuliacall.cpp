@@ -1,7 +1,6 @@
 
 
 #include <cstdint>
-#include <winsock2.h>
 
 #include "mex.hpp"
 #include "mexAdapter.hpp"
