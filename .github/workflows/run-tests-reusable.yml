@@ -41,7 +41,7 @@ jobs:
         with:
           channel: ${{ inputs.julia-version }}
 
-      - uses: julia-actions/cache@v2
+      - uses: julia-actions/cache@v3
         with:
           cache-name: julia-cache;version=${{ inputs.julia-version }}
           include-matrix: false
