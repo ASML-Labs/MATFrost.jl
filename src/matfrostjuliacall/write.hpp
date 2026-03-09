@@ -1,3 +1,8 @@
+
+
+#ifndef MATFROST_JL_WRITE_HPP
+#define MATFROST_JL_WRITE_HPP
+
 #include "mex.hpp"
 #include "mexAdapter.hpp"
 
@@ -262,3 +267,5 @@ namespace MATFrost::Write {
     }
 
 }
+
+#endif //MATFROST_JL_WRITE_HPP

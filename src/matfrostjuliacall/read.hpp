@@ -1,3 +1,7 @@
+
+#ifndef MATFROST_JL_READ_HPP
+#define MATFROST_JL_READ_HPP
+
 #include "mex.hpp"
 #include "mexAdapter.hpp"
 
@@ -173,3 +177,4 @@ matlab::data::Array read(const std::shared_ptr<Socket::BufferedTCPSocket> socket
 
 }
 
+#endif //MATFROST_JL_READ_HPP

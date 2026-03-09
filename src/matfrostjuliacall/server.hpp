@@ -2,6 +2,10 @@
  * This file is responsible of managing the Julia process and offer a communication interface over pipes with the Julia
  * process. This class is free of MATLAB dependencies
  */
+
+#ifndef MATFROST_JL_SERVER_HPP
+#define MATFROST_JL_SERVER_HPP
+
 #include <cstdint>
 #include <cstdio>
 
@@ -292,6 +296,7 @@ namespace MATFrost {
     };
 }
 
+#endif //MATFROST_JL_SERVER_HPP
 
 
 
