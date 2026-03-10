@@ -18,7 +18,7 @@ struct CallMeta
         new(fully_qualified_name, signature)
     end
     function CallMeta(fully_qualified_name::String, signature::String)
-        new(fully_qualified_name, split(signature, ",") .|> strip)
+        new(fully_qualified_name, [signature])
     end
     function CallMeta(fully_qualified_name::String)
         new(fully_qualified_name, String[])
