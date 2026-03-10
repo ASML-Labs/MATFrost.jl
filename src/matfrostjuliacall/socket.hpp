@@ -418,7 +418,7 @@ namespace MATFrost::Socket {
             if (FD_ISSET(socket_fd, &write_set)) {
                 // Verify no pending error
                 int error = 0;
-                int error_len = sizeof(error);
+                socklen_t_ error_len = sizeof(error);
                 if (getsockopt_(socket_fd, SOL_SOCKET, SO_ERROR,
                               &error, &error_len) == SOCKET_ERROR_) {
                     return false;
