@@ -14,7 +14,6 @@
 #include <iostream>
 #include <array>
 
-
 #ifdef _WIN32
     #include <tchar.h>
     #include <strsafe.h>
@@ -26,6 +25,7 @@
     #include <sys/socket.h>
     #include <sys/select.h>
     #include <netinet/in.h>
+    #include <netinet/tcp.h>
     #include <arpa/inet.h>
     #include <netdb.h>
     #include <unistd.h>
@@ -607,6 +607,11 @@ namespace MATFrost::Socket {
                     socket_t_ client_socket = accept(socket_fd,
                                                  reinterpret_cast<struct sockaddr*>(&client_addr), 
                                                  &client_addr_len);
+
+                    int flag = 1;
+                    setsockopt_(client_socket, IPPROTO_TCP, TCP_NODELAY, &flag,
+                            static_cast<socklen_t_>(sizeof(flag)));
+
 
                     if (client_socket == INVALID_SOCKET_) {
                         throw(matlab::engine::MATLABException("Failed to accept connection: " + 
