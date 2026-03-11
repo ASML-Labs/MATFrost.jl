@@ -143,7 +143,7 @@ namespace MATFrost::Socket {
                 #ifdef _WIN32
                     auto rc = WSAStartup(MAKEWORD(2, 2), &data_);
                     if (rc != 0) {
-                        throw(matlab::engine::MATLABException("matfrostjulia:wsa:startupFailure", u"WSAStartup failed: " + std::to_string(rc)));
+                        throw(matlab::engine::MATLABException("matfrostjulia:wsa:startupFailure", u"WSAStartup failed: "));
                     }
                 #endif
             }
@@ -253,7 +253,8 @@ namespace MATFrost::Socket {
         size_t write_to_socket(const uint8_t *data, const size_t nb) {
 
             if (!wait_for_writable(timeout)) {
-                throw matlab::engine::MATLABException("matfrostjulia:socket:writeTimeout", u"Write socket timeout: " + std::to_string(timeout.tv_sec) + " seconds");
+                throw matlab::engine::MATLABException("matfrostjulia:socket:writeTimeout", matlab::engine::convertUTF8StringToUTF16String(
+                    "Write socket timeout: " + std::to_string(timeout.tv_sec) + " seconds"));
             }
 
             const auto sent = send_(socket_fd,
@@ -267,8 +268,8 @@ namespace MATFrost::Socket {
             } else if (sent == 0) {
                 throw matlab::engine::MATLABException("matfrostjulia:socket:connectionWriteClosed", u"Connection closed");
             } else {
-                throw matlab::engine::MATLABException("matfrostjulia:socket:connectionWriteError", u"Socket send error: " +
-                                       std::to_string(socket_last_error_()));
+                throw matlab::engine::MATLABException("matfrostjulia:socket:connectionWriteError", matlab::engine::convertUTF8StringToUTF16String(
+                    "Socket send error: " + std::to_string(socket_last_error_())));
             }
 
         }
