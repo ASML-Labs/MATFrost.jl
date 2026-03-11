@@ -123,6 +123,10 @@ public:
                 matfrost_connections.erase(id);
                 matfrost_server.erase(id);
                 throw matlab::engine::MATLABException(e);
+            } catch (...) {
+                matlab::data::ArrayFactory factory;
+                matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
+                      ({factory.createScalar("Does it break here?")}));
             }
         }
 
