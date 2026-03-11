@@ -78,6 +78,9 @@ public:
             matfrost_server[id] = server;
             matfrost_connections[id] = client_socket;
 
+            matlab::data::ArrayFactory factory;
+            matlab->feval(u"disp", 0, std::vector<matlab::data::Array>
+                  ({factory.createScalar("MATFrost server started and connection established.")}));
 
         } else if (action == u"STOP") {
             if (matfrost_connections.find(id) != matfrost_connections.end()) {
