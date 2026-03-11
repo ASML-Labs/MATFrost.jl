@@ -14,9 +14,10 @@ classdef matfrost_abstract_test < matlab.unittest.TestCase
 
     methods(TestClassSetup)
         function setup_matfrost(tc, julia_version)
-            matfpath = strrep(fileparts(fileparts(mfilename('fullpath'))), "\", "\\");
+            matfpath = strrep(fileparts(fileparts(mfilename('fullpath'))), "\", "\");
             pr = fullfile(fileparts(mfilename('fullpath')),"MATFrostTest");
-            shell('julia', ['+' char(julia_version)], ['--project="', char(pr), '"'], '-e',  "import Pkg ; Pkg.develop(path=\"""+ matfpath + "\"") ; Pkg.resolve() ; Pkg.instantiate()");
+            conf_pack =  fullfile(fileparts(mfilename('fullpath')),"configure_packages.jl");
+            [arg1, arg2] = shell('julia', ['+' char(julia_version)], ['--project="', char(pr), '"'], conf_pack, matfpath);
             tc.mjl = matfrostjulia(version=julia_version, project=pr);
         end
     end
