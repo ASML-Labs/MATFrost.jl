@@ -21,7 +21,7 @@ classdef matfrost_abstract_test < matlab.unittest.TestCase
             system(['julia +', char(julia_version) , ' --project="', char(project_path), '" "', char(configuration_packages_path), '" "', matfrost_path, '"'])
 
             % [arg1, arg2] = shell('julia', ['+' char(julia_version)], ['--project="', char(pr), '"'], conf_pack, matfpath);
-            tc.mjl = matfrostjulia(version=julia_version, project=pr);
+            tc.mjl = matfrostjulia(version=julia_version, project=project_path);
         end
     end
 end
