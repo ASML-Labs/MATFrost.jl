@@ -277,7 +277,8 @@ namespace MATFrost::Socket {
         size_t read_from_socket(uint8_t *data, const size_t nb) {
             // Use select to wait for data with timeout
             if (!wait_for_readable(timeout)) {
-                throw matlab::engine::MATLABException("MATFrost timeout: " + std::to_string(timeout.tv_sec) + " seconds");
+                throw matlab::engine::MATLABException("matfrostjulia:socket:readTimeout", matlab::engine::convertUTF8StringToUTF16String(
+                    "MATFrost timeout: " + std::to_string(timeout.tv_sec) + " seconds"));
             }
 
             auto brn = recv_(
@@ -289,15 +290,15 @@ namespace MATFrost::Socket {
             if (brn > 0) {
                 return brn;
             } else if (brn == 0) {
-                throw matlab::engine::MATLABException("Connection closed by peer during read");
+                throw matlab::engine::MATLABException("matfrostjulia:socket:readClosed", u"Connection closed by peer during read");
             } else {
-                throw matlab::engine::MATLABException("Socket read error: " + std::to_string(socket_last_error_()));
+                throw matlab::engine::MATLABException("matfrostjulia:socket:readError", matlab::engine::convertUTF8StringToUTF16String("Socket read error: " + std::to_string(socket_last_error_())));
             }
         }
 
         bool wait_for_readable(timeval time_out) const {
             if (socket_fd == INVALID_SOCKET_) {
-                throw matlab::engine::MATLABException("Invalid socket");
+                throw matlab::engine::MATLABException("matfrostjulia:socket:invalidWaitForReadable", u"Invalid socket");
             }
 
             fd_set read_set, error_set;
@@ -340,7 +341,7 @@ namespace MATFrost::Socket {
 
         bool wait_for_writable(timeval time_out) const {
             if (socket_fd == INVALID_SOCKET_) {
-                throw matlab::engine::MATLABException("Invalid socket");
+                throw matlab::engine::MATLABException("matfrostjulia:socket:invalidWaitForWritable", u"Invalid socket");
             }
 
             fd_set write_set, error_set;
