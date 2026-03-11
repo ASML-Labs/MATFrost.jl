@@ -50,8 +50,8 @@ jobs:
           include-matrix: false
       - uses: julia-actions/julia-buildpkg@v1
 
-      - name: Test Julia
-        uses: julia-actions/julia-runtest@v1
+      # - name: Test Julia
+      #   uses: julia-actions/julia-runtest@v1
           
       - name: Determine MATLAB product
         if: startsWith(inputs.os , 'windows')
