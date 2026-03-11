@@ -92,10 +92,10 @@ public:
             matlab::data::CellArray callstruct = input["callstruct"];
 
             if ( matfrost_server.find(id) == matfrost_server.end()) {
-                throw(matlab::engine::MATLABException("MATFrost server not started"));
+                throw(matlab::engine::MATLABException("matfrostjulia:process:notStarted", u"MATFrost server not started"));
             }
             if (matfrost_connections.find(id) == matfrost_connections.end()) {
-                throw(matlab::engine::MATLABException("MATFrost server not connected"));
+                throw(matlab::engine::MATLABException("matfrostjulia:socket:notStarted", u"MATFrost server not connected"));
             }
 
             auto socket = matfrost_connections[id];
@@ -127,7 +127,7 @@ public:
         matlab::data::ArrayFactory factory;
 
         if (!socket->is_connected()) {
-            throw(matlab::engine::MATLABException("MATFrost server disconnected"));
+            throw(matlab::engine::MATLABException("matfrostjulia:socket:notConnected", u"MATFrost server disconnected"));
         }
 
         MATFrost::Write::write(socket, callstruct);
