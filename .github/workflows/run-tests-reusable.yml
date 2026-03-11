@@ -51,6 +51,7 @@ jobs:
         uses: julia-actions/julia-runtest@v1
           
       - name: Determine MATLAB product
+        if: startsWith(inputs.os , 'windows')
         id: matlab-product
         shell: bash
         run: |
@@ -76,9 +77,7 @@ jobs:
        
       - name: Build MATFrost MEX
         uses: matlab-actions/run-command@v2
-        if: ${{ inputs.mex-recompile && startsWith(inputs.os , 'windows')}}
-        env:
-          MW_MINGW64_LOC: ${{ steps.msys2.outputs.msys2-location }}\ucrt64
+        if: ${{ inputs.mex-recompile }}
         with:
           command: addpath(genpath("src")) ; matfrostmake() ;
         
