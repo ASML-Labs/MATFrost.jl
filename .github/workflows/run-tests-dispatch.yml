@@ -33,6 +33,7 @@ on:
         required: true
         description: "Recompile MEX binary"
         type: boolean
+        default: true
 jobs:
   test:
     uses: ./.github/workflows/run-tests-reusable.yml
