@@ -51,7 +51,7 @@ public:
 
     void operator()(ArgumentList outputs, ArgumentList inputs) {
         // matlab::data::ArrayFactory factory;
-        // std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr = getEngine();
+        std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr = getEngine();
         // matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
         //           ({ factory.createScalar(("###################################\nStarting\n###################################\n"))}));
 
@@ -79,8 +79,8 @@ public:
             matfrost_connections[id] = client_socket;
 
             matlab::data::ArrayFactory factory;
-            matlab->feval(u"disp", 0, std::vector<matlab::data::Array>
-                  ({factory.createScalar("MATFrost server started and connection established.")}));
+            matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
+                  ({factory.createScalar("MEX: MATFrost server started and connection established.")}));
 
         } else if (action == u"STOP") {
             if (matfrost_connections.find(id) != matfrost_connections.end()) {
@@ -112,7 +112,14 @@ public:
             try {
                 outputs[0] = juliacall(socket, server, callstruct);
             } catch (matlab::engine::MATLABException& e) {
+
                 // Unrecoverable discconect and stop server
+                matlab::data::ArrayFactory factory;
+                matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
+                      ({factory.createScalar(e.getMessageID())}));
+                matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
+                    ({factory.createScalar(e.getMessageText())}));
+
                 matfrost_connections.erase(id);
                 matfrost_server.erase(id);
                 throw matlab::engine::MATLABException(e);
