@@ -312,7 +312,7 @@ namespace MATFrost::Socket {
             int result = select_(socket_fd, &read_set, nullptr, &error_set, &time_out);
 
             if (result == SOCKET_ERROR_) {
-                throw matlab::engine::MATLABException("Socket error: " + std::to_string(socket_last_error_()));
+                throw matlab::engine::MATLABException("matfrostjulia:socketRead:selectError", matlab::engine::convertUTF8StringToUTF16String("Socket error: " + std::to_string(socket_last_error_())));
             }
 
             if (result == 0) {
@@ -322,7 +322,7 @@ namespace MATFrost::Socket {
 
             // Check for errors
             if (FD_ISSET(socket_fd, &error_set)) {
-                throw matlab::engine::MATLABException("Socket error:");
+                throw matlab::engine::MATLABException("matfrostjulia:socketRead:errorSet", u"Socket error:");
             }
 
             // Check if data is available
@@ -332,11 +332,11 @@ namespace MATFrost::Socket {
                 int peek_result = recv_(socket_fd, buf, 1, MSG_PEEK);
                 if (peek_result == 0) {
                     // EOF - connection closed
-                    throw matlab::engine::MATLABException("Socket - EOF connection closed");
+                    throw matlab::engine::MATLABException("matfrostjulia:socketRead:eof", u"Socket - EOF connection closed");
                 }
                 return true;
             }
-            throw matlab::engine::MATLABException("Socket error:");
+            throw matlab::engine::MATLABException("matfrostjulia:socketRead:error", u"Socket error:");
         }
 
         bool wait_for_writable(timeval time_out) const {
