@@ -169,7 +169,10 @@ public:
         timeval timeout{0, 100000}; // 100ms
 
         for (size_t i = 0; i < niters; i++) {
+
             if (socket->wait_for_readable(timeout)) {
+                matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
+                ({factory.createScalar("JuliaCall, wait_for_readable success!")}));
                 // Data available to read
                 auto jlout = MATFrost::Read::read(socket);
                 matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
@@ -178,6 +181,9 @@ public:
 
                 return jlout;
             } else {
+                matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
+                ({factory.createScalar("JuliaCall, wait_for_readable false!")}));
+                
                 server->dump_logging(matlabPtr);
 
                 matlabPtr->feval(u"pause", 0, std::vector<matlab::data::Array>
