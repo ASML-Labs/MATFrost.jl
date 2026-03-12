@@ -105,7 +105,7 @@ jobs:
       
       - name: Simple Julia test
         run: |
-          julia --project="test/MATFrostTest" -e "h() = MATFrost.Example.hello_world() ; g() = Main.eval(:(import MATFrost)) ; t() = (Base.invokelatest(g); Base.invokelatest(h)) ; t()"
+          julia --project="test/MATFrostTest" -e "package_is_loaded2(packagename) = try ; getfield(Main, packagename) ; return true ; catch (e) ; return false ; end ; h() = MATFrost.Example.hello_world() ; g() = Main.eval(:(import MATFrost)) ; t() = (Base.invokelatest(g); Base.invokelatest(h); Base.invokelatest(package_is_loaded2, :MATFrost)) ; println(t())"
      
 
       - name: Run tests

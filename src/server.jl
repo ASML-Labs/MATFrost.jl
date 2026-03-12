@@ -71,6 +71,8 @@ function package_is_loaded(packagename)
     end
 end
 
+package_is_loaded2(packagename) = try ; getfield(Main, packagename) ; return true ; catch (e) ; return false ; end
+
 function callsequence(io::IO)
     callstruct = read_matfrostarray!(io)
     
