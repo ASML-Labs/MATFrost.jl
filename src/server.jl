@@ -91,7 +91,7 @@ function callsequence(io::IO)
 #         println("Julia: MATFrostArray-CallMeta")
 
         println(Main.eval(:(try
-            getfield(Main, $packagename)
+            $packagename
             true
         catch
             false
