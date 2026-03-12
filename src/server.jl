@@ -109,7 +109,6 @@ Package: $(packagename)
         # This ofcourse is not ideal and should be treated with care.
         Base.invokelatest(callsequence_latest_world_age, callmeta, callstruct.values[2])
 
-        println("Julia: MATFrostArray-call_top finished")
 
     catch e 
 
