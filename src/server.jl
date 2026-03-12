@@ -71,7 +71,7 @@ function package_is_loaded(packagename)
     end
 end
 
-package_is_loaded2() = Base.invokelast(package_is_loaded, :MATFrost)
+package_is_loaded2() = Base.invokelatest(package_is_loaded, :MATFrost)
 
 function callsequence(io::IO)
     callstruct = read_matfrostarray!(io)
