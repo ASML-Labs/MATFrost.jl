@@ -91,7 +91,7 @@ function callsequence(io::IO)
         println("Julia: MATFrostArray-CallMeta")
 
 
-        if !Main.eval(:(try ; Main.$packagename ; return true ; catch _ ; return false ; end))
+        # if !Main.eval(:(try ; Main.$packagename ; return true ; catch _ ; return false ; end))
             try
                 
                 println("Julia: Try loading package: $(packagename)")
@@ -107,7 +107,7 @@ Package: $(packagename)
 """
 ))
             end
-        end
+        # end
         println("Julia: MATFrostArray-Package Loaded")
 
         # As packages (currently) are loaded loaded on-demand after MATFrost server has been started,
