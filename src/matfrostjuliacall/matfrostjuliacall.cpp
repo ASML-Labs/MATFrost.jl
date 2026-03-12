@@ -139,17 +139,30 @@ public:
 
     matlab::data::Array juliacall(const std::shared_ptr<MATFrost::Socket::BufferedTCPSocket> socket, const std::shared_ptr<MATFrost::MATFrostServer> server, const matlab::data::Array callstruct) {
 
-        auto matlab = getEngine();
-        server->dump_logging(matlab);
-
         matlab::data::ArrayFactory factory;
+
+        auto matlabPtr = getEngine();
+        matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
+         ({factory.createScalar("JuliaCall, matlab engine retrieved!")}));
+        server->dump_logging(matlabPtr);
+
+
+        matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
+        ({factory.createScalar("JuliaCall, logging dummped!")}));
 
         if (!socket->is_connected()) {
             throw(matlab::engine::MATLABException("matfrostjulia:socket:notConnected", u"MATFrost server disconnected"));
         }
+        matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
+         ({factory.createScalar("JuliaCall, socket - connected!")}));
 
         MATFrost::Write::write(socket, callstruct);
+        matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
+      ({factory.createScalar("JuliaCall, written!")}));
         socket->flush();
+
+        matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
+      ({factory.createScalar("JuliaCall, flushed!")}));
 
         size_t niters = socket->timeout_ms / 100+1;
 
@@ -159,14 +172,15 @@ public:
             if (socket->wait_for_readable(timeout)) {
                 // Data available to read
                 auto jlout = MATFrost::Read::read(socket);
-
-                server->dump_logging(matlab);
+                matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
+              ({factory.createScalar("JuliaCall, read!")}));
+                server->dump_logging(matlabPtr);
 
                 return jlout;
             } else {
-                server->dump_logging(matlab);
+                server->dump_logging(matlabPtr);
 
-                matlab->feval(u"pause", 0, std::vector<matlab::data::Array>
+                matlabPtr->feval(u"pause", 0, std::vector<matlab::data::Array>
                     ({ factory.createScalar(0.0)})); // No-operation added to be able interrupt.
             }
         }
