@@ -4,9 +4,6 @@ module CompositeTests
 using Test
 using JET
 
-using ..Types
-using ..BufferPrimitives
-using MATFrost._Stream: BufferedUDS, Buffer
 using MATFrost._Read: read_matfrostarray!
 using MATFrost._ConvertToJulia: convert_matfrostarray
 
@@ -39,8 +36,7 @@ struct StructTest4
 end
 
 
-buffer = Buffer(Vector{UInt8}(undef, 2 << 22), 0, 0)
-stream = BufferedUDS(C_NULL, buffer, buffer)
+buffer = IOBuffer()
 
 """
 Scalar: Number, String
@@ -75,13 +71,12 @@ function deepequal(a, b)
 end
 
 @testset "Simple struct" begin
-    _clearbuffer!(buffer)
+    buffer = IOBuffer()
     v = StructTest1(3.0, 3, "Test1234")
     _writebuffermatfrostarray!(buffer, v)
-    buffer.available += 20
 
-    marr = read_matfrostarray!(stream)
-    @test buffer.available - buffer.position == 20
+    marr = read_matfrostarray!(buffer)
+    @test bytesavailable(buffer) == 0
     @test convert_matfrostarray(StructTest1, marr) == v
 end
 
@@ -94,11 +89,11 @@ end
 
     arr = StructTest1[v1, v2, v3, v1, v3, v2]
     _writebuffermatfrostarray!(buffer, arr)
-    buffer.available += 20
+    _addbuffer!(buffer, 20)
 
 
-    marr = read_matfrostarray!(stream)
-    @test buffer.available - buffer.position == 20
+    marr = read_matfrostarray!(buffer)
+    @test bytesavailable(buffer) == 20
     @test convert_matfrostarray(Vector{StructTest1}, marr) == arr
 end
 
@@ -110,11 +105,11 @@ end
     _clearbuffer!(buffer)
     v = (3223,3.0,3,"EWFW")
     _writebuffermatfrostarray!(buffer, v)
-    buffer.available += 20
+    _addbuffer!(buffer, 20)
 
-    
-    marr = read_matfrostarray!(stream)    
-    @test buffer.available - buffer.position == 20
+
+    marr = read_matfrostarray!(buffer)    
+    @test bytesavailable(buffer) == 20
     @test convert_matfrostarray(Tuple{Int64, Float64, Int64, String}, marr) == v
 
 end
@@ -127,11 +122,11 @@ end
 
     arr = Tuple{Int64, Float64, Int64, String}[v1, v2, v3, v1, v3, v2]
     _writebuffermatfrostarray!(buffer, arr)
-    buffer.available += 20
+    _addbuffer!(buffer, 20)
 
     
-    marr = read_matfrostarray!(stream)  
-    @test buffer.available - buffer.position == 20
+    marr = read_matfrostarray!(buffer)  
+    @test bytesavailable(buffer) == 20
     @test convert_matfrostarray(Vector{Tuple{Int64, Float64, Int64, String}}, marr) == arr
 end
 
@@ -141,10 +136,10 @@ end
     NT = NamedTuple{(:v1, :v2, :v3, :v4), Tuple{Int64, Float64, Int64, String}}
     v = NT((3223,3.0,3,"EWFW"))
     _writebuffermatfrostarray!(buffer, v)
-    buffer.available += 20
+    _addbuffer!(buffer, 20)
     
-    marr = read_matfrostarray!(stream)
-    @test buffer.available - buffer.position == 20  
+    marr = read_matfrostarray!(buffer)
+    @test bytesavailable(buffer) == 20  
     @test convert_matfrostarray(NT, marr) == v
 end
 
@@ -157,10 +152,10 @@ end
 
     arr = NT[v1, v2, v3, v1, v3, v2]
     _writebuffermatfrostarray!(buffer, arr)
-    buffer.available += 20
+    _addbuffer!(buffer, 20)
     
-    marr = read_matfrostarray!(stream)
-    @test buffer.available - buffer.position == 20
+    marr = read_matfrostarray!(buffer)
+    @test bytesavailable(buffer) == 20
     @test convert_matfrostarray(Vector{NT}, marr) == arr
 end
 
@@ -183,10 +178,10 @@ end
 
 
     _writebuffermatfrostarray!(buffer, nest)
-    buffer.available += 20
+    _addbuffer!(buffer, 20)
     
-    marr = read_matfrostarray!(stream)
-    @test buffer.available - buffer.position == 20
+    marr = read_matfrostarray!(buffer)
+    @test bytesavailable(buffer) == 20
 
     presult = convert_matfrostarray(StructTest3, marr)
     @test deepequal(presult, nest)

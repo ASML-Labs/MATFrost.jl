@@ -3,13 +3,11 @@ module ReadTest
 using Test
 using JET
 
-using ..Types
-using ..BufferPrimitives
-
 using MATFrost: MATFrost
 using MATFrost._Read: read_matfrostarray!
-using MATFrost._Stream: BufferedUDS, Buffer
+using MATFrost._Write: write_matfrostarray!
 using MATFrost._Types
+using MATFrost: _ConvertToMATLAB, _ConvertToJulia
 
 
 """
@@ -45,11 +43,6 @@ function deepequal(a, b)
 end
 
 
-# stream = BufferedUDS(C_NULL, Buffer(Vector{UInt8}(undef, 2 << 16), 0, 0), Buffer(Vector{UInt8}(undef, 2 << 16), 0, 0))
-
-buffer = Buffer(Vector{UInt8}(undef, 2 << 16), 0, 0)
-stream = BufferedUDS(C_NULL, buffer, buffer)
-
 primitive_tests = (
     (Float32, Float32(4321)),
     (Float64, 4321.4321),
@@ -66,36 +59,58 @@ primitive_tests = (
     
 )
 
-function test_matfrostarray_read(v_write, v_exp)
-    _clearbuffer!(buffer)
-    _writebuffermatfrostarray!(buffer, v_write)
-    buffer.available += 20
+function test_matfrostarray_read(v_write, v_exp; raw=false)
+    buffer = IOBuffer()
+    write_matfrostarray!(buffer, raw ? v_write : _ConvertToMATLAB.convert_matfrostarray(v_write))
+    seekstart(buffer)
+    v_act = read_matfrostarray!(buffer)
 
-    v_act = read_matfrostarray!(stream)
+    # check that all bytes were read
+    @test bytesavailable(buffer) == 0
 
-    t_nb_read = buffer.available - buffer.position == 20
-    t_v_correct = deepequal(v_act, v_exp)
-    return t_nb_read && t_v_correct
+    # test read conversion
+    @test deepequal(v_act, v_exp)
+    
+    if ! raw
+        # test reverse conversion
+        v_act2 = _ConvertToJulia.convert_matfrostarray(typeof(v_write), v_act)
+        @test deepequal(v_act2, v_write)
+    end
+end
+
+@testset "Primitives-Empty-Struct" begin
+    # buffer = IOBuffer()
+    # write_matfrostarray!(buffer, v_write;)
+
+    v_write = MATFrostArrayStruct([0], [:one, :two], MATFrostArrayAbstract[])
+    v_exp = MATFrostArrayEmpty()
+    test_matfrostarray_read(v_write, v_exp; raw=true)
+end
+
+@testset "Primitives-Behavior-String" begin
+    v_write = ["Hello",  "MATFrost!"]
+    v_exp = MATFrostArrayString([2], v_write)
+    test_matfrostarray_read(v_write, v_exp)
 end
 
 @testset "Primitives-Behavior-Boolean" begin
     @testset "Read-Scalar" begin
         v_write = true
         v_exp = MATFrostArrayPrimitive{Bool}([1], [true])
-        @test test_matfrostarray_read(v_write, v_exp)
+        test_matfrostarray_read(v_write, v_exp)
     end
 
     @testset "Read-Vector" begin
         v_write = [true, false, true]
         v_exp = MATFrostArrayPrimitive{Bool}([3], v_write)
-        @test test_matfrostarray_read(v_write, v_exp)
+        test_matfrostarray_read(v_write, v_exp)
     end
 
     
     @testset "Read-Matrix" begin
         v_write = [true false true; false false true; false false false]
         v_exp = MATFrostArrayPrimitive{Bool}([3,3], vec(v_write))
-        @test test_matfrostarray_read(v_write, v_exp)
+        test_matfrostarray_read(v_write, v_exp)
     end
 end
 
@@ -105,19 +120,19 @@ end
     @testset "Read-Scalar" begin
         v_write = pt[2]
         v_exp = MATFrostArrayPrimitive{pt[1]}([1], [pt[2]])
-        @test test_matfrostarray_read(v_write, v_exp)
+        test_matfrostarray_read(v_write, v_exp)
     end
 
     @testset "Read-ComplexScalar" begin
         v_write = Complex{pt[1]}(pt[2], pt[1](2) * pt[2])
         v_exp = MATFrostArrayPrimitive{Complex{pt[1]}}([1], [v_write])
-        @test test_matfrostarray_read(v_write, v_exp)
+        test_matfrostarray_read(v_write, v_exp)
     end
 
     @testset "Read-Vector" begin        
         v_write = pt[1][pt[2], pt[2]+1, pt[2]+2]
         v_exp = MATFrostArrayPrimitive{pt[1]}([3], v_write)
-        @test test_matfrostarray_read(v_write, v_exp)
+        test_matfrostarray_read(v_write, v_exp)
 
     end
 
@@ -125,7 +140,7 @@ end
         v = Complex{pt[1]}(pt[2], pt[1](2) * pt[2])
         v_write= Complex{pt[1]}[v + 1, v+2, v+3]
         v_exp = MATFrostArrayPrimitive{Complex{pt[1]}}([3], v_write)
-        @test test_matfrostarray_read(v_write, v_exp)
+        test_matfrostarray_read(v_write, v_exp)
     end
 
     @testset "Read-Matrix" begin
@@ -134,7 +149,7 @@ end
             v_write[i] = pt[2] + pt[1](i)
         end
         v_exp = MATFrostArrayPrimitive{pt[1]}([7, 5], vec(v_write))
-        @test test_matfrostarray_read(v_write, v_exp)
+        test_matfrostarray_read(v_write, v_exp)
     end
 
     @testset "Read-ComplexMatrix" begin
@@ -143,10 +158,8 @@ end
             v_write[i] = Complex{pt[1]}(pt[2], pt[1](i)+3)
         end
         v_exp = MATFrostArrayPrimitive{Complex{pt[1]}}([5, 7], vec(v_write))
-        @test test_matfrostarray_read(v_write, v_exp)
+        test_matfrostarray_read(v_write, v_exp)
     end
-    
-
 end
 
 end

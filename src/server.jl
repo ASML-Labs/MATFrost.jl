@@ -3,11 +3,11 @@ module _Server
 import ..MATFrost as MATFrost
 import ..MATFrost._Read:  read_matfrostarray!
 import ..MATFrost._Write: write_matfrostarray!
-import ..MATFrost._Stream: flush!, uds_accept, uds_bind, uds_connect, uds_listen, uds_socket, uds_read, uds_write, uds_init, uds_close, FD_TYPE, Buffer, BufferedUDS
 using ..MATFrost._Types
 using ..MATFrost._Constants
 using ..MATFrost._ConvertToJulia: _ConvertToJulia
 using ..MATFrost._ConvertToMATLAB: _ConvertToMATLAB
+using Sockets
 
 
 struct CallMeta
@@ -36,27 +36,25 @@ AmbiguityError(f::Function) = MATFrostException("matfrostjulia:call:ambigiousFun
 """
 This function is the basis of the MATFrostServer.
 """
-function MATFrost.matfrostserve(socket_path::String)
-
-    server_socket_fd = setup_uds_server(socket_path)
-
-    client_socket_fd = uds_accept(server_socket_fd)
-    
+function MATFrost.matfrostserve(host::String, port::Int)
+    client = connect(host, port)
     println("MATFrost server connected. Ready for requests.")
-
-    bufin = Buffer(Vector{UInt8}(undef, 2 << 15), 0, 0)
-    bufout = Buffer(Vector{UInt8}(undef, 2 << 15), 0, 0)
     
-    bufuds = BufferedUDS(client_socket_fd, bufin, bufout)
-    
-    while true  
-        try 
-            callsequence(bufuds)
-        catch e
+    try 
+        while true
+            callsequence(client)
+        end
+    catch e
+        if e isa InterruptException
+            println("MATFrost server interrupted.")
+        else
             Base.showerror(stdout, e)
             Base.show_backtrace(stdout, Base.catch_backtrace())
             exit()
         end
+        println("MATFrost server stopped.")
+    finally
+        close(client)
     end
 end
 
@@ -70,10 +68,9 @@ function package_is_loaded(packagename)
     end
 end
 
-function callsequence(socket::BufferedUDS)
-
-    callstruct = read_matfrostarray!(socket)
-
+function callsequence(io::IO)
+    callstruct = read_matfrostarray!(io)
+    
     marr = try
 
         if !(callstruct isa MATFrostArrayCell) || length(callstruct.values) != 2
@@ -121,8 +118,8 @@ Package: $(packagename)
     end
 
     if marr isa MATFrostArrayAbstract
-        write_matfrostarray!(socket, marr)
-        flush!(socket)
+        write_matfrostarray!(io, marr)
+        flush(io)
     else
         error("Unclear error")
     end
@@ -250,20 +247,6 @@ function matfrostexceptionresult(e)
             e
         )
     end
-end
-
-
-function setup_uds_server(path)
-    uds_init()
-
-    server_socket_fd = uds_socket()
-
-    rc_bind = uds_bind(server_socket_fd, path)
-
-    rc_listen = uds_listen(server_socket_fd)
-
-    server_socket_fd
-
 end
 
 function ambiguous_method_error(f)

@@ -41,4 +41,4 @@ let
 end
 
 
-MATFrost.matfrostserve(ARGS[1])
+MATFrost.matfrostserve(ARGS[1], parse(Int, ARGS[2]))

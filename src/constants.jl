@@ -17,47 +17,47 @@ export LOGICAL, CHAR, MATLAB_STRING,
 
 using .._Types
 
-const LOGICAL = Int32(0)
+const LOGICAL = Int32(0)  # 0x00
 
-const CHAR = Int32(1)
+const CHAR = Int32(1)  # 0x01
 
-const MATLAB_STRING = Int32(2)
+const MATLAB_STRING = Int32(2)  # 0x02
 
-const DOUBLE = Int32(3)
-const SINGLE = Int32(4)
+const DOUBLE = Int32(3)  # 0x03
+const SINGLE = Int32(4)  # 0x04
 
-const INT8 = Int32(5)
-const UINT8 = Int32(6)
-const INT16 = Int32(7)
-const UINT16 = Int32(8)
-const INT32 = Int32(9)
-const UINT32 = Int32(10)
-const INT64 = Int32(11)
-const UINT64 = Int32(12)
+const INT8 = Int32(5)  # 0x05
+const UINT8 = Int32(6)  # 0x06
+const INT16 = Int32(7)  # 0x07
+const UINT16 = Int32(8)  # 0x08
+const INT32 = Int32(9)  # 0x09
+const UINT32 = Int32(10)  # 0x0a
+const INT64 = Int32(11)  # 0x0b
+const UINT64 = Int32(12)  # 0x0c
 
-const COMPLEX_DOUBLE = Int32(13)
-const COMPLEX_SINGLE = Int32(14)
+const COMPLEX_DOUBLE = Int32(13)  # 0x0d
+const COMPLEX_SINGLE = Int32(14)  # 0x0e
 
-const COMPLEX_INT8 = Int32(15)
-const COMPLEX_UINT8 = Int32(16)
-const COMPLEX_INT16 = Int32(17)
-const COMPLEX_UINT16 = Int32(18)
-const COMPLEX_INT32 = Int32(19)
-const COMPLEX_UINT32 = Int32(20)
-const COMPLEX_INT64 = Int32(21)
-const COMPLEX_UINT64 = Int32(22)
+const COMPLEX_INT8 = Int32(15)  # 0x0f
+const COMPLEX_UINT8 = Int32(16)  # 0x10
+const COMPLEX_INT16 = Int32(17)  # 0x11
+const COMPLEX_UINT16 = Int32(18)  # 0x12
+const COMPLEX_INT32 = Int32(19)  # 0x13
+const COMPLEX_UINT32 = Int32(20)  # 0x14
+const COMPLEX_INT64 = Int32(21)  # 0x15
+const COMPLEX_UINT64 = Int32(22)  # 0x16
 
-const CELL = Int32(23)
-const STRUCT = Int32(24)
+const CELL = Int32(23)  # 0x17
+const STRUCT = Int32(24)  # 0x18
 
-const OBJECT = Int32(25)
-const VALUE_OBJECT = Int32(26)
-const HANDLE_OBJECT_REF = Int32(27)
-const ENUM = Int32(28)
+const OBJECT = Int32(25)  # 0x19
+const VALUE_OBJECT = Int32(26)  # 0x1a
+const HANDLE_OBJECT_REF = Int32(27)  # 0x1b
+const ENUM = Int32(28)  # 0x1c
 
-const SPARSE_LOGICAL = Int32(29)
-const SPARSE_DOUBLE = Int32(30)
-const SPARSE_COMPLEX_DOUBLE = Int32(31)
+const SPARSE_LOGICAL = Int32(29)  # 0x1d
+const SPARSE_DOUBLE = Int32(30)  # 0x1e
+const SPARSE_COMPLEX_DOUBLE = Int32(31)  # 0x1f
 
 
 
@@ -163,7 +163,7 @@ matlab_type(::MATFrostArrayPrimitive{T}) where {T} = matlab_type(T)
     elseif marr isa MATFrostArrayPrimitive{Complex{UInt64}}
         matlab_type(marr)
     else
-        Int32(0)
+        Int32(-1)
     end
 end
 
