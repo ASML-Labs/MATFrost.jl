@@ -98,6 +98,10 @@ jobs:
         if: ${{ inputs.mex-recompile }}
         with:
           command: addpath(genpath("src")) ; matfrostmake() ;
+
+      - name: Configure Julia test package
+        run: |
+          julia --project="test/MATFrostTest" "test/configure_packages.jl" "."
         
       - name: Run tests
         uses: matlab-actions/run-tests@v2
