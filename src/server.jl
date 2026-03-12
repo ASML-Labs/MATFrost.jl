@@ -95,6 +95,8 @@ function callsequence(io::IO)
                 println("Julia: Try loading package: $(packagename)")
                 Main.eval(:(import $packagename))
             catch e
+                
+                println("Julia: Package loading error: $(packagename)")
                 throw(MATFrostException("matfrostjulia:call:packageNotFound", 
 """
 Package not found exception:
