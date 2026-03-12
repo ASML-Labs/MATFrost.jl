@@ -88,24 +88,24 @@ function callsequence(io::IO)
  
         println("Julia: MATFrostArray-CallMeta")
 
-        Main.eval(:(import $packagename))
-#         if !Base.invokelatest(package_is_loaded, packagename)
-#             try
-                
-#                 println("Julia: Try loading package: $(packagename)")
-#                 Main.eval(:(import $packagename))
-#             catch e
-                
-#                 println("Julia: Package loading error: $(packagename)")
-#                 throw(MATFrostException("matfrostjulia:call:packageNotFound", 
-# """
-# Package not found exception:
 
-# Package: $(packagename)
-# """
-# ))
-#             end
-#         end
+        if !Base.invokelatest(package_is_loaded, packagename)
+            try
+                
+                println("Julia: Try loading package: $(packagename)")
+                Main.eval(:(import $packagename))
+            catch e
+                
+                println("Julia: Package loading: $(packagename)")
+                throw(MATFrostException("matfrostjulia:call:packageNotFound", 
+"""
+Package not found exception:
+
+Package: $(packagename)
+"""
+))
+            end
+        end
         println("Julia: MATFrostArray-Package Loaded")
 
         # As packages (currently) are loaded loaded on-demand after MATFrost server has been started,

@@ -102,7 +102,11 @@ jobs:
       - name: Configure Julia test package
         run: |
           julia --project="test/MATFrostTest" "test/configure_packages.jl" "."
-        
+      
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 15
+
       - name: Run tests
         uses: matlab-actions/run-tests@v2
         env:
