@@ -190,8 +190,11 @@ namespace MATFrost {
 
 
 
-        void dump_logging(std::shared_ptr<matlab::engine::MATLABEngine> matlab) {
+        void dump_logging(std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr) {
 
+            matlab::data::ArrayFactory factory;
+            matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
+            ({factory.createScalar("Dump Logging start!")}));
 #ifdef _WIN32
             size_t ba = bytes_available(h_stdouterr);
 #else
@@ -199,21 +202,27 @@ namespace MATFrost {
 #endif
 
             if (ba> 0) {
+                matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
+({factory.createScalar("Dump Logging read string!")}));
 #ifdef _WIN32
                 std::string logged_su8 = read_string(h_stdouterr);
 #else
                 std::string logged_su8 = read_string(fd_stdouterr);
 #endif
-
+                matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
+({factory.createScalar("Dump Logging convert string!")}));
                 matlab::data::ArrayFactory factory;
                 std::u16string logging = matlab::engine::convertUTF8StringToUTF16String(logged_su8);
                 if (logging.size() == 0) {
                     return;
                 }
-                matlab->feval(u"disp", 0, std::vector<matlab::data::Array>
+                matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
                   ({factory.createScalar(logging)}));
                 // return read_string(h_stdouterr);
             }
+
+            matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
+        ({factory.createScalar("Dump Logging end!")}));
 
         }
 

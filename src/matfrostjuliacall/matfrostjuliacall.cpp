@@ -183,7 +183,7 @@ public:
             } else {
                 matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
                 ({factory.createScalar("JuliaCall, wait_for_readable false!")}));
-                
+
                 server->dump_logging(matlabPtr);
 
                 matlabPtr->feval(u"pause", 0, std::vector<matlab::data::Array>
