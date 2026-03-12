@@ -104,6 +104,13 @@ function callsequence(io::IO)
                 
 #                 println("Julia: Try loading package: $(packagename)")
                 Main.eval(:(import $packagename))
+
+                println(Main.eval(:(try
+                    $packagename
+                    true
+                catch
+                    false
+                end)))
 #             catch e
                 
 #                 println("Julia: Package loading: $(packagename)")
