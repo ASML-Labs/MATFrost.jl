@@ -109,7 +109,7 @@ jobs:
       
       - name: Simple Julia test2
         run: |
-          julia --project="test/MATFrostTest" -e "import MATFrost ; println(MATFrost._Server.package_is_loaded2())"
+          julia --project="test/MATFrostTest" -e "import MATFrost ; println(MATFrost._Server.package_is_loaded2(:MATFrost)) ; println(MATFrost._Server.package_is_loaded2(:MATFrostTest))"
      
 
       - name: Run tests
