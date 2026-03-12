@@ -74,6 +74,8 @@ end
 function callsequence(io::IO)
     callstruct = read_matfrostarray!(io)
     
+    println("Julia: MATFrostArray-read")
+
     marr = try
 
         if !(callstruct isa MATFrostArrayCell) || length(callstruct.values) != 2
@@ -83,6 +85,8 @@ function callsequence(io::IO)
         callmeta = _ConvertToJulia.convert_matfrostarray(CallMeta, callstruct.values[1])
         syms = Symbol.(split(callmeta.fully_qualified_name,"."))
         packagename = syms[1]
+ 
+        println("Julia: MATFrostArray-CallMeta")
 
 
         if !Base.invokelatest(package_is_loaded, packagename)
@@ -98,14 +102,19 @@ Package: $(packagename)
 ))
             end
         end
+        println("Julia: MATFrostArray-Package Loaded")
 
         # As packages (currently) are loaded loaded on-demand after MATFrost server has been started,
         # the functions in those packages need to be called from a newer world age.
         # This ofcourse is not ideal and should be treated with care.
         Base.invokelatest(callsequence_latest_world_age, callmeta, callstruct.values[2])
 
+        println("Julia: MATFrostArray-call_top finished")
+
     catch e 
-        
+
+        println("Julia: MATFrostArray-Error")
+
         buf = IOBuffer()
         Base.showerror(buf, e)
         Base.show_backtrace(buf, Base.catch_backtrace())
@@ -119,6 +128,8 @@ Package: $(packagename)
 
         _ConvertToMATLAB.convert_matfrostarray(matfrostexceptionresult(matfe))
     end
+
+    println("Julia: MATFrostArray-About To Write")
 
     if marr isa MATFrostArrayAbstract
         write_matfrostarray!(io, marr)
