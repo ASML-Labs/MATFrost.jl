@@ -91,6 +91,8 @@ function callsequence(io::IO)
 
         if !Base.invokelatest(package_is_loaded, packagename)
             try
+                
+                println("Julia: Try loading package: $(packagename)")
                 Main.eval(:(import $packagename))
             catch e
                 throw(MATFrostException("matfrostjulia:call:packageNotFound", 
