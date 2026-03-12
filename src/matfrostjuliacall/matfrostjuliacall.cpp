@@ -124,6 +124,10 @@ public:
                 matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
                     ({factory.createScalar(e.getMessageText())}));
 
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+                server->dump_logging(matlabPtr);
+
                 matfrost_connections.erase(id);
                 matfrost_server.erase(id);
                 throw matlab::engine::MATLABException(e);
@@ -169,7 +173,6 @@ public:
         timeval timeout{0, 100000}; // 100ms
 
         for (size_t i = 0; i < niters; i++) {
-            try {
 
 
             if (socket->wait_for_readable(timeout)) {
@@ -191,12 +194,7 @@ public:
                 matlabPtr->feval(u"pause", 0, std::vector<matlab::data::Array>
                     ({ factory.createScalar(0.0)})); // No-operation added to be able interrupt.
             }
-                
-            } catch (...) {
 
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-                server->dump_logging(matlabPtr);
-            }
         }
 
         throw(matlab::engine::MATLABException("MATFrost server timeout"));
