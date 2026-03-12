@@ -90,12 +90,12 @@ function callsequence(io::IO)
  
 #         println("Julia: MATFrostArray-CallMeta")
 
-        println(Main.eval(:(try
-            $packagename
-            true
-        catch
-            false
-        end)))
+        # println(Main.eval(:(try
+        #     $packagename
+        #     true
+        # catch
+        #     false
+        # end)))
 
         # println(Base.invokelatest(package_is_loaded, packagename))
 
