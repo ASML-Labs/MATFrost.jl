@@ -77,36 +77,36 @@ function callsequence(io::IO)
     callstruct = read_matfrostarray!(io)
     
     println("Julia: MATFrostArray-read")
-
+    println(callstruct)
     marr = try
 
-        if !(callstruct isa MATFrostArrayCell) || length(callstruct.values) != 2
-            throw("error")
-        end
+#         if !(callstruct isa MATFrostArrayCell) || length(callstruct.values) != 2
+#             throw("error")
+#         end
         
-        callmeta = _ConvertToJulia.convert_matfrostarray(CallMeta, callstruct.values[1])
-        syms = Symbol.(split(callmeta.fully_qualified_name,"."))
-        packagename = syms[1]
+#         callmeta = _ConvertToJulia.convert_matfrostarray(CallMeta, callstruct.values[1])
+#         syms = Symbol.(split(callmeta.fully_qualified_name,"."))
+#         packagename = syms[1]
  
-        println("Julia: MATFrostArray-CallMeta")
+#         println("Julia: MATFrostArray-CallMeta")
 
 
-        # if !Main.eval(:(try ; Main.$packagename ; return true ; catch _ ; return false ; end))
-            try
+#         # if !Main.eval(:(try ; Main.$packagename ; return true ; catch _ ; return false ; end))
+#             try
                 
-                println("Julia: Try loading package: $(packagename)")
-                Main.eval(:(import $packagename))
-            catch e
+#                 println("Julia: Try loading package: $(packagename)")
+#                 Main.eval(:(import $packagename))
+#             catch e
                 
-                println("Julia: Package loading: $(packagename)")
-                throw(MATFrostException("matfrostjulia:call:packageNotFound", 
-"""
-Package not found exception:
+#                 println("Julia: Package loading: $(packagename)")
+#                 throw(MATFrostException("matfrostjulia:call:packageNotFound", 
+# """
+# Package not found exception:
 
-Package: $(packagename)
-"""
-))
-            end
+# Package: $(packagename)
+# """
+# ))
+#             end
         # end
         println("Julia: MATFrostArray-Package Loaded")
 
@@ -116,7 +116,7 @@ Package: $(packagename)
         # Base.invokelatest(callsequence_latest_world_age, callmeta, callstruct.values[2])
         
 
-        _ConvertToMATLAB.convert_matfrostarray(MATFrostResultMATLAB("SUCCESFUL", "", Vector{Any}["MATFrost executed succesful!", 233, "Third argument"]))
+        _ConvertToMATLAB.convert_matfrostarray(MATFrostResultMATLAB("SUCCESFUL", "", "MATFrost executed succesful!"))
 
         # Main.eval(quote
             
