@@ -84,9 +84,9 @@ function callsequence(io::IO)
 #             throw("error")
 #         end
         
-#         callmeta = _ConvertToJulia.convert_matfrostarray(CallMeta, callstruct.values[1])
-#         syms = Symbol.(split(callmeta.fully_qualified_name,"."))
-#         packagename = syms[1]
+        callmeta = _ConvertToJulia.convert_matfrostarray(CallMeta, callstruct.values[1])
+        syms = Symbol.(split(callmeta.fully_qualified_name,"."))
+        packagename = syms[1]
  
 #         println("Julia: MATFrostArray-CallMeta")
 
@@ -95,7 +95,7 @@ function callsequence(io::IO)
 #             try
                 
 #                 println("Julia: Try loading package: $(packagename)")
-#                 Main.eval(:(import $packagename))
+                Main.eval(:(import $packagename))
 #             catch e
                 
 #                 println("Julia: Package loading: $(packagename)")
