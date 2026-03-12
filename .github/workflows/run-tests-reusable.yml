@@ -105,8 +105,9 @@ jobs:
       
       - name: Simple Julia test
         run: |
-          julia --project="test/MATFrostTest" -e "import MATFrost ; MATFrost.Example.hello_world()"
+          julia --project="test/MATFrostTest" -e "h() = MATFrost.Example.hello_world() ; g() = Main.eval(:(import MATFrost)) ; t() = (Base.invokelatest(g); Base.invokelatest(h)) ; t()"
      
+
       - name: Run tests
         uses: matlab-actions/run-tests@v2
         env:
