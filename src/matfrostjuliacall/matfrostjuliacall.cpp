@@ -52,6 +52,7 @@ public:
     void operator()(ArgumentList outputs, ArgumentList inputs) {
         // matlab::data::ArrayFactory factory;
         std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr = getEngine();
+        matlab::data::ArrayFactory factory;
         // matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
         //           ({ factory.createScalar(("###################################\nStarting\n###################################\n"))}));
 
@@ -78,7 +79,6 @@ public:
             matfrost_server[id] = server;
             matfrost_connections[id] = client_socket;
 
-            matlab::data::ArrayFactory factory;
             matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
                   ({factory.createScalar("MEX: MATFrost server started and connection established.")}));
 
@@ -91,6 +91,8 @@ public:
             }
         }
         else if (action == u"CALL") {
+            matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
+                  ({factory.createScalar("MEX: Starting call")}));
 
             matlab::data::CellArray callstruct = input["callstruct"];
 
@@ -104,10 +106,12 @@ public:
             auto socket = matfrost_connections[id];
             auto server = matfrost_server[id];
 
-            matlab::data::ArrayFactory factory;
-
 
             MATFrost::Write::valid(callstruct);
+
+            matlabPtr->feval(u"disp", 0, std::vector<matlab::data::Array>
+                  ({factory.createScalar("MEX: Valid MATFrost object")}));
+
 
             try {
                 outputs[0] = juliacall(socket, server, callstruct);
