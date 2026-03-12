@@ -113,8 +113,32 @@ Package: $(packagename)
         # As packages (currently) are loaded loaded on-demand after MATFrost server has been started,
         # the functions in those packages need to be called from a newer world age.
         # This ofcourse is not ideal and should be treated with care.
-        Base.invokelatest(callsequence_latest_world_age, callmeta, callstruct.values[2])
+        # Base.invokelatest(callsequence_latest_world_age, callmeta, callstruct.values[2])
+        
 
+        _ConvertToMATLAB.convert_matfrostarray(MATFrostResultMATLAB("SUCCESFUL", "", Vector{Any}["MATFrost executed succesful!", 233, "Third argument"]))
+
+        # Main.eval(quote
+            
+        #     f = getfield(Main, Symbol(packagename))
+
+        #     for sym in Symbol.(split(function_name, "."))
+        #         try
+        #             f = getfield(f, sym)
+        #         catch
+        #             if isa(f, Function)
+        #                 continue
+        #             else
+        #                 throw(MATFrostException("matfrostjulia:call:functionNotFound",
+        #                 """
+        #                 Function not found exception:
+        #                 Function $(meta.fully_qualified_name) 
+        #                 """
+        #                 ))
+        #             end
+        #         end
+        #     end
+        # end)
 
     catch e 
 
@@ -145,8 +169,15 @@ Package: $(packagename)
 
 end
 
-function callsequence_latest_world_age(callmeta, callargs)
-    (f,Args) = getMethod(callmeta)
+
+
+
+function callsequence_latest_world_age(f, callargs)
+    # (f,Args) = getMethod(callmeta)
+    mtds = methods(f)
+    argtypes =  mtds[1].sig.types[2:end] 
+    Args = Tuple{argtypes...}
+
     args = try
         _ConvertToJulia.convert_matfrostarray(Args, callargs)
     catch e
