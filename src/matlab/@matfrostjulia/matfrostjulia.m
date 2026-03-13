@@ -40,15 +40,10 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                     % NOTE: Only needed if version is not specified.
                 argstruct.project     (1,1) string = ""
 
-                % argstruct.host      (1,1) string = "127.0.0.1"
-                % argstruct.port      (1,1) int64 = 0
-
                 argstruct.timeout     (1,1) uint64 = 24*60*60*1000 % 1day
             end
             
             obj.id = uint64(randi(1e9, 'int32'));
-            % obj.host = argstruct.host;
-            % obj.port = argstruct.port;
 
             obj.host = "127.0.0.1";
             obj.port = int64(0);
