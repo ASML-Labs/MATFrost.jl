@@ -54,9 +54,9 @@ namespace MATFrost::Socket {
 
 
     #ifdef _WIN32
-        inline constexpr auto SOCKET_ERROR_ = SOCKET_ERROR;
+        constexpr auto SOCKET_ERROR_ = SOCKET_ERROR;
     #else
-        inline constexpr auto SOCKET_ERROR_ = -1;
+        constexpr auto SOCKET_ERROR_ = -1;
     #endif
 
 
