@@ -52,7 +52,11 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
             obj.project = argstruct.project;
 
             if isfield(argstruct, 'bindir')
-                obj.julia = """" + fullfile(bindir, "julia.exe") + """";
+                if ispc()
+                    obj.julia = """" + fullfile(argstruct.bindir, "julia.exe") + """";
+                elseif isunix()
+                    obj.julia = """" + fullfile(argstruct.bindir, "julia") + """";
+                end
             elseif isfield(argstruct, 'version')
                 obj.julia = "julia +" + argstruct.version;
             else
