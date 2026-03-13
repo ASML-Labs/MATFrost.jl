@@ -74,9 +74,9 @@ jobs:
       - name: Configure compatible linux GCC compiler on Linux
         if: ${{ startsWith(inputs.os , 'ubuntu') }}
         run: |
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${{ env.GCC_VERSION }} 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${GCC_VERSION} 100
           sudo update-alternatives --config g++
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${{ env.GCC_VERSION }} 100
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_VERSION} 100
           sudo update-alternatives --config gcc
           g++ --version
           gcc --version
