@@ -18,9 +18,20 @@ classdef matfrost_abstract_test < matlab.unittest.TestCase
             project_path = fullfile(fileparts(mfilename('fullpath')),"MATFrostTest");
             configuration_packages_path =  fullfile(fileparts(mfilename('fullpath')),"configure_packages.jl");
 
-            system(['julia +', char(julia_version) , ' --project="', char(project_path), '" "', char(configuration_packages_path), '" "', matfrost_path, '"'], 'LD_LIBRARY_PATH', "")
+            cmdline = sprintf('julia %s%s --project="%s" "%s" "%s"', '+', julia_version, project_path, configuration_packages_path, matfrost_path);
 
-            % [arg1, arg2] = shell('julia', ['+' char(julia_version)], ['--project="', char(pr), '"'], conf_pack, matfpath);
+            if ispc
+                [resolve_julia_project_status, resolve_julia_project_log] = ...
+                    shell('cmd.exe', '/c', cmdline)
+            elseif isunix
+                % LD_LIBRARY_PATH should be cleared to prevent loading of
+                % MATLAB libraries in Julia process.
+                [resolve_julia_project_status, resolve_julia_project_log] = ...
+                    shell('/bin/sh', '-c', cmdline, 'environmentVariables', struct('LD_LIBRARY_PATH', ''))
+            else
+                error("Not supported")
+            end
+            
             tc.mjl = matfrostjulia(version=julia_version, project=project_path);
         end
     end
