@@ -1,25 +1,28 @@
 
 import Pkg
+using SHA
 
-
-Pkg.add("ArtifactUtils")
+import Pkg
 
 using MATFrost
 
-MEX_VERSION = if length(ARGS) > 0
-    ARGS[1]
-else
-    "0.5.0-beta.1"
+MEX_VERSION = ARGS[1]
+MEX_ZIP = ARGS[2]
+
+artifact_id = Pkg.Artifacts.create_artifact() do fpath
+    run(`tar -xzvf $(MEX_ZIP) -C $(fpath)`)
+end
+
+mexzip_sha256 = open(MEX_ZIP) do f
+    bytes2hex(sha256(f))
 end
 
 
-
-using ArtifactUtils
-import Pkg
-
-add_artifact!(
-    # joinpath(@__FILE__, "..", "..", "..", "Artifacts.toml"), 
+Pkg.Artifacts.bind_artifact!(
     joinpath(pkgdir(MATFrost), "Artifacts.toml"), 
-    "matfrost-mex", 
-    "https://github.com/ASML-Labs/MATFrost.jl/releases/download/matfrost-mex-v" * MEX_VERSION * "/matfrost-mex-v" * MEX_VERSION * "-win-x64.tar.gz", 
-    force=true)
+    "matfrost-mex",
+    artifact_id, 
+    download_info=Tuple[(
+        "https://github.com/ASML-Labs/MATFrost.jl/releases/download/v" * MEX_VERSION * "/matfrost-mex-v" * MEX_VERSION * ".tar.gz", 
+        mexzip_sha256
+    )], force=true)

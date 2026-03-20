@@ -1,4 +1,4 @@
-name: "Reusable workflow for running tests" 
+name: "Reusable workflow for running tests and building MEX" 
 
 on:
   workflow_call:
@@ -23,6 +23,10 @@ on:
         description: "Recompile MEX binary"
         type: boolean
         default: true
+      julia-tests:
+        description: "Trigger Julia tests"
+        type: boolean
+        default: true      
 
 permissions:
   actions: write
@@ -51,6 +55,7 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
 
       - name: Test Julia
+        if: ${{ inputs.julia-tests }}
         uses: julia-actions/julia-runtest@v1
           
       - name: Determine MATLAB product
@@ -88,10 +93,13 @@ jobs:
           products: ${{ steps.matlab-product.outputs.product }}
           cache: true
 
-      - name: Configure precompiled MEX-artifacts
+      - name: Download precompiled MEX artifacts
         if: ${{ !inputs.mex-recompile }}
-        run: |
-          julia --project="." -e "import Pkg ; Pkg.instantiate() ; using MATFrost ; foreach(fp -> cp(joinpath(MATFrost.mexbinaryartifact(), fp), joinpath(ARGS[1], fp)), readdir(MATFrost.mexbinaryartifact()) )" "src/matlab/private"
+        uses: actions/download-artifact@v8
+        with: 
+          name: mexbin
+          path: src/matlab/@matfrostjulia/private
+
        
       - name: Build MATFrost MEX
         uses: matlab-actions/run-command@v2
@@ -109,10 +117,17 @@ jobs:
           strict: false
           test-results-junit: test-results/results.xml
           code-coverage-cobertura: test-results/coverage.xml
+      
+      - name: Upload MEX binary
+        if: ${{ inputs.mex-recompile }}
+        uses: actions/upload-artifact@v7
+        with: 
+          path: src/matlab/@matfrostjulia/private/matfrostjuliacall.mex*
+          name: mexbin-${{ inputs.os }}-${{ inputs.matlab-version }}-${{ inputs.julia-version }}
 
       - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v7
         with: 
           path: test-results
-          name: results-${{ inputs.os }}-${{ inputs.matlab-version }}-${{ inputs.julia-version }}
+          name: results-${{ inputs.os }}-${{ inputs.matlab-version }}-${{ inputs.julia-version }}-mex-recompile-${{ inputs.mex-recompile }}
