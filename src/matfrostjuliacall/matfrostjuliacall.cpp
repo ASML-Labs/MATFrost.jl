@@ -1,7 +1,6 @@
 
 
 #include <cstdint>
-#include <winsock2.h>
 
 #include "mex.hpp"
 #include "mexAdapter.hpp"
@@ -33,7 +32,7 @@ using matlab::mex::ArgumentList;
 #define EXPERIMENT_SIZE 1000000
 
 std::map<uint64_t, std::shared_ptr<MATFrost::MATFrostServer>> matfrost_server{};
-std::map<uint64_t, std::shared_ptr<MATFrost::Socket::BufferedUnixDomainSocket>> matfrost_connections{};
+std::map<uint64_t, std::shared_ptr<MATFrost::Socket::BufferedTCPSocket>> matfrost_connections{};
 
 class MexFunction : public matlab::mex::Function {
 private:
@@ -71,13 +70,13 @@ public:
                 throw(matlab::engine::MATLABException("MATFrost server already started"));
             }
             auto matlab = getEngine();
-            auto socket = MATFrost::Socket::BufferedUnixDomainSocket::start_server();
-            cmdline += " " + socket->get_host() + " " + std::to_string(socket->get_port());
+            auto server_socket = MATFrost::Socket::TCPServerSocket::start_server(host, port);
+            cmdline += " " + server_socket->get_host() + " " + std::to_string(server_socket->get_port());
             auto server = MATFrost::MATFrostServer::spawn(cmdline);
-            socket->accept_connection(server, matlab, timeout);
+            auto client_socket = server_socket->accept_connection(server, matlab, timeout);
 
             matfrost_server[id] = server;
-            matfrost_connections[id] = socket;
+            matfrost_connections[id] = client_socket;
 
 
         } else if (action == u"STOP") {
@@ -120,7 +119,7 @@ public:
 
     }
 
-    matlab::data::Array juliacall(const std::shared_ptr<MATFrost::Socket::BufferedUnixDomainSocket> socket, const std::shared_ptr<MATFrost::MATFrostServer> server, const matlab::data::Array callstruct) {
+    matlab::data::Array juliacall(const std::shared_ptr<MATFrost::Socket::BufferedTCPSocket> socket, const std::shared_ptr<MATFrost::MATFrostServer> server, const matlab::data::Array callstruct) {
 
         auto matlab = getEngine();
         server->dump_logging(matlab);

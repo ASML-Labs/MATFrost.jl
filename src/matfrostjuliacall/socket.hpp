@@ -6,12 +6,7 @@
 #define MATFROST_JL_SOCKET_HPP
 
 #include <cstdint>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <windows.h>
-#include <tchar.h>
 #include <cstdio>
-#include <strsafe.h>
 
 #include <memory>
 
@@ -19,12 +14,153 @@
 #include <iostream>
 #include <array>
 
+#ifdef _WIN32
+    #include <tchar.h>
+    #include <strsafe.h>
+    #include <winsock2.h>
+    #include <windows.h>
+    #include <ws2tcpip.h>
+#else
+    #include <sys/types.h>
+    #include <sys/socket.h>
+    #include <sys/select.h>
+    #include <netinet/in.h>
+    #include <netinet/tcp.h>
+    #include <arpa/inet.h>
+    #include <netdb.h>
+    #include <unistd.h>
+    #include <cerrno>
+#endif
+
+
+
+
+
 #define BUFSIZE 65536 // 16384
 
 namespace MATFrost::Socket {
 
-    bool wsa_initialized = false;
-    WSADATA wsa_data = { 0 };
+    #ifdef _WIN32
+        using socket_t_ = SOCKET;
+    #else
+        using socket_t_ = int;
+    #endif
+
+    #ifdef _WIN32
+        constexpr socket_t_ INVALID_SOCKET_ = INVALID_SOCKET;
+    #else
+        constexpr socket_t_ INVALID_SOCKET_ = -1;
+    #endif
+
+
+    #ifdef _WIN32
+        constexpr auto SOCKET_ERROR_ = SOCKET_ERROR;
+    #else
+        constexpr auto SOCKET_ERROR_ = -1;
+    #endif
+
+
+        inline int socket_last_error_() {
+    #ifdef _WIN32
+            return WSAGetLastError();
+    #else
+            return errno;
+    #endif
+        }
+
+
+        inline void close_socket_(socket_t_ s) {
+    #ifdef _WIN32
+            closesocket(s);
+    #else
+            close(s);
+    #endif
+        }
+
+        inline int select_(socket_t_ s,
+                                 fd_set* read_set,
+                                 fd_set* write_set,
+                                 fd_set* error_set,
+                                 timeval* timeout) {
+    #ifdef _WIN32
+            return select(0, read_set, write_set, error_set, timeout);
+    #else
+            return select(s + 1, read_set, write_set, error_set, timeout);
+    #endif
+        }
+
+    #ifdef _WIN32
+        inline int send_(socket_t_ socket_fd, const void* data, size_t nb, int flags) {
+            return send(socket_fd, reinterpret_cast<const char*>(data), static_cast<int>(nb), flags);
+        }
+    #else
+        inline ssize_t send_(socket_t_ socket_fd, const void* data, size_t nb, int flags) {
+            return send(socket_fd, data, nb, MSG_NOSIGNAL | flags);
+        }
+    #endif
+
+
+    #ifdef _WIN32
+        inline int recv_(socket_t_ socket_fd, void* data, size_t nb, int flags) {
+            return recv(socket_fd, reinterpret_cast<char*>(data), static_cast<int>(nb), flags);
+        }
+    #else
+        inline ssize_t recv_(socket_t_ socket_fd, void* data, size_t nb, int flags) {
+            return recv(socket_fd, data, nb, flags);
+        }
+    #endif
+
+
+    #ifdef _WIN32
+        using socklen_t_ = int;
+    #else
+        using socklen_t_ = socklen_t;
+    #endif
+
+    #ifdef _WIN32
+        inline int getsockopt_(socket_t_ s, int level, int optname, void* optval, socklen_t_* optlen) {
+            return getsockopt(s, level, optname, reinterpret_cast<char*>(optval), optlen);
+        }
+    #else
+        inline int getsockopt_(socket_t_ s, int level, int optname, void* optval, socklen_t_* optlen) {
+            return getsockopt(s, level, optname, optval, optlen);
+        }
+    #endif
+
+    #ifdef _WIN32
+        inline int setsockopt_(socket_t_ s, int level, int optname, const void* optval, socklen_t_ optlen) {
+            return setsockopt(s, level, optname, reinterpret_cast<const char*>(optval), optlen);
+        }
+    #else
+        inline int setsockopt_(socket_t_ s, int level, int optname, const void* optval, socklen_t_ optlen) {
+            return setsockopt(s, level, optname, optval, optlen);
+        }
+    #endif
+
+    class SocketPlatform {
+        public:
+            SocketPlatform() {
+                #ifdef _WIN32
+                    auto rc = WSAStartup(MAKEWORD(2, 2), &data_);
+                    if (rc != 0) {
+                        throw(matlab::engine::MATLABException("WSAStartup failed: " + std::to_string(rc)));
+                    }
+                #endif
+            }
+
+            ~SocketPlatform() {
+                #ifdef _WIN32
+                    WSACleanup();
+                #endif
+            }
+
+        private:
+            #ifdef _WIN32
+                WSADATA data_{};
+            #endif
+    };
+
+
 
 
     struct Buffer {
@@ -34,10 +170,10 @@ namespace MATFrost::Socket {
     };
 
 
-    class BufferedUnixDomainSocket {
+    class BufferedTCPSocket {
         const std::string host;
         const int port;
-        SOCKET socket_fd = INVALID_SOCKET;
+        socket_t_ socket_fd = INVALID_SOCKET_;
 
         timeval timeout = {5, 0};
 
@@ -45,11 +181,13 @@ namespace MATFrost::Socket {
         Buffer input{};
         Buffer output{};
 
+        SocketPlatform socket_platform{};
+
     public:
 
         const long timeout_ms = 0;
 
-        BufferedUnixDomainSocket(const std::string &host, int port, SOCKET socket, timeval timeout, uint64_t timeout_ms) :
+        BufferedTCPSocket(const std::string &host, int port, socket_t_ socket, timeval timeout, uint64_t timeout_ms) :
             host(host),
             port(port),
             socket_fd(socket),
@@ -57,9 +195,9 @@ namespace MATFrost::Socket {
             timeout_ms(timeout_ms)
         {  }
 
-        ~BufferedUnixDomainSocket() {
-            if (socket_fd != INVALID_SOCKET) {
-                closesocket(socket_fd);
+        ~BufferedTCPSocket() {
+            if (socket_fd != INVALID_SOCKET_) {
+                close_socket_(socket_fd);
             }
         }
 
@@ -112,15 +250,15 @@ namespace MATFrost::Socket {
             output.available = 0;
         }
 
-        int write_to_socket(const uint8_t *data, const size_t nb) {
+        size_t write_to_socket(const uint8_t *data, const size_t nb) {
 
             if (!wait_for_writable(timeout)) {
                 throw matlab::engine::MATLABException("Write socket timeout: " + std::to_string(timeout.tv_sec) + " seconds");
             }
 
-            int sent = send(socket_fd,
-                reinterpret_cast<const char*>(data),
-                static_cast<int>(nb),
+            const auto sent = send_(socket_fd,
+                data,
+                nb,
                 0);
 
             if (sent > 0) {
@@ -130,20 +268,20 @@ namespace MATFrost::Socket {
                 throw matlab::engine::MATLABException("Connection closed");
             } else {
                 throw matlab::engine::MATLABException("Socket send error: " +
-                                       std::to_string(WSAGetLastError()));
+                                       std::to_string(socket_last_error_()));
             }
 
         }
 
-        int read_from_socket(uint8_t *data, const int nb) {
+        size_t read_from_socket(uint8_t *data, const size_t nb) {
             // Use select to wait for data with timeout
             if (!wait_for_readable(timeout)) {
                 throw matlab::engine::MATLABException("MATFrost timeout: " + std::to_string(timeout.tv_sec) + " seconds");
             }
 
-            auto brn = recv(
+            auto brn = recv_(
                         socket_fd,
-                        reinterpret_cast<char *>(data),
+                        data,
                         nb,
                         0);
 
@@ -152,12 +290,12 @@ namespace MATFrost::Socket {
             } else if (brn == 0) {
                 throw matlab::engine::MATLABException("Connection closed by peer during read");
             } else {
-                throw matlab::engine::MATLABException("Socket read error: " + std::to_string(WSAGetLastError()));
+                throw matlab::engine::MATLABException("Socket read error: " + std::to_string(socket_last_error_()));
             }
         }
 
         bool wait_for_readable(timeval time_out) const {
-            if (socket_fd == INVALID_SOCKET) {
+            if (socket_fd == INVALID_SOCKET_) {
                 throw matlab::engine::MATLABException("Invalid socket");
             }
 
@@ -169,10 +307,10 @@ namespace MATFrost::Socket {
             FD_SET(socket_fd, &error_set);
 
 
-            int result = select(0, &read_set, nullptr, &error_set, &time_out);
+            int result = select_(socket_fd, &read_set, nullptr, &error_set, &time_out);
 
-            if (result == SOCKET_ERROR) {
-                throw matlab::engine::MATLABException("Socket error: " + std::to_string(WSAGetLastError()));
+            if (result == SOCKET_ERROR_) {
+                throw matlab::engine::MATLABException("Socket error: " + std::to_string(socket_last_error_()));
             }
 
             if (result == 0) {
@@ -189,7 +327,7 @@ namespace MATFrost::Socket {
             if (FD_ISSET(socket_fd, &read_set)) {
                 // Verify it's not EOF
                 char buf[1];
-                int peek_result = recv(socket_fd, buf, 1, MSG_PEEK);
+                int peek_result = recv_(socket_fd, buf, 1, MSG_PEEK);
                 if (peek_result == 0) {
                     // EOF - connection closed
                     throw matlab::engine::MATLABException("Socket - EOF connection closed");
@@ -200,7 +338,7 @@ namespace MATFrost::Socket {
         }
 
         bool wait_for_writable(timeval time_out) const {
-            if (socket_fd == INVALID_SOCKET) {
+            if (socket_fd == INVALID_SOCKET_) {
                 throw matlab::engine::MATLABException("Invalid socket");
             }
 
@@ -213,11 +351,11 @@ namespace MATFrost::Socket {
 
 
 
-            int result = select(0, nullptr, &write_set, &error_set, &time_out);
+            int result = select_(socket_fd, nullptr, &write_set, &error_set, &time_out);
 
-            if (result == SOCKET_ERROR) {
-                
-                throw matlab::engine::MATLABException("Socket error: " + std::to_string(WSAGetLastError()));
+            if (result == SOCKET_ERROR_) {
+
+                throw matlab::engine::MATLABException("Socket error: " + std::to_string(socket_last_error_()));
                 // return false;
             }
 
@@ -236,12 +374,12 @@ namespace MATFrost::Socket {
             if (FD_ISSET(socket_fd, &write_set)) {
                 // Optionally verify connection is still good
                 int error = 0;
-                int error_len = sizeof(error);
-                if (getsockopt(socket_fd, SOL_SOCKET, SO_ERROR,
-                              reinterpret_cast<char*>(&error), &error_len) == SOCKET_ERROR) {
+                socklen_t_ error_len = static_cast<socklen_t_>(sizeof(error));
+                if (getsockopt_(socket_fd, SOL_SOCKET, SO_ERROR,
+                              &error, &error_len) == SOCKET_ERROR_) {
                     throw matlab::engine::MATLABException("Write socket");
-                }
-                
+                              }
+
                 if (error == 0) {
                     return true;
                 }
@@ -251,7 +389,7 @@ namespace MATFrost::Socket {
 
 
         bool is_connected() const {
-            if (socket_fd == INVALID_SOCKET) {
+            if (socket_fd == INVALID_SOCKET_) {
                 return false;
             }
 
@@ -265,9 +403,9 @@ namespace MATFrost::Socket {
             // Zero timeout = immediate return (non-blocking check)
             timeval timeout = {0, 0};
 
-            int result = select(0, nullptr, &write_set, &error_set, &timeout);
+            int result = select_(socket_fd, nullptr, &write_set, &error_set, &timeout);
 
-            if (result == SOCKET_ERROR || result == 0) {
+            if (result == SOCKET_ERROR_ || result == 0) {
                 return false;
             }
 
@@ -280,15 +418,37 @@ namespace MATFrost::Socket {
             if (FD_ISSET(socket_fd, &write_set)) {
                 // Verify no pending error
                 int error = 0;
-                int error_len = sizeof(error);
-                if (getsockopt(socket_fd, SOL_SOCKET, SO_ERROR,
-                              reinterpret_cast<char*>(&error), &error_len) == SOCKET_ERROR) {
+                socklen_t_ error_len = sizeof(error);
+                if (getsockopt_(socket_fd, SOL_SOCKET, SO_ERROR,
+                              &error, &error_len) == SOCKET_ERROR_) {
                     return false;
                               }
                 return error == 0;
             }
 
             return false;
+        }
+    };
+    class TCPServerSocket{
+        const std::string host;
+        const int port;
+        socket_t_ socket_fd = INVALID_SOCKET_;
+
+        SocketPlatform socket_platform{};
+
+    public:
+
+
+        TCPServerSocket(const std::string &host, int port, socket_t_ socket) :
+            host(host),
+            port(port),
+            socket_fd(socket)
+        {  }
+
+        ~TCPServerSocket() {
+            if (socket_fd != INVALID_SOCKET_) {
+                close_socket_(socket_fd);
+            }
         }
 
         // Getter methods for host and port
@@ -302,33 +462,26 @@ namespace MATFrost::Socket {
 
     private:
         // Common initialization for server socket
-        static SOCKET create_and_bind_server_socket(const std::string &bind_host, int bind_port, int &actual_port) {
-            if (!wsa_initialized) {
-                int rc = WSAStartup(MAKEWORD(2, 2), &wsa_data);
-                if (rc != 0) {
-                    throw(matlab::engine::MATLABException("WSAStartup failed: " + std::to_string(rc)));
-                }
-                wsa_initialized = true;
-            }
+        static socket_t_ create_and_bind_server_socket(const std::string &bind_host, int bind_port, int &actual_port) {
 
-            SOCKET listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-            if (listen_socket == INVALID_SOCKET) {
+            socket_t_ listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+            if (listen_socket == INVALID_SOCKET_) {
                 throw(matlab::engine::MATLABException("Failed to create server socket: " +
-                                                     std::to_string(WSAGetLastError())));
+                                                     std::to_string(socket_last_error_())));
             }
 
             // Enable SO_REUSEADDR (except when port is 0)
             if (bind_port != 0) {
                 int reuse = 1;
-                if (setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, 
-                              reinterpret_cast<char*>(&reuse), sizeof(reuse)) == SOCKET_ERROR) {
-                    int error = WSAGetLastError();
-                    closesocket(listen_socket);
+                if (setsockopt_(listen_socket, SOL_SOCKET, SO_REUSEADDR,
+                              &reuse, sizeof(reuse)) == SOCKET_ERROR_) {
+                    int error = socket_last_error_();
+                    close_socket_(listen_socket);
                     throw(matlab::engine::MATLABException("Failed to set SO_REUSEADDR: " + std::to_string(error)));
                 }
             }
 
-            SOCKADDR_IN server_addr = {0};
+            sockaddr_in server_addr = {0};
             server_addr.sin_family = AF_INET;
             server_addr.sin_port = htons(static_cast<u_short>(bind_port));
 
@@ -340,42 +493,43 @@ namespace MATFrost::Socket {
                 struct addrinfo *result = nullptr;
                 hints.ai_family = AF_INET;
                 hints.ai_socktype = SOCK_STREAM;
-                
+
                 int getaddrinfo_result = getaddrinfo(bind_host.c_str(), nullptr, &hints, &result);
                 if (getaddrinfo_result != 0) {
-                    closesocket(listen_socket);
-                    throw(matlab::engine::MATLABException("Failed to resolve bind hostname '" + bind_host + "': " + 
-                                                         std::to_string(WSAGetLastError())));
+                    close_socket_(listen_socket);
+                    throw(matlab::engine::MATLABException("Failed to resolve bind hostname '" + bind_host + "': " +
+                                                         std::to_string(getaddrinfo_result)));
                 }
-                
+
                 server_addr.sin_addr = reinterpret_cast<struct sockaddr_in*>(result->ai_addr)->sin_addr;
                 freeaddrinfo(result);
             }
 
-            if (bind(listen_socket, reinterpret_cast<struct sockaddr*>(&server_addr), sizeof(server_addr)) == SOCKET_ERROR) {
-                int error = WSAGetLastError();
-                closesocket(listen_socket);
+            socklen_t_ addr_len = sizeof(server_addr);
+
+            if (bind(listen_socket, reinterpret_cast<struct sockaddr*>(&server_addr), addr_len) == SOCKET_ERROR_) {
+                int error = socket_last_error_();
+                close_socket_(listen_socket);
                 std::string addr_str = bind_host.empty() ? "0.0.0.0" : bind_host;
                 if (bind_port == 0) {
                     throw(matlab::engine::MATLABException("Failed to bind server socket to " + addr_str + ": " + std::to_string(error)));
                 } else {
-                    throw(matlab::engine::MATLABException("Failed to bind server socket to " + addr_str + 
+                    throw(matlab::engine::MATLABException("Failed to bind server socket to " + addr_str +
                                                          ":" + std::to_string(bind_port) + ": " + std::to_string(error)));
                 }
             }
 
             // Get the actual port if it was auto-assigned
-            int addr_len = sizeof(server_addr);
-            if (getsockname(listen_socket, reinterpret_cast<struct sockaddr*>(&server_addr), &addr_len) == SOCKET_ERROR) {
-                int error = WSAGetLastError();
-                closesocket(listen_socket);
+            if (getsockname(listen_socket, reinterpret_cast<struct sockaddr*>(&server_addr), &addr_len) == SOCKET_ERROR_) {
+                int error = socket_last_error_();
+                close_socket_(listen_socket);
                 throw(matlab::engine::MATLABException("Failed to get socket name: " + std::to_string(error)));
             }
             actual_port = ntohs(server_addr.sin_port);
 
-            if (listen(listen_socket, 1) == SOCKET_ERROR) {
-                int error = WSAGetLastError();
-                closesocket(listen_socket);
+            if (listen(listen_socket, 1) == SOCKET_ERROR_) {
+                int error = socket_last_error_();
+                close_socket_(listen_socket);
                 throw(matlab::engine::MATLABException("Failed to listen on server socket: " + std::to_string(error)));
             }
 
@@ -384,44 +538,44 @@ namespace MATFrost::Socket {
 
     public:
         // Start server - automatically choose port, accept any connection
-        static std::shared_ptr<BufferedUnixDomainSocket> start_server() {
+        static std::shared_ptr<TCPServerSocket> start_server() {
+            SocketPlatform socket_platform{};
             int actual_port = 0;
-            SOCKET listen_socket = create_and_bind_server_socket("0.0.0.0", 0, actual_port);
-            
-            timeval timeout = {24*60*60, 0};  // 24 hours
-            return std::make_shared<BufferedUnixDomainSocket>("0.0.0.0", actual_port, listen_socket, timeout, 24*60*60*1000);
+            socket_t_ listen_socket = create_and_bind_server_socket("0.0.0.0", 0, actual_port);
+
+            return std::make_shared<TCPServerSocket>("0.0.0.0", actual_port, listen_socket);
         }
 
         // Start server on given port, accept any host
-        static std::shared_ptr<BufferedUnixDomainSocket> start_server(int port) {
+        static std::shared_ptr<TCPServerSocket> start_server(int port) {
+            SocketPlatform socket_platform{};
             int actual_port = 0;
-            SOCKET listen_socket = create_and_bind_server_socket("0.0.0.0", port, actual_port);
-            
-            timeval timeout = {24*60*60, 0};  // 24 hours
-            return std::make_shared<BufferedUnixDomainSocket>("0.0.0.0", actual_port, listen_socket, timeout, 24*60*60*1000);
+            socket_t_ listen_socket = create_and_bind_server_socket("0.0.0.0", port, actual_port);
+
+            return std::make_shared<TCPServerSocket>("0.0.0.0", actual_port, listen_socket);
         }
 
         // Start server on given port, accept only from specified host
-        static std::shared_ptr<BufferedUnixDomainSocket> start_server(const std::string &bind_host, int port) {
+        static std::shared_ptr<TCPServerSocket> start_server(const std::string &bind_host, int port) {
+            SocketPlatform socket_platform{};
             int actual_port = 0;
-            SOCKET listen_socket = create_and_bind_server_socket(bind_host, port, actual_port);
-            
-            timeval timeout = {24*60*60, 0};  // 24 hours
-            return std::make_shared<BufferedUnixDomainSocket>(bind_host, actual_port, listen_socket, timeout, 24*60*60*1000);
+            socket_t_ listen_socket = create_and_bind_server_socket(bind_host, port, actual_port);
+
+            return std::make_shared<TCPServerSocket>(bind_host, actual_port, listen_socket);
         }
 
         // Accept connection - waits until client connects, closes server socket after accepting
-        void accept_connection(
+        std::shared_ptr<BufferedTCPSocket> accept_connection(
             const std::shared_ptr<MATFrostServer> server,
             std::shared_ptr<matlab::engine::MATLABEngine> matlab,
             uint64_t timeout_ms = 24*60*60*1000) {
-            
-            if (socket_fd == INVALID_SOCKET) {
+
+            if (socket_fd == INVALID_SOCKET_) {
                 throw(matlab::engine::MATLABException("Invalid server socket"));
             }
 
             matlab::data::ArrayFactory factory;
-            
+
             size_t connection_timeout_s = timeout_ms / 1000;
             size_t attempts = connection_timeout_s * 10;
 
@@ -437,40 +591,40 @@ namespace MATFrost::Socket {
                 FD_ZERO(&read_set);
                 FD_SET(socket_fd, &read_set);
 
-                timeval timeout = {0, 100000};  // 100ms timeout for each attempt
+                timeval timeout_accept = {0, 100000};  // 100ms timeout for each attempt
 
-                int select_result = select(0, &read_set, nullptr, nullptr, &timeout);
-                
-                if (select_result == SOCKET_ERROR) {
-                    throw(matlab::engine::MATLABException("Select failed on server socket: " + 
-                                                         std::to_string(WSAGetLastError())));
+                int select_result = select_(socket_fd, &read_set, nullptr, nullptr, &timeout_accept);
+
+                if (select_result == SOCKET_ERROR_) {
+                    throw(matlab::engine::MATLABException("Select failed on server socket: " +
+                                                         std::to_string(socket_last_error_())));
                 }
-                
+
                 if (select_result > 0) {
                     // Connection is ready to accept
-                    SOCKADDR_IN client_addr = {0};
-                    int client_addr_len = sizeof(client_addr);
-                    SOCKET client_socket = accept(socket_fd, 
-                                                 reinterpret_cast<struct sockaddr*>(&client_addr), 
+                    sockaddr_in client_addr = {0};
+                    socklen_t client_addr_len = static_cast<socklen_t>(sizeof(client_addr));
+                    socket_t_ client_socket = accept(socket_fd,
+                                                 reinterpret_cast<struct sockaddr*>(&client_addr),
                                                  &client_addr_len);
 
-                    if (client_socket == INVALID_SOCKET) {
-                        throw(matlab::engine::MATLABException("Failed to accept connection: " + 
-                                                             std::to_string(WSAGetLastError())));
+                    int flag = 1;
+                    setsockopt_(client_socket, IPPROTO_TCP, TCP_NODELAY, &flag,
+                            static_cast<socklen_t_>(sizeof(flag)));
+
+
+                    if (client_socket == INVALID_SOCKET_) {
+                        throw(matlab::engine::MATLABException("Failed to accept connection: " +
+                                                             std::to_string(socket_last_error_())));
                     }
 
-                    // Close the old server socket (no more connections allowed)
-                    closesocket(socket_fd);
-
-                    // Update this socket to be the client connection socket
-                    socket_fd = client_socket;
-
-                    // Update timeout structure for the client socket
+                    timeval timeout;
                     timeout.tv_sec = timeout_ms / 1000;
                     timeout.tv_usec = (timeout_ms % 1000) * 1000;
 
                     server->dump_logging(matlab);
-                    return;
+
+                    return std::make_shared<BufferedTCPSocket>(host, port, client_socket, timeout, timeout_ms);
                 }
 
                 // No connection yet, continue waiting
@@ -478,22 +632,16 @@ namespace MATFrost::Socket {
                 matlab->feval(u"pause", 0, std::vector<matlab::data::Array>
                     ({ factory.createScalar(0.0)})); // No-operation added to be able to interrupt
 
-                Sleep(100);
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
 
-            throw(matlab::engine::MATLABException("Accept timeout after " + 
+            throw(matlab::engine::MATLABException("Accept timeout after " +
                                                  std::to_string(timeout_ms) + " ms"));
         }
 
-        static std::shared_ptr<BufferedUnixDomainSocket> connect_socket(const std::string host, const int port, const std::shared_ptr<MATFrostServer> server, std::shared_ptr<matlab::engine::MATLABEngine> matlab, const long timeout_ms) {
+        static std::shared_ptr<BufferedTCPSocket> connect_socket(const std::string host, const int port, const std::shared_ptr<MATFrostServer> server, std::shared_ptr<matlab::engine::MATLABEngine> matlab, const long timeout_ms) {
 
-            if (!wsa_initialized) {
-                int rc = WSAStartup(MAKEWORD(2, 2), &wsa_data);
-                if (rc != 0) {
-                    throw(matlab::engine::MATLABException("WSAStartup failed: " + std::to_string(rc)));
-                }
-                wsa_initialized = true;
-            }
+            SocketPlatform socket_platform{};
 
             matlab::data::ArrayFactory factory;
 
@@ -502,19 +650,19 @@ namespace MATFrost::Socket {
             struct addrinfo *result = nullptr;
             hints.ai_family = AF_INET;        // IPv4
             hints.ai_socktype = SOCK_STREAM;  // TCP
-            
+
             int getaddrinfo_result = getaddrinfo(host.c_str(), nullptr, &hints, &result);
             if (getaddrinfo_result != 0) {
-                throw(matlab::engine::MATLABException("Failed to resolve hostname '" + host + "': " + 
-                                                     std::to_string(WSAGetLastError())));
+                throw(matlab::engine::MATLABException("Failed to resolve hostname '" + host + "': " +
+                                                     std::to_string(getaddrinfo_result)));
             }
-            
+
             // Get the IP address from the first result
-            SOCKADDR_IN socket_addr = {0};
+            sockaddr_in socket_addr = {0};
             socket_addr.sin_family = AF_INET;
             socket_addr.sin_addr = reinterpret_cast<struct sockaddr_in*>(result->ai_addr)->sin_addr;
             socket_addr.sin_port = htons(static_cast<u_short>(port));
-            
+
             freeaddrinfo(result);
 
 
@@ -528,11 +676,11 @@ namespace MATFrost::Socket {
                     throw(matlab::engine::MATLABException("MATFrost server not running"));
                 }
 
-                SOCKET socket_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+                socket_t_ socket_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-                if (socket_fd == INVALID_SOCKET) {
+                if (socket_fd == INVALID_SOCKET_) {
                     throw(matlab::engine::MATLABException("Failed to create socket: " +
-                                                         std::to_string(WSAGetLastError())));
+                                                         std::to_string(socket_last_error_())));
                 }
 
                 // Attempt connection
@@ -547,16 +695,16 @@ namespace MATFrost::Socket {
                     timeout.tv_usec = (timeout_ms % 1000) * 1000;
 
                     server->dump_logging(matlab);
-                    return std::make_shared<BufferedUnixDomainSocket>(host, port, socket_fd, timeout, timeout_ms);
+                    return std::make_shared<BufferedTCPSocket>(host, port, socket_fd, timeout, timeout_ms);
                 }
-                
-                closesocket(socket_fd);
+
+                close_socket_(socket_fd);
 
                 server->dump_logging(matlab);
                 matlab->feval(u"pause", 0, std::vector<matlab::data::Array>
                     ({ factory.createScalar(0.0)})); // No-operation added to be able interrupt.
 
-                Sleep(100);
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
             throw(matlab::engine::MATLABException("Connection timeout after " +
                                      std::to_string(connection_timeout_s) +

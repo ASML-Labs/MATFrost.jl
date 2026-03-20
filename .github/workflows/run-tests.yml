@@ -50,7 +50,7 @@ jobs:
       matrix:
         matlab-version: ['R2021b', 'R2022b', 'R2023b', 'R2024b', 'R2025b']
         julia-version: ['1.7', '1.8', '1.9', '1.10', '1.11', '1.12']
-        os: ['windows-latest']
+        os: ['windows-latest', 'ubuntu-latest']
     with:
       os: ${{ matrix.os }}
       matlab-version: ${{ matrix.matlab-version }}
@@ -69,8 +69,9 @@ jobs:
       fail-fast: false
       matrix:
         julia-version: ['1.7', '1.12']
+        os: ['windows-latest', 'ubuntu-latest']
     with:
-      os: windows-latest
+      os: ${{ matrix.os }}
       matlab-version: R2021b
       mex-recompile: true
       julia-version: ${{ matrix.julia-version }}

@@ -38,6 +38,9 @@ This function is the basis of the MATFrostServer.
 """
 function MATFrost.matfrostserve(host::String, port::Int)
     client = connect(host, port)
+
+    Sockets.nagle(client, false)
+
     println("MATFrost server connected. Ready for requests.")
     
     try 

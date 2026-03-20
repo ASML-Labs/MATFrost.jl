@@ -1,3 +1,7 @@
+
+#ifndef MATFROST_JL_READ_HPP
+#define MATFROST_JL_READ_HPP
+
 #include "mex.hpp"
 #include "mexAdapter.hpp"
 
@@ -10,10 +14,10 @@
 
 namespace MATFrost::Read {
 
-    matlab::data::Array read(const std::shared_ptr<Socket::BufferedUnixDomainSocket> socket);
+    matlab::data::Array read(const std::shared_ptr<Socket::BufferedTCPSocket> socket);
 
     template<typename T>
-    matlab::data::Array read_primitive(const std::shared_ptr<Socket::BufferedUnixDomainSocket> socket, matlab::data::ArrayDimensions dims) {
+    matlab::data::Array read_primitive(const std::shared_ptr<Socket::BufferedTCPSocket> socket, matlab::data::ArrayDimensions dims) {
         size_t nel = 1;
         for (const auto dim : dims){
             nel *= dim;
@@ -28,7 +32,7 @@ namespace MATFrost::Read {
 
     }
 
-    matlab::data::Array read_string(const std::shared_ptr<Socket::BufferedUnixDomainSocket> socket, matlab::data::ArrayDimensions dims) {
+    matlab::data::Array read_string(const std::shared_ptr<Socket::BufferedTCPSocket> socket, matlab::data::ArrayDimensions dims) {
         size_t nel = 1;
         for (const auto dim : dims){
             nel *= dim;
@@ -52,7 +56,7 @@ namespace MATFrost::Read {
         return strarr;
     }
 
-    matlab::data::Array read_cell(const std::shared_ptr<Socket::BufferedUnixDomainSocket> socket, matlab::data::ArrayDimensions dims) {
+    matlab::data::Array read_cell(const std::shared_ptr<Socket::BufferedTCPSocket> socket, matlab::data::ArrayDimensions dims) {
         matlab::data::ArrayFactory factory;
 
         matlab::data::CellArray carr = factory.createCellArray(dims);
@@ -63,7 +67,7 @@ namespace MATFrost::Read {
         return carr;
     }
 
-    matlab::data::Array read_struct(const std::shared_ptr<Socket::BufferedUnixDomainSocket> socket, matlab::data::ArrayDimensions dims) {
+    matlab::data::Array read_struct(const std::shared_ptr<Socket::BufferedTCPSocket> socket, matlab::data::ArrayDimensions dims) {
         size_t nel = 1;
         for (const auto dim : dims){
             nel *= dim;
@@ -100,7 +104,7 @@ namespace MATFrost::Read {
     }
 
 
-matlab::data::Array read(const std::shared_ptr<Socket::BufferedUnixDomainSocket> socket){
+matlab::data::Array read(const std::shared_ptr<Socket::BufferedTCPSocket> socket){
     int32_t type;
     size_t ndims;
     socket->read(reinterpret_cast<uint8_t *>(&type), sizeof(int32_t));
@@ -173,3 +177,4 @@ matlab::data::Array read(const std::shared_ptr<Socket::BufferedUnixDomainSocket>
 
 }
 
+#endif //MATFROST_JL_READ_HPP
