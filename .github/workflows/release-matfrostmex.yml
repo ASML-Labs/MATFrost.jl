@@ -1,23 +1,23 @@
-name: "Release MATFrost MEX binary."
+name: "Release MATFrost"
 
 on:
   workflow_dispatch:
     inputs:
       matfrost-version:
         required: true
-        description: "MATFrost MEX version"
+        description: "MATFrost version"
         default: 0.0.0-alpha.1
 
 jobs:
-  build-mex-binary:
-    name: Build MEX binaries
+  build-mex-binary-and-test:
+    name: Build MEX binaries and test
     uses: ./.github/workflows/run-tests-reusable.yml
     secrets: inherit
     strategy:
       fail-fast: false
       matrix:
-        matlab-version: ['R2021b',]
-        julia-version: ['1.12']
+        matlab-version: ['R2021b','R2025b']
+        julia-version: ['1.7', '1.12']
         os: ['windows-latest', 'ubuntu-latest']
     with:
       os: ${{ matrix.os }}
@@ -27,14 +27,14 @@ jobs:
 
 
   bundle-mex-binary:
-    needs: build-mex-binary
+    needs: build-mex-binary-and-test
     runs-on: ubuntu-latest
     name: Bundle MEX binaries
     steps:     
       - name: Download MEX artifacts
         uses: actions/download-artifact@v8
         with: 
-          pattern: mexbin-*
+          pattern: mexbin-*-R2021b-1.12
           path: mexbin
           merge-multiple: true
       - name: Display structure of downloade MEX binaries.
