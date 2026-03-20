@@ -100,7 +100,8 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add Artifacts.toml
           git commit -m "MATFrost release v${{ inputs.matfrost-version }}"
-          git push
+          git tag -a v{{ inputs.matfrost-version }} -m "v{{ inputs.matfrost-version }}"
+          git push origin v{{ inputs.matfrost-version }}
           sleep 5s
 
       - name: Release MEX binaries
