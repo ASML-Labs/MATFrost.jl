@@ -23,6 +23,10 @@ Pkg.Artifacts.bind_artifact!(
     "matfrost-mex",
     artifact_id, 
     download_info=Tuple[(
-        "https://github.com/ASML-Labs/MATFrost.jl/releases/download/v" * MEX_VERSION * "/matfrost-mex-v" * MEX_VERSION * ".tar.gz", 
+        "https://github.com/ASML-Labs/MATFrost.jl/releases/download/v" * string(pkgversion(MATFrost)) * "/matfrost-mex-v" * MEX_VERSION * ".tar.gz", 
+        mexzip_sha256
+    ),
+    (
+        "https://github.com/ASML-Labs/MATFrost.jl/releases/download/matfrost-mex-v" * MEX_VERSION * "/matfrost-mex-v" * MEX_VERSION * ".tar.gz", 
         mexzip_sha256
     )], force=true)
