@@ -32,7 +32,7 @@ jobs:
             code:
               - test/**
               - .github/workflows/run-tests.yml
-              - .github/workflows/run-tests-reusable.yml
+              - .github/workflows/run-tests-and-build-reusable.yml
               - .github/workflows/run-tests-dispatch.yml
               - src/**
               - Artifacts.toml
@@ -43,7 +43,7 @@ jobs:
   test-matrix:
     name: Run tests on multiple configurations
     if: ${{ github.event_name == 'schedule' || contains(github.event.pull_request.labels.*.name, 'integrate') }}
-    uses: ./.github/workflows/run-tests-reusable.yml
+    uses: ./.github/workflows/run-tests-and-build-reusable.yml
     secrets: inherit
     strategy:
       fail-fast: false
@@ -64,7 +64,7 @@ jobs:
       always() &&
       needs.precondition.outputs.code_changed == 'true' && needs.test-matrix.result == 'skipped'
     secrets: inherit
-    uses: ./.github/workflows/run-tests-reusable.yml
+    uses: ./.github/workflows/run-tests-and-build-reusable.yml
     strategy:
       fail-fast: false
       matrix:

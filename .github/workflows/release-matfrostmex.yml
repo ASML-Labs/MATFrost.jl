@@ -12,7 +12,7 @@ on:
 jobs:
   build-mex-binary-and-test:
     name: Build MEX binaries and test
-    uses: ./.github/workflows/run-tests-reusable.yml
+    uses: ./.github/workflows/run-tests-and-build-reusable.yml
     secrets: inherit
     strategy:
       fail-fast: false
@@ -59,7 +59,7 @@ jobs:
   test-mex-binaries-matlab-compatability:
     needs: bundle-mex-binary
     name: Test MATLAB compatability of MEX-binaries
-    uses: ./.github/workflows/run-tests-reusable.yml
+    uses: ./.github/workflows/run-tests-and-build-reusable.yml
     secrets: inherit
     strategy:
       fail-fast: false
