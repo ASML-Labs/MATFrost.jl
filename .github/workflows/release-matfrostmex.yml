@@ -74,7 +74,6 @@ jobs:
       julia-version: ${{ matrix.julia-version }}
       julia-tests: false
 
-
   create-release:    
     needs: test-mex-binaries-matlab-compatability
     runs-on: ubuntu-latest
