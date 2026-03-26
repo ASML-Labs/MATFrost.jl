@@ -1,28 +1,21 @@
 ![MATLAB versions](https://img.shields.io/badge/MATLAB-R2021b+-blue.svg)
-![Julia support](https://img.shields.io/badge/Julia%20-v1.7+-purple)
+![Julia support](https://img.shields.io/badge/Julia%20-v1.7+-pur)
+![Windows](https://img.shields.io/badge/Windows-0078D6?style=flat&logo=windows&logoColor=white)
+![Linux](https://img.shields.io/badge/Linux-FCC624?style=flat&logo=linux&logoColor=black)
 
 [![Windows](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests.yml/badge.svg?branch=main)](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests.yml)
-<!-- [![windows](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests-windows.yml/badge.svg)](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests-windows.yml) -->
-<!-- [![ubuntu](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests-ubuntu.yml/badge.svg)](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests-ubuntu.yml) -->
 
 > [!IMPORTANT]
-> Linux support in development. New revision will run Julia completely isolated into its own process, thereby preventing any library collisions.
+> Linux supported in v0.6.0. 
 
 
 # MATFrost.jl - Embedding Julia in MATLAB
-
 MATFrost enables quick and easy embedding of Julia inside MATLAB. It is like Bifrost but between Julia and MATLAB
-
 
 Characteristics:
 1. Interface defined on Julia side.
 2. Nested datatypes supported.
 3. Leveraging Julia environments for reproducible builds.
-4. Julia runs in its own mexhost process.
-
-
-# Linux not supported yet!
-Linux not supported at this point. Default library `libunwind.so` bundled with MATLAB is incompatible with Julia. 
 
 
 # Quick start 🚀
