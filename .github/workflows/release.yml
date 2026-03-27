@@ -131,6 +131,13 @@ jobs:
           git push origin tag matfrost-mex-${TAG}
           sleep 5s
 
+      - name: Release MEX binaries
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          gh release create matfrost-mex-${TAG} --latest=false --title ${TAG} matfrost-mex-${TAG}.tar.gz
+
       - name: Create comment on commit
         uses: actions/github-script@v8.0.0
         with:
@@ -142,10 +149,3 @@ jobs:
               commit_sha: process.env.COMMIT_SHA,
               body: '@JuliaRegisrator register\n\nRelease notes:\n\n${{ needs.version.outputs.release-notes }}'
             });
-
-      - name: Release MEX binaries
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ needs.version.outputs.tag }}
-        run: |
-          gh release create matfrost-mex-${TAG} --latest=false --title ${TAG} matfrost-mex-${TAG}.tar.gz
