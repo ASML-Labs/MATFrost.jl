@@ -1,17 +1,39 @@
-name: "Release MATFrost MEX"
+name: Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      matfrost-mex-version:
-        required: true
-        description: "MATFrost MEX version"
-        default: "0.0.0+0"
-
+  pull_request:
+    types:
+      - closed
+      - opened
+      - reopened
+      - synchronize
+      - edited
+    branches: [main]
 
 jobs:
+  version:
+    name: Semantic version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write # Required for adding the labels to the PR
+      issues: write # Required for adding labels to the repository
+    outputs:
+      release: ${{ steps.get-version.outputs.release }}
+      tag: ${{ steps.get-version.outputs.tag }}
+      version: ${{ steps.get-version.outputs.version }}
+    steps:
+      - name: Get semantic version
+        uses: RonaldPhilipsen/semVersie@v2.1.0
+        id: get-version
+        with:
+          add-pr-label: true
+          label-prefix: false
+
   build-mex-binary-and-test:
     name: Build MEX binaries and test
+    needs: version
+    if: needs.version.outputs.release == 'true' && github.event.pull_request.merged
     uses: ./.github/workflows/run-tests-and-build-reusable.yml
     secrets: inherit
     strategy:
@@ -26,33 +48,34 @@ jobs:
       mex-recompile: true
       julia-version: ${{ matrix.julia-version }}
 
-
   bundle-mex-binary:
     needs: build-mex-binary-and-test
     runs-on: ubuntu-latest
     name: Bundle MEX binaries
-    steps:     
+    steps:
       - name: Download MEX artifacts
         uses: actions/download-artifact@v8
-        with: 
+        with:
           pattern: mexbin-*-R2021b-1.12
           path: mexbin
           merge-multiple: true
       - name: Display structure of downloade MEX binaries.
         run: ls -R mexbin
-      - name: Bundle MEX binaries
+      - name: Bundle MEX
+        env:
+          TAG: ${{ needs.release.outputs.tag }}
         run: |
-          tar -czvf matfrost-mex-v${{ inputs.matfrost-mex-version }}.tar.gz -C mexbin .
-      
+          tar -czvf matfrost-mex-${TAG}.tar.gz -C mexbin .
+
       - name: Upload mexbinaries release zipped
         uses: actions/upload-artifact@v7
-        with: 
-          path: matfrost-mex-v${{ inputs.matfrost-mex-version }}.tar.gz
+        with:
+          path: matfrost-mex-${{ needs.release.outputs.tag }}.tar.gz
           name: mexbin-release-zipped
-  
+
       - name: Upload mexbinaries for testing
         uses: actions/upload-artifact@v7
-        with: 
+        with:
           path: mexbin/*
           name: mexbin
 
@@ -74,39 +97,41 @@ jobs:
       julia-version: ${{ matrix.julia-version }}
       julia-tests: false
 
-  create-release:    
-    needs: test-mex-binaries-matlab-compatability
+  create-release:
+    needs: [version, test-mex-binaries-matlab-compatability]
     runs-on: ubuntu-latest
     name: Create the release
-    steps:     
+    steps:
       - name: Checkout
         uses: actions/checkout@v6
 
       - name: Download MEX artifacts
         uses: actions/download-artifact@v8
-        with: 
+        with:
           name: mexbin-release-zipped
-      
+
       - uses: julia-actions/install-juliaup@v3
         with:
           channel: '1.12'
-      
+
       - name: Integrate released Artifact in MATFrost package.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.version.outputs.version }}
+          TAG: ${{ needs.version.outputs.tag }}
         run: |
-          julia --project="." "src/matfrostjuliacall/integrate_released_mexbinaries.jl" "${{ inputs.matfrost-mex-version }}" "matfrost-mex-v${{ inputs.matfrost-mex-version }}.tar.gz"
+          julia --project="." "src/matfrostjuliacall/integrate_released_mexbinaries.jl" "${VERSION}" "matfrost-mex-${TAG}.tar.gz"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add Artifacts.toml
-          git commit -m "MATFrost MEX release v${{ inputs.matfrost-mex-version }}"
-          git tag -a matfrost-mex-v${{ inputs.matfrost-mex-version }} -m "matfrost-mex-v${{ inputs.matfrost-mex-version }}"
-          git push origin tag matfrost-mex-v${{ inputs.matfrost-mex-version }}
+          git commit -m "MATFrost MEX release ${VERSION}"
+          git tag -a matfrost-mex-${TAG} -m "matfrost-mex-${TAG}"
+          git push origin tag matfrost-mex-${TAG}
           sleep 5s
 
       - name: Release MEX binaries
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.version.outputs.tag }}
         run: |
-          gh release create matfrost-mex-v${{ inputs.matfrost-mex-version }} --latest=false --title v${{ inputs.matfrost-mex-version }} matfrost-mex-v${{ inputs.matfrost-mex-version }}.tar.gz
-          
+          gh release create matfrost-mex-${TAG} --latest=false --title ${TAG} matfrost-mex-${TAG}.tar.gz
