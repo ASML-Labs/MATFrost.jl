@@ -36,7 +36,7 @@ on:
         default: true
 jobs:
   test:
-    uses: ./.github/workflows/run-tests-reusable.yml
+    uses: ./.github/workflows/run-tests-and-build-reusable.yml
     secrets: inherit
     with:
       os: ${{ inputs.os }}

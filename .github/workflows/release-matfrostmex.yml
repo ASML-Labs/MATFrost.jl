@@ -1,4 +1,4 @@
-name: "Release MATFrost MEX binary."
+name: "Release MATFrost MEX"
 
 on:
   workflow_dispatch:
@@ -6,63 +6,86 @@ on:
       matfrost-mex-version:
         required: true
         description: "MATFrost MEX version"
-        default: 0.0.0
-jobs:
-  build-mex-binary:
-    strategy:
-      matrix:
-        matlab-version: ['2021b']
-    runs-on: windows-latest
-    name: windows
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6 
-      - uses: msys2/setup-msys2@v2
-        id: msys2
-        with:
-          msystem: UCRT64         
-          update: true
-          install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-toolchain               
-      - name: Set up MATLAB on Windows
-        uses: matlab-actions/setup-matlab@v2        
-        with:
-          release: R2021b
-      - name: Compile MEX binary
-        uses: matlab-actions/run-command@v2
-        env:
-          MW_MINGW64_LOC: ${{ steps.msys2.outputs.msys2-location }}\ucrt64
-        with:
-          command: addpath(genpath("src")) ; matfrostmake()
-      - name: Upload artifacts
-        if: always()
-        uses: actions/upload-artifact@v7
-        with: 
-          path: src/matfrostjuliacall/bin
-          name: matfrost-mex-win-x64
+        default: "0.0.0+0"
 
-  release-mex-binary:
-    needs: build-mex-binary
+
+jobs:
+  build-mex-binary-and-test:
+    name: Build MEX binaries and test
+    uses: ./.github/workflows/run-tests-and-build-reusable.yml
+    secrets: inherit
+    strategy:
+      fail-fast: false
+      matrix:
+        matlab-version: ['R2021b']
+        julia-version: ['1.12']
+        os: ['windows-latest', 'ubuntu-latest']
+    with:
+      os: ${{ matrix.os }}
+      matlab-version: ${{ matrix.matlab-version }}
+      mex-recompile: true
+      julia-version: ${{ matrix.julia-version }}
+
+
+  bundle-mex-binary:
+    needs: build-mex-binary-and-test
     runs-on: ubuntu-latest
-    name: Release-MEX-Binary
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6         
+    name: Bundle MEX binaries
+    steps:     
       - name: Download MEX artifacts
         uses: actions/download-artifact@v8
         with: 
-          path: mexbinwin
+          pattern: mexbin-*-R2021b-1.12
+          path: mexbin
           merge-multiple: true
       - name: Display structure of downloade MEX binaries.
-        run: ls -R mexbinwin
-      - name: Release MEX binaries
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ls -R mexbin
+      - name: Bundle MEX binaries
         run: |
-          cd mexbinwin 
-          tar -czvf ../matfrost-mex-v${{ inputs.matfrost-mex-version }}-win-x64.tar.gz *
-          cd ..
-          gh release create matfrost-mex-v${{ inputs.matfrost-mex-version }} --latest=false matfrost-mex-v${{ inputs.matfrost-mex-version }}-win-x64.tar.gz
-          sleep 10s
+          tar -czvf matfrost-mex-v${{ inputs.matfrost-mex-version }}.tar.gz -C mexbin .
+      
+      - name: Upload mexbinaries release zipped
+        uses: actions/upload-artifact@v7
+        with: 
+          path: matfrost-mex-v${{ inputs.matfrost-mex-version }}.tar.gz
+          name: mexbin-release-zipped
+  
+      - name: Upload mexbinaries for testing
+        uses: actions/upload-artifact@v7
+        with: 
+          path: mexbin/*
+          name: mexbin
+
+  test-mex-binaries-matlab-compatability:
+    needs: bundle-mex-binary
+    name: Test MATLAB compatability of MEX-binaries
+    uses: ./.github/workflows/run-tests-and-build-reusable.yml
+    secrets: inherit
+    strategy:
+      fail-fast: false
+      matrix:
+        matlab-version: ['R2021b','R2022a','R2022b','R2023a','R2023b','R2024a','R2024b','R2025a','R2025b']
+        julia-version: ['1.12']
+        os: ['windows-latest', 'ubuntu-latest']
+    with:
+      os: ${{ matrix.os }}
+      matlab-version: ${{ matrix.matlab-version }}
+      mex-recompile: false
+      julia-version: ${{ matrix.julia-version }}
+      julia-tests: false
+
+  create-release:    
+    needs: test-mex-binaries-matlab-compatability
+    runs-on: ubuntu-latest
+    name: Create the release
+    steps:     
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download MEX artifacts
+        uses: actions/download-artifact@v8
+        with: 
+          name: mexbin-release-zipped
       
       - uses: julia-actions/install-juliaup@v3
         with:
@@ -72,9 +95,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          julia --project="." "src/matfrostjuliacall/integrate_released_mexbinaries.jl" "${{ inputs.matfrost-mex-version }}"
+          julia --project="." "src/matfrostjuliacall/integrate_released_mexbinaries.jl" "${{ inputs.matfrost-mex-version }}" "matfrost-mex-v${{ inputs.matfrost-mex-version }}.tar.gz"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add Artifacts.toml
-          git commit -m "Integrate MATFrost MEX: ${{ inputs.matfrost-mex-version }}"
-          git push
+          git commit -m "MATFrost MEX release v${{ inputs.matfrost-mex-version }}"
+          git tag -a matfrost-mex-v${{ inputs.matfrost-mex-version }} -m "matfrost-mex-v${{ inputs.matfrost-mex-version }}"
+          git push origin tag matfrost-mex-v${{ inputs.matfrost-mex-version }}
+          sleep 5s
+
+      - name: Release MEX binaries
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create matfrost-mex-v${{ inputs.matfrost-mex-version }} --latest=false --title v${{ inputs.matfrost-mex-version }} matfrost-mex-v${{ inputs.matfrost-mex-version }}.tar.gz
+          
