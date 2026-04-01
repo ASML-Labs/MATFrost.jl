@@ -19,6 +19,7 @@ jobs:
       pull-requests: write # Required for adding the labels to the PR
       issues: write # Required for adding labels to the repository
     outputs:
+      release-notes-file: ${{ steps.get-version.outputs.release-notes-file }}
       release: ${{ steps.get-version.outputs.release }}
       tag: ${{ steps.get-version.outputs.tag }}
       version: ${{ steps.get-version.outputs.version }}
@@ -49,7 +50,7 @@ jobs:
       julia-version: ${{ matrix.julia-version }}
 
   bundle-mex-binary:
-    needs: build-mex-binary-and-test
+    needs: [version, build-mex-binary-and-test]
     runs-on: ubuntu-latest
     name: Bundle MEX binaries
     steps:
@@ -63,14 +64,14 @@ jobs:
         run: ls -R mexbin
       - name: Bundle MEX
         env:
-          TAG: ${{ needs.release.outputs.tag }}
+          TAG: ${{ needs.version.outputs.tag }}
         run: |
           tar -czvf matfrost-mex-${TAG}.tar.gz -C mexbin .
 
       - name: Upload mexbinaries release zipped
         uses: actions/upload-artifact@v7
         with:
-          path: matfrost-mex-${{ needs.release.outputs.tag }}.tar.gz
+          path: matfrost-mex-${{ needs.version.outputs.tag }}.tar.gz
           name: mexbin-release-zipped
 
       - name: Upload mexbinaries for testing
@@ -138,16 +139,27 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.version.outputs.tag }}
         run: |
-          gh release create ${TAG} --latest=false --title ${TAG} matfrost-mex-${TAG}.tar.gz
+          gh release create ${TAG} --title ${TAG} --notes-file ${{ needs.version.outputs.release-notes-file }} matfrost-mex-${TAG}.tar.gz
 
       - name: Create comment on commit
         uses: actions/github-script@v8.0.0
+        env:
+          RELEASE_NOTES_FILE: ${{ needs.version.outputs.release-notes-file }}
         with:
           github-token: ${{ secrets.JORIS_REGISTRATOR_TOKEN }}
           script: |
-            github.rest.repos.createCommitComment({
+            const fs = require('fs');
+            const release_notes = fs.readFileSync(process.env.RELEASE_NOTES_FILE, 'utf8');
+            const body = [
+              '@JuliaRegistrator register',
+              '',
+              'Release notes:',
+              '',
+              releaseNotes,
+            ].join('\n');
+            await github.rest.repos.createCommitComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               commit_sha: process.env.COMMIT_SHA,
-              body: '@JuliaRegisrator register\n\nRelease notes:\n\n${{ needs.version.outputs.release-notes }}'
+              body: body
             });
