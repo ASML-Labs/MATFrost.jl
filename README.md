@@ -1,13 +1,6 @@
 ![MATLAB versions](https://img.shields.io/badge/MATLAB-R2021b+-blue.svg)
 ![Julia support](https://img.shields.io/badge/Julia%20-v1.7+-purple)
-
-[![Windows](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests.yml/badge.svg?branch=main)](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests.yml)
-<!-- [![windows](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests-windows.yml/badge.svg)](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests-windows.yml) -->
-<!-- [![ubuntu](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests-ubuntu.yml/badge.svg)](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests-ubuntu.yml) -->
-
-> [!IMPORTANT]
-> Linux support in development. New revision will run Julia completely isolated into its own process, thereby preventing any library collisions.
-
+[![Tests](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests.yml/badge.svg?event=schedule)](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests.yml)
 
 # MATFrost.jl - Embedding Julia in MATLAB
 
