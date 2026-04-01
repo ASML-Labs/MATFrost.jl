@@ -130,11 +130,11 @@ jobs:
           git commit -m "MATFrost release v${VERSION}"
           echo "COMMIT_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
           git push origin HEAD
-          git tag -a matfrost-mex-${TAG} -m "matfrost-mex-${TAG}"
-          git push origin tag matfrost-mex-${TAG}
+          git tag -a ${TAG} -m "${TAG}"
+          git push origin tag ${TAG}
           sleep 5s
 
-      - name: Release MEX binaries
+      - name: Release MATFrost version
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.version.outputs.tag }}
