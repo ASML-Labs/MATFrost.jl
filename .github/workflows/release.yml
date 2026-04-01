@@ -32,6 +32,7 @@ jobs:
           label-prefix: false
       - name: Upload release notes
         uses: actions/upload-artifact@v7
+        if: steps.get-version.outputs.release == 'true'
         with:
           path: ${{ steps.get-version.outputs.release-notes-file }}
           name: release-notes
@@ -165,7 +166,7 @@ jobs:
               '',
               'Release notes:',
               '',
-              releaseNotes,
+              release_notes,
             ].join('\n');
             await github.rest.repos.createCommitComment({
               owner: context.repo.owner,
