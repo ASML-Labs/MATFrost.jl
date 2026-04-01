@@ -127,7 +127,7 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add Artifacts.toml Project.toml src/matlab/@matfrostjulia/bootstrap.jl
-          git commit -m "MATFrost MEX release ${VERSION}"
+          git commit -m "MATFrost release v${VERSION}"
           echo "COMMIT_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
           git push origin HEAD
           git tag -a matfrost-mex-${TAG} -m "matfrost-mex-${TAG}"
