@@ -1,6 +1,6 @@
 [matfrost-mex]
-git-tree-sha1 = "b61d9d5d3450faa12efca586a0605c176fb1fd6f"
+git-tree-sha1 = "f2384de32a78c2ddf9f22668f039a56d2754fafd"
 
     [[matfrost-mex.download]]
-    sha256 = "7ddbd67a7e553c816ed3a6987363ae16e00f4e9483afc002af7bb0343259b50e"
-    url = "https://github.com/ASML-Labs/MATFrost.jl/releases/download/matfrost-mex-v0.5.0-beta.1/matfrost-mex-v0.5.0-beta.1-win-x64.tar.gz"
+    sha256 = "bd237ef86b071f2bc78617d64578c75287d70812458b56d58a98e43232ff77e0"
+    url = "https://github.com/ASML-Labs/MATFrost.jl/releases/download/v0.6.0/matfrost-mex-v0.6.0.tar.gz"
