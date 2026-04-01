@@ -7,4 +7,3 @@ CMakeLists.txt
 *.asv
 Manifest.toml
 test/@MATFrostTest
-@matfrostjulia
