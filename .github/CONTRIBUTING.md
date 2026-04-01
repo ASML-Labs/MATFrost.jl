@@ -2,6 +2,10 @@
 
 Thank you for your interest in contributing to MATFrost.jl! This guide explains our development workflow and testing procedures.
 
+## Pull request
+
+Pull request titles must follow the [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) format, which helps us maintain a clear commit history and automate releases. E.g. new features should be prefixed with `feat:`, bug fixes with `fix:`, and documentation changes with `docs:`. 
+
 ## Testing Workflow
 
 Our CI/CD pipeline uses a two-tier testing strategy to balance thorough validation with efficient resource usage:

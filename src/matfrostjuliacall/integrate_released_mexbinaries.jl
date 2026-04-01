@@ -6,7 +6,7 @@ import Pkg
 
 using MATFrost
 
-MEX_VERSION = ARGS[1]
+MATFROST_VERSION = ARGS[1]
 MEX_ZIP = ARGS[2]
 
 artifact_id = Pkg.Artifacts.create_artifact() do fpath
@@ -23,10 +23,6 @@ Pkg.Artifacts.bind_artifact!(
     "matfrost-mex",
     artifact_id, 
     download_info=Tuple[(
-        "https://github.com/ASML-Labs/MATFrost.jl/releases/download/v" * string(pkgversion(MATFrost)) * "/matfrost-mex-v" * MEX_VERSION * ".tar.gz", 
-        mexzip_sha256
-    ),
-    (
-        "https://github.com/ASML-Labs/MATFrost.jl/releases/download/matfrost-mex-v" * MEX_VERSION * "/matfrost-mex-v" * MEX_VERSION * ".tar.gz", 
+        "https://github.com/ASML-Labs/MATFrost.jl/releases/download/v" * MATFROST_VERSION * "/matfrost-mex-v" * MATFROST_VERSION * ".tar.gz", 
         mexzip_sha256
     )], force=true)

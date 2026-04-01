@@ -1,0 +1,165 @@
+name: Release
+
+on:
+  pull_request:
+    types:
+      - closed
+      - opened
+      - reopened
+      - synchronize
+      - edited
+    branches: [main]
+
+jobs:
+  version:
+    name: Semantic version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write # Required for adding the labels to the PR
+      issues: write # Required for adding labels to the repository
+    outputs:
+      release-notes-file: ${{ steps.get-version.outputs.release-notes-file }}
+      release: ${{ steps.get-version.outputs.release }}
+      tag: ${{ steps.get-version.outputs.tag }}
+      version: ${{ steps.get-version.outputs.version }}
+    steps:
+      - name: Get semantic version
+        uses: RonaldPhilipsen/semVersie@v2.2.0
+        id: get-version
+        with:
+          add-pr-label: true
+          label-prefix: false
+
+  build-mex-binary-and-test:
+    name: Build MEX binaries and test
+    needs: version
+    if: needs.version.outputs.release == 'true' && github.event.pull_request.merged
+    uses: ./.github/workflows/run-tests-and-build-reusable.yml
+    secrets: inherit
+    strategy:
+      fail-fast: false
+      matrix:
+        matlab-version: ['R2021b']
+        julia-version: ['1.12']
+        os: ['windows-latest', 'ubuntu-latest']
+    with:
+      os: ${{ matrix.os }}
+      matlab-version: ${{ matrix.matlab-version }}
+      mex-recompile: true
+      julia-version: ${{ matrix.julia-version }}
+
+  bundle-mex-binary:
+    needs: [version, build-mex-binary-and-test]
+    runs-on: ubuntu-latest
+    name: Bundle MEX binaries
+    steps:
+      - name: Download MEX artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: mexbin-*-R2021b-1.12
+          path: mexbin
+          merge-multiple: true
+      - name: Display structure of downloade MEX binaries.
+        run: ls -R mexbin
+      - name: Bundle MEX
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          tar -czvf matfrost-mex-${TAG}.tar.gz -C mexbin .
+
+      - name: Upload mexbinaries release zipped
+        uses: actions/upload-artifact@v7
+        with:
+          path: matfrost-mex-${{ needs.version.outputs.tag }}.tar.gz
+          name: mexbin-release-zipped
+
+      - name: Upload mexbinaries for testing
+        uses: actions/upload-artifact@v7
+        with:
+          path: mexbin/*
+          name: mexbin
+
+  test-mex-binaries-matlab-compatability:
+    needs: bundle-mex-binary
+    name: Test MATLAB compatability of MEX-binaries
+    uses: ./.github/workflows/run-tests-and-build-reusable.yml
+    secrets: inherit
+    strategy:
+      fail-fast: false
+      matrix:
+        matlab-version: ['R2021b','R2022a','R2022b','R2023a','R2023b','R2024a','R2024b','R2025a','R2025b']
+        julia-version: ['1.12']
+        os: ['windows-latest', 'ubuntu-latest']
+    with:
+      os: ${{ matrix.os }}
+      matlab-version: ${{ matrix.matlab-version }}
+      mex-recompile: false
+      julia-version: ${{ matrix.julia-version }}
+      julia-tests: false
+
+  create-release:
+    needs: [version, test-mex-binaries-matlab-compatability]
+    runs-on: ubuntu-latest
+    name: Create the release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download MEX artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: mexbin-release-zipped
+
+      - uses: julia-actions/install-juliaup@v3
+        with:
+          channel: '1.12'
+
+      - name: Integrate released Artifact in MATFrost package.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.version.outputs.version }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          julia --project="." "src/matfrostjuliacall/integrate_released_mexbinaries.jl" "${VERSION}" "matfrost-mex-${TAG}.tar.gz"
+          sed -i "s/^version = .*/version = \"${VERSION}\"/" Project.toml
+          sed -i "s/^MATFROST_MATLAB_VERSION = .*/MATFROST_MATLAB_VERSION = v\"${VERSION}\"/" src/matlab/@matfrostjulia/bootstrap.jl
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add Artifacts.toml Project.toml src/matlab/@matfrostjulia/bootstrap.jl
+          git commit -m "MATFrost release v${VERSION}"
+          echo "COMMIT_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
+          git push origin HEAD
+          git tag -a ${TAG} -m "${TAG}"
+          git push origin tag ${TAG}
+          sleep 5s
+
+      - name: Release MATFrost version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          gh release create ${TAG} --title ${TAG} --notes-file ${{ needs.version.outputs.release-notes-file }} matfrost-mex-${TAG}.tar.gz
+
+      - name: Create comment on commit
+        uses: actions/github-script@v8.0.0
+        env:
+          RELEASE_NOTES_FILE: ${{ needs.version.outputs.release-notes-file }}
+        with:
+          github-token: ${{ secrets.JORIS_REGISTRATOR_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const release_notes = fs.readFileSync(process.env.RELEASE_NOTES_FILE, 'utf8');
+            const body = [
+              '@JuliaRegistrator register',
+              '',
+              'Release notes:',
+              '',
+              releaseNotes,
+            ].join('\n');
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: process.env.COMMIT_SHA,
+              body: body
+            });
