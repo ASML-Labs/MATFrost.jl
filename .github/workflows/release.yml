@@ -121,8 +121,8 @@ jobs:
           TAG: ${{ needs.version.outputs.tag }}
         run: |
           julia --project="." "src/matfrostjuliacall/integrate_released_mexbinaries.jl" "${VERSION}" "matfrost-mex-${TAG}.tar.gz"
-          sed -i "s/^version = \".*\"/version = \"${VERSION}\"/" Project.toml
-          sed -i "s/^MATFROST_MATLAB_VERSION = v\".*\"/MATFROST_MATLAB_VERSION = v\"${VERSION}\"/" src/matlab/@matfrostjulia/bootstrap.jl
+          sed -i "s/^version = .*/version = \"${VERSION}\"/" Project.toml
+          sed -i "s/^MATFROST_MATLAB_VERSION = .*/MATFROST_MATLAB_VERSION = v\"${VERSION}\"/" src/matlab/@matfrostjulia/bootstrap.jl
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add Artifacts.toml Project.toml src/matlab/@matfrostjulia/bootstrap.jl
