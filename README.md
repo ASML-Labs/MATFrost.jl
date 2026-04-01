@@ -16,7 +16,6 @@ Characteristics:
 1. Interface defined on Julia side.
 2. Nested datatypes supported.
 3. Leveraging Julia environments for reproducible builds.
-4. Julia runs in its own mexhost process.
 
 # Quick start 🚀
 ```matlab
