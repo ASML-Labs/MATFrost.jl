@@ -1,22 +1,22 @@
 ![MATLAB versions](https://img.shields.io/badge/MATLAB-R2021b+-blue.svg)
 ![Julia support](https://img.shields.io/badge/Julia%20-v1.7+-purple)
+![Windows](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)
+![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
 [![Tests](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests.yml/badge.svg?event=schedule)](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests.yml)
+
+
+> [!IMPORTANT]  
+> Linux supported as v0.6.0
 
 # MATFrost.jl - Embedding Julia in MATLAB
 
 MATFrost enables quick and easy embedding of Julia inside MATLAB. It is like Bifrost but between Julia and MATLAB
-
 
 Characteristics:
 1. Interface defined on Julia side.
 2. Nested datatypes supported.
 3. Leveraging Julia environments for reproducible builds.
 4. Julia runs in its own mexhost process.
-
-
-# Linux not supported yet!
-Linux not supported at this point. Default library `libunwind.so` bundled with MATLAB is incompatible with Julia. 
-
 
 # Quick start 🚀
 ```matlab
@@ -39,7 +39,7 @@ jl.MATFrost.Example.multiply_scalar_vector_f64(5.0, [1.0; 4.0; 9.0; 16.0])
 ## Select Julia binary
 * Option 1 (recommended): Use Juliaup and select by version:
    ```matlab
-   jl = matfrostjulia(version="1.10");                   
+   jl = matfrostjulia(version="1.12");                   
       % Julia version. (Accepted values are Juliaup channels)
    ```
 * Option 2: Julia binary directory:
