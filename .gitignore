@@ -6,5 +6,3 @@ CMakeLists.txt
 *.mexa64
 *.asv
 Manifest.toml
-test/@MATFrostTest
-@matfrostjulia

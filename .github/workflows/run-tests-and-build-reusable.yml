@@ -87,7 +87,7 @@ jobs:
           gcc --version
       
       - name: Set up MATLAB
-        uses: matlab-actions/setup-matlab@v2
+        uses: matlab-actions/setup-matlab@v3
         with:
           release: ${{ inputs.matlab-version }}
           products: ${{ steps.matlab-product.outputs.product }}
@@ -102,13 +102,13 @@ jobs:
 
        
       - name: Build MATFrost MEX
-        uses: matlab-actions/run-command@v2
+        uses: matlab-actions/run-command@v3
         if: ${{ inputs.mex-recompile }}
         with:
           command: addpath(genpath("src")) ; matfrostmake() ;
         
       - name: Run tests
-        uses: matlab-actions/run-tests@v2
+        uses: matlab-actions/run-tests@v3
         env:
           JULIA_VERSIONS: ${{ inputs.julia-version }}
         with:
