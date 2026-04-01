@@ -6,4 +6,6 @@ CMakeLists.txt
 *.mexa64
 *.asv
 Manifest.toml
-test/@MATFrostTest
+uv.lock
+package-lock.json
+Cargo.lock
