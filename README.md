@@ -1,7 +1,7 @@
 ![MATLAB versions](https://img.shields.io/badge/MATLAB-R2021b+-blue.svg)
 ![Julia support](https://img.shields.io/badge/Julia%20-v1.7+-purple)
-![Windows](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)
-![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
+![Windows](https://img.shields.io/badge/Windows-0078D6)
+![Linux](https://img.shields.io/badge/Linux-FCC624)
 [![Tests](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests.yml/badge.svg?event=schedule)](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests.yml)
 
 
