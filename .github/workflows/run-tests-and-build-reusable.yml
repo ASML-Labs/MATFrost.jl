@@ -41,7 +41,7 @@ jobs:
     name: ${{ inputs.os }}-${{ inputs.matlab-version }}-julia-${{ inputs.julia-version }}-recompile-${{ inputs.mex-recompile }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Juliaup
         uses: julia-actions/install-juliaup@v3
