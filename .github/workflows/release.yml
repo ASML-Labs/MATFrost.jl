@@ -157,7 +157,7 @@ jobs:
           gh release create ${TAG} --title ${TAG} --notes-file ${{ needs.version.outputs.release-notes-file }} matfrost-mex-${TAG}.tar.gz
 
       - name: Create comment on commit
-        uses: actions/github-script@v8.0.0
+        uses: actions/github-script@v9.0.0
         env:
           RELEASE_NOTES_FILE: ${{ needs.version.outputs.release-notes-file }}
         with:
