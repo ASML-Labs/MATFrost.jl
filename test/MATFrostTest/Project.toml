@@ -5,3 +5,6 @@ authors = ["Joris Belier <joris.belier@asml.com>"]
 
 [deps]
 MATFrost = "406cae98-a0f7-4766-b83f-8510a556e0e7"
+
+[compat]
+MATFrost = "0.6.0"

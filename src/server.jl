@@ -76,7 +76,7 @@ function callsequence(io::IO)
     
     marr = try
 
-        if !(callstruct isa MATFrostArrayCell) || length(callstruct.values) != 2
+        if !(callstruct isa MATFrostArrayCell) || length(callstruct.values) < 2
             throw("error")
         end
         
@@ -99,10 +99,12 @@ Package: $(packagename)
             end
         end
 
+        kwargs_marr = length(callstruct.values) >= 3 ? callstruct.values[3] : nothing
+
         # As packages (currently) are loaded loaded on-demand after MATFrost server has been started,
         # the functions in those packages need to be called from a newer world age.
         # This ofcourse is not ideal and should be treated with care.
-        Base.invokelatest(callsequence_latest_world_age, callmeta, callstruct.values[2])
+        Base.invokelatest(callsequence_latest_world_age, callmeta, callstruct.values[2], kwargs_marr)
 
     catch e 
         
@@ -129,7 +131,7 @@ Package: $(packagename)
 
 end
 
-function callsequence_latest_world_age(callmeta, callargs)
+function callsequence_latest_world_age(callmeta, callargs, kwargs_marr)
     (f,Args) = getMethod(callmeta)
     args = try
         _ConvertToJulia.convert_matfrostarray(Args, callargs)
@@ -140,10 +142,57 @@ function callsequence_latest_world_age(callmeta, callargs)
         rethrow(e)
     end
 
+    # Build kwargs dict from the transmitted struct (empty struct = no kwargs).
+    kwargs = if kwargs_marr isa MATFrostArrayStruct && !isempty(kwargs_marr.fieldnames)
+        convert_kwargs(kwargs_marr)
+    else
+        nothing
+    end
+
     # Call the function using invokelatest for world age safety
-    out = f(args...)
+    out = if kwargs !== nothing
+        f(args...; kwargs...)
+    else
+        f(args...)
+    end
 
     _ConvertToMATLAB.convert_matfrostarray(MATFrostResultMATLAB("SUCCESFUL", "", out))
+end
+
+"""
+Convert a MATFrostArrayStruct (1 element) to a Dict{Symbol,Any} for use as keyword arguments.
+Each field value is converted using the natural/native Julia type for that MATLAB value.
+"""
+function convert_kwargs(marr::MATFrostArrayStruct)::Dict{Symbol,Any}
+    d = Dict{Symbol,Any}()
+    nfields = length(marr.fieldnames)
+    for fi in 1:nfields
+        d[marr.fieldnames[fi]] = convert_matfrost_native(marr.values[fi])
+    end
+    d
+end
+
+"""
+Best-effort conversion of a MATFrost array to the natural Julia value, without a type target.
+Used for kwargs whose types are not known ahead of time.
+"""
+function convert_matfrost_native(@nospecialize(marr::MATFrostArrayAbstract))
+    if marr isa MATFrostArrayEmpty
+        return nothing
+    elseif marr isa MATFrostArrayPrimitive
+        return length(marr.values) == 1 ? marr.values[1] : marr.values
+    elseif marr isa MATFrostArrayString
+        return length(marr.values) == 1 ? marr.values[1] : marr.values
+    elseif marr isa MATFrostArrayCell
+        return [convert_matfrost_native(v) for v in marr.values]
+    elseif marr isa MATFrostArrayStruct
+        # Convert to a NamedTuple so field access works naturally on the Julia side.
+        ks = Tuple(marr.fieldnames)
+        vs = Tuple(convert_matfrost_native(marr.values[i]) for i in 1:length(marr.fieldnames))
+        return NamedTuple{ks}(vs)
+    else
+        return marr
+    end
 end
 
 
