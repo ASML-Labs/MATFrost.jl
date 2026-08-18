@@ -5,9 +5,17 @@ if isdir(joinpath(destdir, "@matfrostjulia"))
     rm(joinpath(destdir, "@matfrostjulia"), recursive=true)
 end
 
-mkpath(joinpath(destdir, "@matfrostjulia"))
+if isdir(joinpath(destdir, "+MATFrost"))
+    rm(joinpath(destdir, "+MATFrost"), recursive=true)
+end
 
-cp(joinpath(pkgdir(MATFrost), "src", "matlab", "@matfrostjulia"), joinpath(destdir, "@matfrostjulia"), force=true)
+for entry in readdir(joinpath(pkgdir(MATFrost), "src", "matlab"))
+    cp(
+        joinpath(pkgdir(MATFrost), "src", "matlab", entry),
+        joinpath(destdir, entry),
+        force=true
+    )
+end
 
 foreach(readdir(artifact"matfrost-mex")) do fp
     cp(joinpath(artifact"matfrost-mex", fp),  joinpath(destdir, "@matfrostjulia", "private", fp), force=true)

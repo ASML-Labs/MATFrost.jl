@@ -81,6 +81,20 @@ Additionally nested modules are supported:
 jl.Package1.NestedModule1.function1(arg1, arg2)    
 ```
 
+Keyword arguments are also supported:
+```matlab
+% MATLAB
+y = jl.Package1.function1(arg1, arg2, jl.kwargs("kw1", value1, "kw2", value2));
+```
+
+which maps to:
+```julia
+# Julia
+y = Package1.function1(arg1, arg2; kw1=value1, kw2=value2)
+```
+
+`signature` remains a reserved MATLAB name-value argument for method disambiguation.
+
 ## Handling ambiguous Julia functions with `signature`
 
 MATFrost now supports calling overloaded Julia functions by specifying the targeted method using the `signature` argument from MATLAB.

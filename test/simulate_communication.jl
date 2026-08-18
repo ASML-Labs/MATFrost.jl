@@ -82,6 +82,127 @@ using Sockets
             result = _ConvertToJulia.convert_matfrostarray(Float64, response.values[3])
             @test result ≈ 8.0
         end
+
+        @testset "Function Call With kwargs" begin
+            callmeta_struct = MATFrostArrayStruct(
+                Int64[1],
+                Symbol[:fully_qualified_name, :signature],
+                MATFrostArrayAbstract[
+                    MATFrostArrayString(Int64[1], String["Base.round"]),
+                    MATFrostArrayString(Int64[1], String["Float64"]),
+                ]
+            )
+
+            args_cell = MATFrostArrayCell(
+                Int64[1],
+                MATFrostArrayAbstract[
+                    MATFrostArrayPrimitive{Float64}(Int64[1], Float64[3.1415926])
+                ]
+            )
+
+            kwargs_struct = MATFrostArrayStruct(
+                Int64[1],
+                Symbol[:digits],
+                MATFrostArrayAbstract[
+                    MATFrostArrayPrimitive{Int64}(Int64[1], Int64[3])
+                ]
+            )
+
+            call_struct = MATFrostArrayCell(
+                Int64[3],
+                MATFrostArrayAbstract[callmeta_struct, args_cell, kwargs_struct]
+            )
+
+            write_matfrostarray!(client, call_struct)
+            flush(client)
+
+            response = read_matfrostarray!(client)
+            @test response isa MATFrostArrayStruct
+
+            status = _ConvertToJulia.convert_matfrostarray(String, response.values[1])
+            @test status == "SUCCESFUL"
+
+            result = _ConvertToJulia.convert_matfrostarray(Float64, response.values[3])
+            @test result ≈ 3.142
+        end
+
+        @testset "Function Call With Empty kwargs Channel" begin
+            callmeta_struct = MATFrostArrayStruct(
+                Int64[1],
+                Symbol[:fully_qualified_name, :signature],
+                MATFrostArrayAbstract[
+                    MATFrostArrayString(Int64[1], String["Base.abs"]),
+                    MATFrostArrayString(Int64[1], String["Float64"]),
+                ]
+            )
+
+            args_cell = MATFrostArrayCell(
+                Int64[1],
+                MATFrostArrayAbstract[
+                    MATFrostArrayPrimitive{Float64}(Int64[1], Float64[-5.0])
+                ]
+            )
+
+            empty_kwargs_struct = MATFrostArrayStruct(Int64[1], Symbol[], MATFrostArrayAbstract[])
+
+            call_struct = MATFrostArrayCell(
+                Int64[3],
+                MATFrostArrayAbstract[callmeta_struct, args_cell, empty_kwargs_struct]
+            )
+
+            write_matfrostarray!(client, call_struct)
+            flush(client)
+
+            response = read_matfrostarray!(client)
+            @test response isa MATFrostArrayStruct
+
+            status = _ConvertToJulia.convert_matfrostarray(String, response.values[1])
+            @test status == "SUCCESFUL"
+
+            result = _ConvertToJulia.convert_matfrostarray(Float64, response.values[3])
+            @test result ≈ 5.0
+        end
+
+        @testset "Function Call With Invalid kwargs Payload" begin
+            callmeta_struct = MATFrostArrayStruct(
+                Int64[1],
+                Symbol[:fully_qualified_name, :signature],
+                MATFrostArrayAbstract[
+                    MATFrostArrayString(Int64[1], String["Base.round"]),
+                    MATFrostArrayString(Int64[1], String["Float64"]),
+                ]
+            )
+
+            args_cell = MATFrostArrayCell(
+                Int64[1],
+                MATFrostArrayAbstract[
+                    MATFrostArrayPrimitive{Float64}(Int64[1], Float64[3.1415926])
+                ]
+            )
+
+            invalid_kwargs = MATFrostArrayPrimitive{Int64}(Int64[1], Int64[42])
+
+            call_struct = MATFrostArrayCell(
+                Int64[3],
+                MATFrostArrayAbstract[callmeta_struct, args_cell, invalid_kwargs]
+            )
+
+            write_matfrostarray!(client, call_struct)
+            flush(client)
+
+            response = read_matfrostarray!(client)
+            @test response isa MATFrostArrayStruct
+
+            status = _ConvertToJulia.convert_matfrostarray(String, response.values[1])
+            @test status == "ERROR"
+
+            error_struct = response.values[3]
+            @test error_struct isa MATFrostArrayStruct
+            names_to_idx = Dict(fn => i for (i, fn) in enumerate(error_struct.fieldnames))
+
+            err_id = _ConvertToJulia.convert_matfrostarray(String, error_struct.values[names_to_idx[:id]])
+            @test err_id == "matfrostjulia:conversion:invalidKwargs"
+        end
         
     finally
         close(client)

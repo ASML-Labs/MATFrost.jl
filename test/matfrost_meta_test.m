@@ -25,6 +25,19 @@ classdef matfrost_meta_test < matfrost_abstract_test
             tc.verifyError(@() tc.mjl.MATFrostTest.multiple_method_definitions(23.0, signature=["Float64","Float64"]), ...
                 "matfrostjulia:invalidSignatureSize");
         end
+
+        function kwargs_invalid_pairs(tc)
+            tc.verifyError(@() tc.mjl.kwargs("scale"), "Kwargs:InvalidInput");
+        end
+
+        function kwargs_invalid_name_type(tc)
+            tc.verifyError(@() tc.mjl.kwargs(int64(1), 3.0), "Kwargs:InvalidName");
+        end
+
+        function kwargs_invalid_position(tc)
+            tc.verifyError(@() tc.mjl.MATFrostTest.affine_with_kwargs(2.0, tc.mjl.kwargs("scale", 3.0), 11.0, signature="Float64"), ...
+                "matfrostjulia:invalidKwargsPosition");
+        end
     end
     methods(Test, TestTags="basic function call")
         function no_signature_provided(tc)
@@ -50,6 +63,16 @@ classdef matfrost_meta_test < matfrost_abstract_test
         function concat_strings(tc)
             res = tc.mjl.MATFrostTest.concat_strings(["a", "b", "c"], signature="Vector{String}");
             tc.verifyEqual(res, "abc");
+        end
+
+        function kwargs_call(tc)
+            res = tc.mjl.MATFrostTest.affine_with_kwargs(2.0, tc.mjl.kwargs("scale", 3.0, "bias", 1.0), signature="Float64");
+            tc.verifyEqual(res, 7.0);
+        end
+
+        function kwargs_call_no_signature(tc)
+            res = tc.mjl.MATFrostTest.affine_with_kwargs(2.0, tc.mjl.kwargs("scale", 3.0, "bias", 1.0));
+            tc.verifyEqual(res, 7.0);
         end
     end
     methods(Test, TestTags="multi-dispatch calls")

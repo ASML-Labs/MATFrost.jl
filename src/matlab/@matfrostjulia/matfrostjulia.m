@@ -121,16 +121,21 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
             if indexOp(end).Type ~= matlab.indexing.IndexingOperationType.Paren
                 throw(MException("matfrostjulia:invalidCallSignature", "Call signature is missing parentheses."));
             end
+
+            if numel(indexOp) == 2 && string(indexOp(1).Name) == "kwargs"
+                varargout{1} = MATFrost.Kwargs(indexOp(end).Indices{:});
+                return;
+            end
+
             fully_qualified_name_arr = arrayfun(@(in) string(in.Name), indexOp(1:end-1));
-            % Remove any name-value pair for 'signature' from the call-site indices so
-            % that parseArguments only sees the real positional arguments.
-            [arguments, signature] = parseArguments( indexOp(end).Indices{:} );
+            % Parse positional arguments, signature metadata and explicit Julia kwargs.
+            [arguments, signature, kwargs] = parseArguments( indexOp(end).Indices{:} );
             % This is the object being sent to MATLAB 
             callstruct.id = obj.id;
             callstruct.action = "CALL";
             callmeta.fully_qualified_name = join(fully_qualified_name_arr, ".");
             callmeta.signature = signature;
-            callstruct.callstruct = {callmeta; arguments(:)};
+            callstruct.callstruct = {callmeta; arguments(:); kwargs};
 
             if obj.USE_MEXHOST
                 jlo = obj.mh.feval("matfrostjuliacall", callstruct);
@@ -162,22 +167,27 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                 end
             end
 
-            function [args, signature] = parseArguments(varargin)
-                % Elegant argument parsing using inputParser and validateSignature
-                
-                p = inputParser;p.KeepUnmatched=true;
-                addParameter(p, 'signature', [], @(x) validateSignature(x));
-                firstParameter = find(cellfun(@(x) isstring(x)&&isscalar(x)&&any(ismember(x,string(p.Parameters))), varargin),1);
-                if isempty(firstParameter)
-                    args = varargin; signature = [];
-                else
-                    parse(p, varargin{firstParameter:end});
-                    args = varargin(1:firstParameter-1);
-                    if validateSignature(p.Results.signature,numel(args))
-                        signature = p.Results.signature;
-                    end
+            function [args, signature, kwargs] = parseArguments(varargin)
+                signature = [];
+                kwargs = struct();
+                args = varargin;
+
+                if numel(args) >= 2 && isTextScalar(args{end-1}) && normalizeKey(args{end-1}) == "signature"
+                    validateSignature(args{end}, numel(args)-2);
+                    signature = args{end};
+                    args = args(1:end-2);
                 end
-                
+
+                if ~isempty(args) && isa(args{end}, 'MATFrost.Kwargs')
+                    kwargs = args{end}.Data;
+                    args = args(1:end-1);
+                end
+
+                if any(cellfun(@(x) isa(x, 'MATFrost.Kwargs'), args))
+                    throw(MException("matfrostjulia:invalidKwargsPosition", ...
+                        "MATFrost.Kwargs must be the final argument."));
+                end
+
                 function ok = validateSignature(x, nArgs)
                     if nargin>1 && numel(x) ~= nArgs
                         throw(MException("matfrostjulia:invalidSignatureSize", ...
@@ -189,6 +199,22 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                         evalc('disp(x)')))
                     end
                     ok = true;
+                end
+
+                function key = normalizeKey(x)
+                    if isstring(x) && isscalar(x)
+                        key = lower(strtrim(x));
+                    elseif ischar(x)
+                        key = lower(strtrim(string(x)));
+                    else
+                        throw(MException("matfrostjulia:invalidKeyword", ...
+                            "Keyword argument names must be string scalars or char vectors. Got: %s", ...
+                            class(x)));
+                    end
+                end
+
+                function ok = isTextScalar(x)
+                    ok = (isstring(x) && isscalar(x)) || ischar(x);
                 end
             end
                 

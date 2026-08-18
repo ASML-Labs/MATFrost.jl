@@ -77,6 +77,9 @@ end
 multiple_method_definitions(x::Float64)=2*x
 multiple_method_definitions(x::Int64)=x+2
 multiple_method_definitions(x::String, y::Int64)= string(x, "_", y)
+
+affine_with_kwargs(x::Float64; scale::Float64 = 1.0, bias::Float64 = 0.0) = scale * x + bias
+
 abstract type AbstractMeasure end
 
 struct Point

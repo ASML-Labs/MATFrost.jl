@@ -76,7 +76,7 @@ function callsequence(io::IO)
     
     marr = try
 
-        if !(callstruct isa MATFrostArrayCell) || length(callstruct.values) != 2
+        if !(callstruct isa MATFrostArrayCell) || !(length(callstruct.values) in (2, 3))
             throw("error")
         end
         
@@ -102,7 +102,13 @@ Package: $(packagename)
         # As packages (currently) are loaded loaded on-demand after MATFrost server has been started,
         # the functions in those packages need to be called from a newer world age.
         # This ofcourse is not ideal and should be treated with care.
-        Base.invokelatest(callsequence_latest_world_age, callmeta, callstruct.values[2])
+        callkwargs = if length(callstruct.values) == 3
+            callstruct.values[3]
+        else
+            MATFrostArrayStruct(Int64[1], Symbol[], MATFrostArrayAbstract[])
+        end
+
+        Base.invokelatest(callsequence_latest_world_age, callmeta, callstruct.values[2], callkwargs)
 
     catch e 
         
@@ -129,7 +135,7 @@ Package: $(packagename)
 
 end
 
-function callsequence_latest_world_age(callmeta, callargs)
+function callsequence_latest_world_age(callmeta, callargs, callkwargs)
     (f,Args) = getMethod(callmeta)
     args = try
         _ConvertToJulia.convert_matfrostarray(Args, callargs)
@@ -140,10 +146,97 @@ function callsequence_latest_world_age(callmeta, callargs)
         rethrow(e)
     end
 
+    kwargs = try
+        convert_callkwargs(callkwargs)
+    catch e
+        if e isa MATFrostConversionException
+            rethrow(matfrostinputconversionexception(e))
+        end
+        rethrow(e)
+    end
+
     # Call the function using invokelatest for world age safety
-    out = f(args...)
+    out = f(args...; kwargs...)
 
     _ConvertToMATLAB.convert_matfrostarray(MATFrostResultMATLAB("SUCCESFUL", "", out))
+end
+
+
+function convert_callkwargs(marr::MATFrostArrayAbstract)::NamedTuple
+    if marr isa MATFrostArrayEmpty
+        return NamedTuple()
+    elseif marr isa MATFrostArrayStruct
+        if prod(marr.dims; init=1) != 1
+            throw(MATFrostConversionException(
+                "matfrostjulia:conversion:invalidKwargs",
+                "Keyword arguments must be provided as a scalar MATLAB struct.",
+                Any[]
+            ))
+        end
+
+        names = Tuple(marr.fieldnames)
+        values = Tuple(convert_untyped_matfrostarray(marr.values[fi]) for fi in eachindex(marr.fieldnames))
+        return NamedTuple{names}(values)
+    else
+        throw(MATFrostConversionException(
+            "matfrostjulia:conversion:invalidKwargs",
+            "Keyword arguments must be provided as a MATLAB struct.",
+            Any[]
+        ))
+    end
+end
+
+
+function convert_untyped_matfrostarray(marr::MATFrostArrayEmpty)
+    Any[]
+end
+
+function convert_untyped_matfrostarray(marr::MATFrostArrayPrimitive{T}) where {T}
+    nel = prod(marr.dims; init=1)
+    if nel == 1
+        marr.values[1]
+    else
+        reshape(copy(marr.values), Tuple(marr.dims))
+    end
+end
+
+function convert_untyped_matfrostarray(marr::MATFrostArrayString)
+    nel = prod(marr.dims; init=1)
+    if nel == 1
+        marr.values[1]
+    else
+        reshape(copy(marr.values), Tuple(marr.dims))
+    end
+end
+
+function convert_untyped_matfrostarray(marr::MATFrostArrayCell)
+    nel = prod(marr.dims; init=1)
+    values = Any[convert_untyped_matfrostarray(v) for v in marr.values]
+    if nel == 1
+        values[1]
+    else
+        reshape(values, Tuple(marr.dims))
+    end
+end
+
+function convert_untyped_matfrostarray(marr::MATFrostArrayStruct)
+    nel = prod(marr.dims; init=1)
+    nfields = length(marr.fieldnames)
+    if nel == 1
+        names = Tuple(marr.fieldnames)
+        values = Tuple(convert_untyped_matfrostarray(marr.values[fi]) for fi in 1:nfields)
+        return NamedTuple{names}(values)
+    end
+
+    structs = Vector{Any}(undef, nel)
+    for i in 1:nel
+        offset = (i - 1) * nfields
+        names = Tuple(marr.fieldnames)
+        values = Tuple(convert_untyped_matfrostarray(marr.values[offset + fi]) for fi in 1:nfields)
+        structs[i] = NamedTuple{names}(values)
+    end
+
+    reshape(structs, Tuple(marr.dims))
 end
 
 

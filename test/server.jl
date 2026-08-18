@@ -13,6 +13,73 @@ using MATFrost
         @test callMeta.signature == [signature]
 
 end
+
+@testset "MATFrost._Server kwargs conversion" begin
+    kwargs_marr = MATFrost._Types.MATFrostArrayStruct(
+        Int64[1],
+        Symbol[:digits, :base],
+        MATFrost._Types.MATFrostArrayAbstract[
+            MATFrost._Types.MATFrostArrayPrimitive{Int64}(Int64[1], Int64[3]),
+            MATFrost._Types.MATFrostArrayPrimitive{Int64}(Int64[1], Int64[10]),
+        ]
+    )
+
+    kwargs = MATFrost._Server.convert_callkwargs(kwargs_marr)
+    @test kwargs == (digits = 3, base = 10)
+
+    @test MATFrost._Server.convert_callkwargs(MATFrost._Types.MATFrostArrayEmpty()) == NamedTuple()
+
+    scalar = MATFrost._Types.MATFrostArrayPrimitive{Float64}(Int64[1], Float64[2.5])
+    @test MATFrost._Server.convert_untyped_matfrostarray(scalar) == 2.5
+
+    vectorv = MATFrost._Types.MATFrostArrayPrimitive{Float64}(Int64[3], Float64[1.0, 2.0, 3.0])
+    @test MATFrost._Server.convert_untyped_matfrostarray(vectorv) == [1.0, 2.0, 3.0]
+
+    nested_kwargs_marr = MATFrost._Types.MATFrostArrayStruct(
+        Int64[1],
+        Symbol[:config],
+        MATFrost._Types.MATFrostArrayAbstract[
+            MATFrost._Types.MATFrostArrayStruct(
+                Int64[1],
+                Symbol[:enabled, :weights],
+                MATFrost._Types.MATFrostArrayAbstract[
+                    MATFrost._Types.MATFrostArrayPrimitive{Bool}(Int64[1], Bool[true]),
+                    MATFrost._Types.MATFrostArrayPrimitive{Float64}(Int64[2], Float64[0.25, 0.75])
+                ]
+            )
+        ]
+    )
+    nested_kwargs = MATFrost._Server.convert_callkwargs(nested_kwargs_marr)
+    @test nested_kwargs == (config = (enabled = true, weights = [0.25, 0.75]),)
+
+    invalid_payload = MATFrost._Types.MATFrostArrayPrimitive{Int64}(Int64[1], Int64[1])
+    ex = nothing
+    try
+        MATFrost._Server.convert_callkwargs(invalid_payload)
+    catch e
+        ex = e
+    end
+    @test ex isa MATFrost._Types.MATFrostConversionException
+    @test ex.id == "matfrostjulia:conversion:invalidKwargs"
+
+    non_scalar_kwargs = MATFrost._Types.MATFrostArrayStruct(
+        Int64[2],
+        Symbol[:digits],
+        MATFrost._Types.MATFrostArrayAbstract[
+            MATFrost._Types.MATFrostArrayPrimitive{Int64}(Int64[1], Int64[2]),
+            MATFrost._Types.MATFrostArrayPrimitive{Int64}(Int64[1], Int64[3])
+        ]
+    )
+    ex = nothing
+    try
+        MATFrost._Server.convert_callkwargs(non_scalar_kwargs)
+    catch e
+        ex = e
+    end
+    @test ex isa MATFrost._Types.MATFrostConversionException
+    @test ex.id == "matfrostjulia:conversion:invalidKwargs"
+end
+
 @testset "MATFrost._Server.getMethod" begin
     # Test: function with one method
     callMeta = MATFrost._Server.CallMeta("MATFrost._Server.getMethod")
