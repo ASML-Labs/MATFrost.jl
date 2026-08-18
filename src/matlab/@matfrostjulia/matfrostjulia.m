@@ -122,15 +122,25 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                 throw(MException("matfrostjulia:invalidCallSignature", "Call signature is missing parentheses."));
             end
             fully_qualified_name_arr = arrayfun(@(in) string(in.Name), indexOp(1:end-1));
+
+            if numel(fully_qualified_name_arr) == 1 && fully_qualified_name_arr(1) == "kwargs"
+                varargout{1} = kwargs(indexOp(end).Indices{:});
+                return
+            end
+
             % Remove any name-value pair for 'signature' from the call-site indices so
             % that parseArguments only sees the real positional arguments.
-            [arguments, signature] = parseArguments( indexOp(end).Indices{:} );
+            [arguments, signature, kwargs_payload] = parseArguments( indexOp(end).Indices{:} );
             % This is the object being sent to MATLAB 
             callstruct.id = obj.id;
             callstruct.action = "CALL";
             callmeta.fully_qualified_name = join(fully_qualified_name_arr, ".");
             callmeta.signature = signature;
-            callstruct.callstruct = {callmeta; arguments(:)};
+            if isempty(fieldnames(kwargs_payload))
+                callstruct.callstruct = {callmeta; arguments(:)};
+            else
+                callstruct.callstruct = {callmeta; arguments(:); kwargs_payload};
+            end
 
             if obj.USE_MEXHOST
                 jlo = obj.mh.feval("matfrostjuliacall", callstruct);
@@ -162,20 +172,47 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                 end
             end
 
-            function [args, signature] = parseArguments(varargin)
+            function [args, signature, kwargs_payload] = parseArguments(varargin)
                 % Elegant argument parsing using inputParser and validateSignature
+                [filteredArguments, kwargs_payload] = extractKwargs(varargin);
                 
                 p = inputParser;p.KeepUnmatched=true;
                 addParameter(p, 'signature', [], @(x) validateSignature(x));
-                firstParameter = find(cellfun(@(x) isstring(x)&&isscalar(x)&&any(ismember(x,string(p.Parameters))), varargin),1);
+                firstParameter = find(cellfun(@(x) isstring(x)&&isscalar(x)&&any(ismember(x,string(p.Parameters))), filteredArguments),1);
                 if isempty(firstParameter)
-                    args = varargin; signature = [];
+                    args = filteredArguments; signature = [];
                 else
-                    parse(p, varargin{firstParameter:end});
-                    args = varargin(1:firstParameter-1);
+                    parse(p, filteredArguments{firstParameter:end});
+                    args = filteredArguments(1:firstParameter-1);
                     if validateSignature(p.Results.signature,numel(args))
                         signature = p.Results.signature;
                     end
+                end
+
+                function [filtered, kw] = extractKwargs(inputargs)
+                    kw = struct();
+                    if isempty(inputargs)
+                        filtered = inputargs;
+                        return
+                    end
+
+                    kwidx = find(cellfun(@(x) isa(x, "kwargs"), inputargs));
+                    if isempty(kwidx)
+                        filtered = inputargs;
+                        return
+                    end
+
+                    if numel(kwidx) > 1
+                        throw(MException("matfrostjulia:invalidKwargs", "Only one kwargs object can be provided."));
+                    end
+
+                    if kwidx ~= numel(inputargs)
+                        throw(MException("matfrostjulia:invalidKwargs", "The kwargs object must be the final input argument."));
+                    end
+
+                    kw = inputargs{kwidx}.Data;
+                    filtered = inputargs;
+                    filtered(kwidx) = [];
                 end
                 
                 function ok = validateSignature(x, nArgs)

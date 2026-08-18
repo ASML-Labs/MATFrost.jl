@@ -76,7 +76,7 @@ function callsequence(io::IO)
     
     marr = try
 
-        if !(callstruct isa MATFrostArrayCell) || length(callstruct.values) != 2
+        if !(callstruct isa MATFrostArrayCell) || !(length(callstruct.values) in (2, 3))
             throw("error")
         end
         
@@ -102,7 +102,8 @@ Package: $(packagename)
         # As packages (currently) are loaded loaded on-demand after MATFrost server has been started,
         # the functions in those packages need to be called from a newer world age.
         # This ofcourse is not ideal and should be treated with care.
-        Base.invokelatest(callsequence_latest_world_age, callmeta, callstruct.values[2])
+        kwargs_payload = length(callstruct.values) == 3 ? callstruct.values[3] : MATFrostArrayEmpty()
+        Base.invokelatest(callsequence_latest_world_age, callmeta, callstruct.values[2], kwargs_payload)
 
     catch e 
         
@@ -129,7 +130,7 @@ Package: $(packagename)
 
 end
 
-function callsequence_latest_world_age(callmeta, callargs)
+function callsequence_latest_world_age(callmeta, callargs, kwargs_payload=MATFrostArrayEmpty())
     (f,Args) = getMethod(callmeta)
     args = try
         _ConvertToJulia.convert_matfrostarray(Args, callargs)
@@ -140,10 +141,83 @@ function callsequence_latest_world_age(callmeta, callargs)
         rethrow(e)
     end
 
+    kwargs = convert_kwargs_payload(kwargs_payload)
+
     # Call the function using invokelatest for world age safety
-    out = f(args...)
+    out = f(args...; kwargs...)
 
     _ConvertToMATLAB.convert_matfrostarray(MATFrostResultMATLAB("SUCCESFUL", "", out))
+end
+
+function convert_kwargs_payload(payload::MATFrostArrayAbstract)::NamedTuple
+    if payload isa MATFrostArrayEmpty
+        return (;)
+    elseif payload isa MATFrostArrayStruct
+        if prod(payload.dims; init=1) != 1
+            throw(MATFrostException(
+                "matfrostjulia:call:invalidKwargs",
+                "Keyword arguments must be supplied as a scalar struct."
+            ))
+        end
+
+        names = Tuple(payload.fieldnames)
+        values = [convert_untyped_matfrost(get_struct_value(payload, fn, 1)) for fn in payload.fieldnames]
+        return NamedTuple{names}(Tuple(values))
+    else
+        throw(MATFrostException(
+            "matfrostjulia:call:invalidKwargs",
+            "Keyword arguments payload must be a struct."
+        ))
+    end
+end
+
+function get_struct_value(marr::MATFrostArrayStruct, fn::Symbol, i::Int)
+    fns = marr.fieldnames
+    for fni in eachindex(fns)
+        if fns[fni] == fn
+            return marr.values[fni + length(fns) * (i-1)]
+        end
+    end
+    throw("Cannot find field")
+end
+
+function convert_untyped_matfrost(marr::MATFrostArrayAbstract)
+    if marr isa MATFrostArrayEmpty
+        return nothing
+    elseif marr isa MATFrostArrayPrimitive
+        return reshape_untyped_values(copy(marr.values), marr.dims)
+    elseif marr isa MATFrostArrayString
+        return reshape_untyped_values(copy(marr.values), marr.dims)
+    elseif marr isa MATFrostArrayCell
+        values = [convert_untyped_matfrost(v) for v in marr.values]
+        return reshape_untyped_values(values, marr.dims)
+    elseif marr isa MATFrostArrayStruct
+        nel = prod(marr.dims; init=1)
+        fieldnames_tuple = Tuple(marr.fieldnames)
+        values = [NamedTuple{fieldnames_tuple}(Tuple(
+            convert_untyped_matfrost(get_struct_value(marr, fn, i)) for fn in marr.fieldnames
+        )) for i in 1:nel]
+        return reshape_untyped_values(values, marr.dims)
+    else
+        throw(MATFrostException(
+            "matfrostjulia:conversion:typeNotSupported",
+            "Unsupported MATLAB payload type in keyword argument conversion."
+        ))
+    end
+end
+
+function reshape_untyped_values(values::Vector, dims::Vector{Int64})
+    nel = prod(dims; init=1)
+    if isempty(dims) || nel == 1
+        return values[1]
+    end
+
+    highdims = count(>(1), dims)
+    if highdims <= 1
+        return values
+    end
+
+    return reshape(values, Tuple(dims))
 end
 
 
