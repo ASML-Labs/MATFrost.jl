@@ -20,8 +20,9 @@ Characteristics:
 # Quick start 🚀
 ```matlab
 % MATLAB
-system('julia -e "import Pkg ; Pkg.add(ARGS[1]) ; using MATFrost ; MATFrost.install()" "MATFrost"');
-   % Install MATLAB bindings. This will install @matfrostjulia inside current working directory.
+ system('julia --project=. -e "using MATFrost ; MATFrost.install()"');
+    % Install MATLAB bindings from a local MATFrost checkout.
+    % This will install @matfrostjulia inside the current working directory.
 
 jl = matfrostjulia(); 
    % Spawn a matfrostjulia server running JULIA
