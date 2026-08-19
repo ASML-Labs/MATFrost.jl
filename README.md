@@ -106,20 +106,43 @@ You can then use MATFrost from MATLAB to create and add `Point` objects, specify
 ```matlab
 % MATLAB
 % Create two Julia Point objects
-p1 = tc.mjl.MATFrostTest.Point(int64(1), int64(2),signature=["Int64","Int64"]);
-p2 = tc.mjl.MATFrostTest.Point(int64(3), int64(4),signature=["Int64","Int64"]);
+p1 = jl.MATFrostTest.Point(int64(1), int64(2),signature=["Int64","Int64"]);
+p2 = jl.MATFrostTest.Point(int64(3), int64(4),signature=["Int64","Int64"]);
 
 % Call the overloaded Base.+ method for Point
-res = tc.mjl.Base.('+')(p1, p2, signature=["MATFrostTest.Point", "MATFrostTest.Point"]);  % returns Point(4, 6)
+res = jl.Base.('+')(p1, p2, signature=["MATFrostTest.Point", "MATFrostTest.Point"]);  % returns Point(4, 6)
 ```
 
-Here, `signature=["MyGeometry.Point", "MyGeometry.Point"]` ensures the correct method for adding two `Point` objects is called.
+Here, `signature=["MATFrostTest.Point", "MATFrostTest.Point"]` ensures the correct method for adding two `Point` objects is called.
 
 **Notes:**
 - Use a string for a single type, or a cell/string array for multiple types.
 - The types in `signature` must match the Julia method’s argument types exactly.
 
 This feature allows you to disambiguate overloaded Julia functions directly from MATLAB.
+
+## Keyword arguments (`kwargs`)
+
+MATFrost supports calling Julia keyword arguments from MATLAB.
+
+Preferred (Julia-like) syntax:
+
+```matlab
+% MATLAB
+res = jl.MATFrostTest.affine_with_kwargs(2.0, scale=3.0, bias=1.0, signature="Float64");
+```
+
+Alternative explicit object syntax:
+
+```matlab
+% MATLAB
+kw = jl.kwargs("scale", 3.0, "bias", 1.0);
+res = jl.MATFrostTest.affine_with_kwargs(2.0, kw, signature="Float64");
+```
+
+Notes:
+- Positional arguments must come before keyword arguments.
+- If a call is ambiguous because positional values look like keyword names, use `jl.kwargs(...)` explicitly.
 
 ## Type mapping
 

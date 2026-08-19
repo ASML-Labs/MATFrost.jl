@@ -265,6 +265,14 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                     if ~found_break
                         pos = cell_args; kw = struct(); return;
                     end
+
+                    % Conservative rule: without explicit signature, only interpret
+                    % trailing inline kwargs when there are at least 2 key/value pairs.
+                    npairs = (n_args - boundary + 1) / 2;
+                    if isempty(sig_result) && npairs < 2
+                        pos = cell_args; kw = struct(); return;
+                    end
+
                     pos = cell_args(1:boundary-1);
                     kw  = struct();
                     for kwpair_i = boundary:2:n_args
