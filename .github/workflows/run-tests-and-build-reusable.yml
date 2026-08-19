@@ -106,8 +106,24 @@ jobs:
         if: ${{ inputs.mex-recompile }}
         with:
           command: addpath(genpath("src")) ; matfrostmake() ;
-        
-      - name: Run tests
+
+      # CodeCoveragePlugin.forFolder 'MetricLevel' parameter requires R2023a+.
+      # Older releases get a plain test run without coverage collection.
+      - name: Determine coverage support
+        id: coverage-support
+        shell: bash
+        run: |
+          version="${{ inputs.matlab-version }}"
+          year=$(echo "$version" | sed 's/R\([0-9]\{4\}\)[ab]/\1/')
+          release_letter=$(echo "$version" | sed 's/R[0-9]\{4\}\([ab]\)/\1/')
+          if [ "$year" -gt 2023 ] || ( [ "$year" -eq 2023 ] && [ "$release_letter" = "a" -o "$release_letter" = "b" ] ); then
+            echo "supported=true" >> $GITHUB_OUTPUT
+          else
+            echo "supported=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run tests (with coverage)
+        if: ${{ steps.coverage-support.outputs.supported == 'true' }}
         uses: matlab-actions/run-tests@v3
         env:
           JULIA_VERSIONS: ${{ inputs.julia-version }}
@@ -117,6 +133,17 @@ jobs:
           strict: false
           test-results-junit: test-results/results.xml
           code-coverage-cobertura: test-results/coverage.xml
+
+      - name: Run tests (without coverage)
+        if: ${{ steps.coverage-support.outputs.supported == 'false' }}
+        uses: matlab-actions/run-tests@v3
+        env:
+          JULIA_VERSIONS: ${{ inputs.julia-version }}
+        with:
+          source-folder: 'src/matlab'
+          select-by-folder: 'test'
+          strict: false
+          test-results-junit: test-results/results.xml
       
       - name: Upload MEX binary
         if: ${{ inputs.mex-recompile }}
