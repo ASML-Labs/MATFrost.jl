@@ -4,7 +4,7 @@ The bootstrap script for launching the matfrostserver.
 
 println("Starting MATFrost server")
 
-MATFROST_MATLAB_VERSION = v"0.5.0"
+MATFROST_MATLAB_VERSION = v"0.0.0" # Version is patched automatically during release
 
 try
     using MATFrost
