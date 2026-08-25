@@ -108,7 +108,7 @@ jobs:
           command: addpath(genpath("src")) ; matfrostmake() ;
         
       - name: Run tests
-        uses: matlab-actions/run-tests@83e368e0b18d9c0c7d510fd911d546e16b73bbdb # v3.2.1
+        uses: matlab-actions/run-tests@71e231e8d51ae670c0bed0c756d832d648aab5d9 # v3.3.0
         env:
           JULIA_VERSIONS: ${{ inputs.julia-version }}
         with:
