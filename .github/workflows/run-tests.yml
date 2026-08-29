@@ -26,7 +26,7 @@ jobs:
 
       - name: Get changed files
         id: changed-files-yaml
-        uses: tj-actions/changed-files@v47
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
         with:
           files_yaml: |
             code:
@@ -50,7 +50,7 @@ jobs:
       matrix:
         matlab-version: ['R2021b', 'R2022b', 'R2023b', 'R2024b', 'R2025b']
         julia-version: ['1.7', '1.8', '1.9', '1.10', '1.11', '1.12']
-        os: ['windows-latest', 'ubuntu-latest']
+        os: ['windows-latest', 'ubuntu-24.04']
     with:
       os: ${{ matrix.os }}
       matlab-version: ${{ matrix.matlab-version }}
@@ -93,24 +93,24 @@ jobs:
           fetch-depth: 2
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: results
 
       - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v2
+        uses: EnricoMi/publish-unit-test-result-action@d0a4676d0e0b938bc201470d88276b7c74c712b3 # v2.24.0
         with:
           files: "results/**/results.xml"
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           use_oidc: true
           directory: results
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
-        uses: codecov/test-results-action@v1
+        uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3 # v1.2.1
         with:
           use_oidc: true
           directory: results
