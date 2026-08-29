@@ -126,7 +126,7 @@ jobs:
         with:
           name: release-notes
 
-      - uses: julia-actions/install-juliaup@05d98a2ef433ca0723a8221e38c4723ea92b0c5f # v3.1.4
+      - uses: julia-actions/install-juliaup@1cc1b0ecfb06c04ff09fe24cab1476106460750e # v3.1.5
         with:
           channel: '1.12'
 
