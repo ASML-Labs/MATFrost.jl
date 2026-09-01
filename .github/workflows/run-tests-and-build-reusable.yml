@@ -102,7 +102,7 @@ jobs:
 
        
       - name: Build MATFrost MEX
-        uses: matlab-actions/run-command@75644028e1e2aa374bbfdc968a65718a178cc264 # v3.2.1
+        uses: matlab-actions/run-command@bfa857648f4895aa98a446fe41c85e0788421ed5 # v3.3.0
         if: ${{ inputs.mex-recompile }}
         with:
           command: addpath(genpath("src")) ; matfrostmake() ;
