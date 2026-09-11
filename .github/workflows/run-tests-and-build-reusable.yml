@@ -117,6 +117,17 @@ jobs:
           strict: false
           test-results-junit: test-results/results.xml
           code-coverage-cobertura: test-results/coverage.xml
+
+      - name: Run tests (without coverage)
+        if: ${{ steps.coverage-support.outputs.supported == 'false' }}
+        uses: matlab-actions/run-tests@v3
+        env:
+          JULIA_VERSIONS: ${{ inputs.julia-version }}
+        with:
+          source-folder: 'src/matlab'
+          select-by-folder: 'test'
+          strict: false
+          test-results-junit: test-results/results.xml
       
       - name: Upload MEX binary
         if: ${{ inputs.mex-recompile }}

@@ -122,15 +122,35 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                 throw(MException("matfrostjulia:invalidCallSignature", "Call signature is missing parentheses."));
             end
             fully_qualified_name_arr = arrayfun(@(in) string(in.Name), indexOp(1:end-1));
+
+            % Intercept mjl.kwargs(...) and construct a kwargs object locally
+            % so users never need the bare kwargs class on their MATLAB path.
+            if isequal(fully_qualified_name_arr, "kwargs")
+                varargout{1} = kwargs(indexOp(end).Indices{:});
+                return;
+            end
+
             % Remove any name-value pair for 'signature' from the call-site indices so
             % that parseArguments only sees the real positional arguments.
-            [arguments, signature] = parseArguments( indexOp(end).Indices{:} );
+            [arguments, signature, kwargs_inline] = parseArguments( indexOp(end).Indices{:} );
+
+            % Separate explicit kwargs objects from positional arguments (backward compat).
+            kwidx = cellfun(@(a) isa(a, 'kwargs'), arguments);
+            merged_kwargs = kwargs_inline;          % start from inline name=value kwargs
+            for kwobj_i = find(kwidx)
+                kwobj_fn = fieldnames(arguments{kwobj_i}.Data);
+                for kwobj_fi = 1:numel(kwobj_fn)
+                    merged_kwargs.(kwobj_fn{kwobj_fi}) = arguments{kwobj_i}.Data.(kwobj_fn{kwobj_fi});
+                end
+            end
+            positional_args = arguments(~kwidx);
+
             % This is the object being sent to MATLAB 
             callstruct.id = obj.id;
             callstruct.action = "CALL";
             callmeta.fully_qualified_name = join(fully_qualified_name_arr, ".");
             callmeta.signature = signature;
-            callstruct.callstruct = {callmeta; arguments(:)};
+            callstruct.callstruct = {callmeta; positional_args(:); merged_kwargs};
 
             if obj.USE_MEXHOST
                 jlo = obj.mh.feval("matfrostjuliacall", callstruct);
@@ -162,28 +182,110 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                 end
             end
 
-            function [args, signature] = parseArguments(varargin)
-                % Elegant argument parsing using inputParser and validateSignature
-                
-                p = inputParser;p.KeepUnmatched=true;
+            function [args, signature, kwargs_struct] = parseArguments(varargin)
+                % Hard boundary: only known params (e.g. 'signature') trigger inputParser.
+                % Inline Julia kwargs are discovered by scanning the positional portion
+                % from the right for trailing (string_key, value) pairs, but only when
+                % a non-string element provides an unambiguous break — preventing
+                % positional string arguments from being misread as kwarg keys.
+
+                p = inputParser; p.KeepUnmatched = true;
                 addParameter(p, 'signature', [], @(x) validateSignature(x));
-                firstParameter = find(cellfun(@(x) isstring(x)&&isscalar(x)&&any(ismember(x,string(p.Parameters))), varargin),1);
-                if isempty(firstParameter)
-                    args = varargin; signature = [];
+
+                firstKnownParam = find(cellfun(@(x) isstring(x) && isscalar(x) && ...
+                    any(ismember(x, string(p.Parameters))), varargin), 1);
+
+                if isempty(firstKnownParam)
+                    pre_args   = varargin;
+                    sig_result = [];
+                    post_kw    = struct();
                 else
-                    parse(p, varargin{firstParameter:end});
-                    args = varargin(1:firstParameter-1);
-                    if validateSignature(p.Results.signature,numel(args))
-                        signature = p.Results.signature;
+                    parse(p, varargin{firstKnownParam:end});
+                    pre_args   = varargin(1:firstKnownParam-1);
+                    sig_result = p.Results.signature;
+                    post_kw    = p.Unmatched;
+                end
+
+                % Position check for explicit kwargs objects.
+                kwmask = cellfun(@(a) isa(a, 'kwargs'), pre_args);
+                if any(kwmask)
+                    first_kw = find(kwmask, 1, 'first');
+                    last_pos = find(~kwmask, 1, 'last');
+                    if ~isempty(last_pos) && last_pos > first_kw
+                        throw(MException("matfrostjulia:invalidKwargsPosition", ...
+                            "Positional arguments must come before keyword arguments (kwargs)."));
                     end
                 end
-                
+
+                % Extract trailing inline kwargs from the non-object portion.
+                pure_args = pre_args(~kwmask);
+                [positional, inline_kw] = trailingKwargs(pure_args);
+
+                % Return positionals + explicit kwargs objects (dotReference extracts them).
+                args = [positional, pre_args(kwmask)];
+
+                % Validate signature against true positional count.
+                nPositionalArgs = numel(positional);
+                if validateSignature(sig_result, nPositionalArgs)
+                    signature = sig_result;
+                end
+
+                % Merge inline kwargs with any unmatched params after 'signature'.
+                kwargs_struct = inline_kw;
+                fn_kw = fieldnames(post_kw);
+                for fni = 1:numel(fn_kw)
+                    kwargs_struct.(fn_kw{fni}) = post_kw.(fn_kw{fni});
+                end
+
+                function [pos, kw] = trailingKwargs(cell_args)
+                    % Scan from the right for trailing (string_key, value) pairs.
+                    % Only extracts when a non-string element causes a clear break;
+                    % falls back to treating everything as positional otherwise.
+                    n_args   = numel(cell_args);
+                    boundary = n_args + 1;
+                    i        = n_args;
+                    found_break = false;
+                    while i >= 2
+                        ckey = cell_args{i-1};
+                        if isstring(ckey) && isscalar(ckey) && isvarname(char(ckey))
+                            boundary = i - 1;
+                            i = i - 2;
+                        else
+                            found_break = true;
+                            boundary = i + 1;
+                            break;
+                        end
+                    end
+                    if ~found_break && i == 1
+                        ckey = cell_args{1};
+                        if ~(isstring(ckey) && isscalar(ckey) && isvarname(char(ckey)))
+                            found_break = true;
+                        end
+                    end
+                    if ~found_break
+                        pos = cell_args; kw = struct(); return;
+                    end
+
+                    % Conservative rule: without explicit signature, only interpret
+                    % trailing inline kwargs when there are at least 2 key/value pairs.
+                    npairs = (n_args - boundary + 1) / 2;
+                    if isempty(sig_result) && npairs < 2
+                        pos = cell_args; kw = struct(); return;
+                    end
+
+                    pos = cell_args(1:boundary-1);
+                    kw  = struct();
+                    for kwpair_i = boundary:2:n_args
+                        kw.(char(cell_args{kwpair_i})) = cell_args{kwpair_i+1};
+                    end
+                end
+
                 function ok = validateSignature(x, nArgs)
-                    if nargin>1 && numel(x) ~= nArgs
+                    if nargin > 1 && ~isempty(x) && numel(x) ~= nArgs
                         throw(MException("matfrostjulia:invalidSignatureSize", ...
                             "Cannot parse 'signature': number of signature entries (%d) does not equal number of arguments (%d).", ...
                             numel(x), nArgs))
-                    elseif ~isstring(x)
+                    elseif ~isempty(x) && ~isstring(x)
                         throw(MException("matfrostjulia:invalidSignature", ...
                         "Cannot parse 'signature': all signature entries must be strings. Got: %s", ...
                         evalc('disp(x)')))
