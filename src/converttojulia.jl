@@ -2,8 +2,7 @@ module _ConvertToJulia
 
 using .._Types
 using .._Constants
-import ..MATFrost: convert_from_matlab
-
+import ..MATFrost: convert_from_matlab, convert_from_matlab_extension
 
 supported_number_type(::Type{T}) where {T} = isprimitivetype(T)
 supported_number_type(::Type{Complex{T}}) where {T} = isprimitivetype(T)
@@ -685,5 +684,8 @@ MATLAB -> Julia extension point.
 
 Fallback keeps backward compatibility by returning `value` unchanged.
 """
-convert_from_matlab(value) = value
+convert_from_matlab_extension(value) = value
+convert_from_matlab(value) = convert_from_matlab_extension(value)
 end
+
+

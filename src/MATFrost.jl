@@ -7,6 +7,8 @@ using Sockets
 function matfrostserve end
 function convert_from_matlab end
 function convert_to_matlab end
+function convert_from_matlab_extension end
+function convert_to_matlab_extension end
 
 include("types.jl")
 include("constants.jl")
