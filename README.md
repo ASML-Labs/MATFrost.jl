@@ -6,11 +6,11 @@
 
 
 > [!IMPORTANT]  
-> Linux supported as v0.6.0
+> Linux is supported since v0.6.0.
 
 # MATFrost.jl - Embedding Julia in MATLAB
 
-MATFrost enables quick and easy embedding of Julia inside MATLAB. It is like Bifrost but between Julia and MATLAB
+MATFrost enables quick and easy embedding of Julia inside MATLAB.
 
 Characteristics:
 1. Interface defined on Julia side.
@@ -55,9 +55,10 @@ Specify Julia environment. If not defined will use default startup environment.
 https://pkgdocs.julialang.org/v1/environments/
 
 ```matlab
-   jl = matfrostjulia(project="<projectdir>");    
-      % Directory containing Julia environment.
-      % acts like: `julia --project=<projectdir> ...`
+% MATLAB
+jl = matfrostjulia(project="<projectdir>");    
+   % Directory containing Julia environment.
+   % acts like: `julia --project=<projectdir> ...`
 ```
 
 ## Calling Julia functions
@@ -77,7 +78,7 @@ Package1.function1(arg1, arg2)
 
 Additionally nested modules are supported:
 ```matlab
-%MATLAB
+% MATLAB
 jl.Package1.NestedModule1.function1(arg1, arg2)    
 ```
 
@@ -88,6 +89,7 @@ MATFrost now supports calling overloaded Julia functions by specifying the targe
 Suppose you define a custom `Point` type and overload the `Base.+` operator in Julia:
 
 ```julia
+# Julia
 module MyGeometry
 
 struct Point
@@ -122,8 +124,8 @@ This feature allows you to disambiguate overloaded Julia functions directly from
 
 ## Type mapping
 
-### Scalars and Arrays conversions
-MATLAB doesn't have the same flexibility of expressing scalars and arrays as Julia. The following conversions scheme has been implemented. This scheme applies to all including primitives, structs, named tuples, tuples.
+### Scalar and array conversions
+MATLAB and Julia represent scalars and arrays differently. The following conversion scheme is implemented. It applies to primitives, structs, named tuples, and tuples.
 
 | MATLAB                               |      Julia           |
 |--------------------------------------|----------------------|
@@ -189,7 +191,7 @@ cities = [struct(name="Amsterdam", population=int64(920)); ...
 
 country = struct(cities=cities, area=321.0)
 
-mjl.Population.total_population(cities) % 920+565+246 = 1731
+mjl.Population.total_population(country) % 920+565+246 = 1731
 ```
 
 ### Tuples
@@ -209,4 +211,122 @@ end
 mjl.TupleExample.tuple_sum({3.0; 4.0; 5.0; 6.0}) % 18.0
 ```
 
+## Custom Type Conversion
 
+MATFrost provides two extension points that allow external packages to
+participate in the MATLAB ↔ Julia conversion process:
+
+```julia
+# Julia
+convert_from_matlab(value)
+convert_to_matlab(value)
+```
+
+By default, both functions return the input unchanged:
+
+```julia
+# Julia
+convert_from_matlab(value) = value
+convert_to_matlab(value) = value
+```
+
+This ensures full backward compatibility.
+
+### Motivation
+
+MATFrost is responsible for transporting data between MATLAB and Julia.
+However, downstream packages may prefer richer domain-specific Julia types
+instead of the raw values returned by the transport layer.
+
+Without extension points, users must explicitly convert values after every
+call:
+
+```julia
+# Julia
+raw = get_variable(...)
+obj = convert_to_domain_object(raw)
+```
+
+By introducing conversion hooks, domain-specific packages can own their
+conversion logic while MATFrost remains independent of those packages.
+
+### Example
+
+Suppose a geometry package defines:
+
+```julia
+# Julia
+struct Point
+    x::Float64
+    y::Float64
+end
+```
+
+A package may choose to represent points in MATLAB using a simple
+named tuple:
+
+```julia
+# Julia
+(x = 1.0, y = 2.0)
+```
+
+The package can provide a conversion rule:
+
+```julia
+# Julia
+import MATFrost: convert_from_matlab
+
+convert_from_matlab(
+    value::NamedTuple{(:x, :y)}
+) = Point(value.x, value.y)
+```
+
+Users can then work directly with `Point` objects without MATFrost having any
+knowledge of the geometry package.
+
+### Extending MATFrost
+
+Custom conversions are implemented using standard Julia multiple dispatch:
+
+```julia
+# Julia
+import MATFrost: convert_from_matlab
+
+struct MyJuliaType
+    value
+end
+
+convert_from_matlab(
+    value::Dict
+) = MyJuliaType(value)
+```
+
+Similarly, return values can be converted before being sent back to MATLAB:
+
+```julia
+# Julia
+import MATFrost: convert_to_matlab
+
+convert_to_matlab(
+    value::MyJuliaType
+) = value.value
+```
+
+### Leverage Multiple Dispatch
+
+MATFrost uses standard Julia multiple dispatch for conversion hooks.
+```julia
+# Julia
+convert_from_matlab(value::MyType) = ...
+convert_to_matlab(value::MyType) = ...
+```
+This keeps converter definitions idiomatic, lightweight, and easy to place in package extensions.
+
+### Package Extensions
+
+The conversion API is designed to work naturally with Julia package
+extensions. Packages can define conversion methods in their own extension
+modules without introducing additional dependencies into MATFrost.
+
+As a result, MATFrost remains a generic transport layer while external
+packages own their domain-specific conversion logic.
