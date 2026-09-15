@@ -4,17 +4,17 @@ module _ConvertToMATLAB
 using .._Types
 using .._Constants
 
-supported_number_type(::Type{T}) where T = isprimitivetype(T)
-supported_number_type(::Type{Complex{T}}) where T = isprimitivetype(T)
+supported_number_type(::Type{T}) where {T} = isprimitivetype(T)
+supported_number_type(::Type{Complex{T}}) where {T} = isprimitivetype(T)
 
-@noinline function convert_matfrostarray(v::T) where{T <: Number}    
+@noinline function convert_matfrostarray(v::T) where {T<:Number}
     if !supported_number_type(T)
         throw(unsupported_datatype_exception(T))
     end
     MATFrostArrayPrimitive{T}(Int64[1], T[v])
 end
 
-@noinline function convert_matfrostarray(arr::Array{T}) where{T <: Number}
+@noinline function convert_matfrostarray(arr::Array{T}) where {T<:Number}
     if !supported_number_type(T)
         throw(unsupported_datatype_exception(T))
     end
@@ -26,7 +26,7 @@ end
     MATFrostArrayPrimitive{T}(dims, vals)
 end
 
-@noinline function convert_matfrostarray(v::String) 
+@noinline function convert_matfrostarray(v::String)
     MATFrostArrayString(Int64[1], String[v])
 end
 
@@ -42,10 +42,9 @@ end
 
 @generated function convert_matfrostarray(structval::T) where {T}
     quote
-        
-        values=MATFrostArrayAbstract[$((
-            :(convert_matfrostarray(structval.$fn)) for fn in fieldnames(T)
-        )...)]
+
+        values=MATFrostArrayAbstract[$((:(convert_matfrostarray(structval.$fn)) for
+                                        fn in fieldnames(T))...)]
         MATFrostArrayStruct(Int64[1], Symbol[fieldnames(T)...], values)
 
     end
@@ -58,18 +57,23 @@ end
             if length(arr) == 0
                 return MATFrostArrayEmpty()
             end
-            
+
             values = Vector{MATFrostArrayAbstract}(undef, length(arr)*fieldcount(T))
             i = 0
             for el in arr
-                $((:(values[i+$j] = convert_matfrostarray(el.$(fieldname(T,j)))) for j in 1:fieldcount(T))...)
+                $(
+                    (
+                        :(values[i+$j] = convert_matfrostarray(el.$(fieldname(T, j)))) for
+                        j = 1:fieldcount(T)
+                    )...
+                )
                 i += $(fieldcount(T))
             end
             MATFrostArrayStruct(Int64[size(arr)...], Symbol[fieldnames(T)...], values)
 
         end
     else
-        quote    
+        quote
             if length(arr) == 0
                 return MATFrostArrayEmpty()
             end
@@ -84,10 +88,8 @@ end
 
 @generated function convert_matfrostarray(tup::Tuple)
     quote
-        
-        values = MATFrostArrayAbstract[
-            convert_matfrostarray(el) for el in tup
-        ]
+
+        values = MATFrostArrayAbstract[convert_matfrostarray(el) for el in tup]
 
         MATFrostArrayCell(Int64[length(tup)], values)
 
@@ -95,7 +97,7 @@ end
 
 end
 
-@generated function convert_matfrostarray(arr::Array{T,N}) where {T<:Union{Array, Tuple}, N}
+@generated function convert_matfrostarray(arr::Array{T,N}) where {T<:Union{Array,Tuple},N}
     quote
         if length(arr) == 0
             return MATFrostArrayEmpty()
@@ -111,7 +113,7 @@ end
 """
 Pre-generated typenames used in error messages. As `string` is not type-stable.
 """
-@generated function _typename(::Type{T}) where T
+@generated function _typename(::Type{T}) where {T}
     :($(string(T)))
 end
 
@@ -119,18 +121,18 @@ end
 @noinline function unsupported_datatype_exception(typename::String)
     MATFrostConversionException(
         "matfrostjulia:conversion:unsupportedDatatype",
-"""
-Input conversion error:
-
-Converting to: $(typename) is not supported. Currently not supported are: Union, Any, Abstract or Memory.
-""",
-Any[]
+        """
+        Input conversion error:
+        
+        Converting to: $(typename) is not supported. Currently not supported are: Union, Any, Abstract or Memory.
+        """,
+        Any[],
     )
-end 
+end
 
-@noinline function unsupported_datatype_exception(::Type{T}) where T
+@noinline function unsupported_datatype_exception(::Type{T}) where {T}
     typename = _typename(T)
-    
+
     unsupported_datatype_exception(typename)
 end
 

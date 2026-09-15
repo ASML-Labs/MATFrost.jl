@@ -7,7 +7,7 @@ using .._Types
 
 
 @noinline function write_matfrost_vector(io::IO, ptr::Ptr, nb)
-    unsafe_write(io,Ptr{UInt8}(ptr), nb)
+    unsafe_write(io, Ptr{UInt8}(ptr), nb)
     nothing
 end
 
@@ -25,7 +25,10 @@ end
     write(io, 0)
 end
 
-@noinline function write_matfrostarray_primitive!(io::IO, marr::MATFrostArrayPrimitive{T}) where {T<: Number}
+@noinline function write_matfrostarray_primitive!(
+    io::IO,
+    marr::MATFrostArrayPrimitive{T},
+) where {T<:Number}
     write(io, matlab_type(T))
     write(io, length(marr.dims))
     for dim in marr.dims
@@ -86,7 +89,7 @@ end
 
     elseif marr isa MATFrostArrayString
         write_matfrostarray_string!(io, marr)
-        
+
     elseif marr isa MATFrostArrayPrimitive{Bool}
         write_matfrostarray_primitive!(io, marr)
 
@@ -134,7 +137,9 @@ end
     elseif marr isa MATFrostArrayPrimitive{Complex{UInt64}}
         write_matfrostarray_primitive!(io, marr)
     else
-        error("Unrecoverable crash - MATFrost communication channel corrupted at write side")
+        error(
+            "Unrecoverable crash - MATFrost communication channel corrupted at write side",
+        )
     end
 
 

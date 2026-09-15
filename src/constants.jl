@@ -5,15 +5,38 @@ export matlab_type, matlab_type_name, matlab_type_nospecialize
 
 export sizeof_matlab_primitive
 
-export LOGICAL, CHAR, MATLAB_STRING,
-    DOUBLE, SINGLE,
-    INT8, UINT8, INT16, UINT16, INT32, UINT32, INT64, UINT64,
-    COMPLEX_DOUBLE, COMPLEX_SINGLE,
-    COMPLEX_INT8, COMPLEX_UINT8, COMPLEX_INT16, COMPLEX_UINT16,
-    COMPLEX_INT32, COMPLEX_UINT32, COMPLEX_INT64, COMPLEX_UINT64,
-    CELL, STRUCT, 
-    OBJECT, VALUE_OBJECT, HANDLE_OBJECT_REF, ENUM, 
-    SPARSE_LOGICAL, SPARSE_DOUBLE, SPARSE_COMPLEX_DOUBLE
+export LOGICAL,
+    CHAR,
+    MATLAB_STRING,
+    DOUBLE,
+    SINGLE,
+    INT8,
+    UINT8,
+    INT16,
+    UINT16,
+    INT32,
+    UINT32,
+    INT64,
+    UINT64,
+    COMPLEX_DOUBLE,
+    COMPLEX_SINGLE,
+    COMPLEX_INT8,
+    COMPLEX_UINT8,
+    COMPLEX_INT16,
+    COMPLEX_UINT16,
+    COMPLEX_INT32,
+    COMPLEX_UINT32,
+    COMPLEX_INT64,
+    COMPLEX_UINT64,
+    CELL,
+    STRUCT,
+    OBJECT,
+    VALUE_OBJECT,
+    HANDLE_OBJECT_REF,
+    ENUM,
+    SPARSE_LOGICAL,
+    SPARSE_DOUBLE,
+    SPARSE_COMPLEX_DOUBLE
 
 using .._Types
 
@@ -74,28 +97,28 @@ matlab_type(::Type{String}) = MATLAB_STRING
 matlab_type(::Type{Float32}) = SINGLE
 matlab_type(::Type{Float64}) = DOUBLE
 
-matlab_type(::Type{UInt8})   = UINT8
-matlab_type(::Type{Int8})    = INT8
-matlab_type(::Type{UInt16})   = UINT16
-matlab_type(::Type{Int16})    = INT16
-matlab_type(::Type{UInt32})   = UINT32
-matlab_type(::Type{Int32})    = INT32
-matlab_type(::Type{UInt64})   = UINT64
-matlab_type(::Type{Int64})    = INT64
+matlab_type(::Type{UInt8}) = UINT8
+matlab_type(::Type{Int8}) = INT8
+matlab_type(::Type{UInt16}) = UINT16
+matlab_type(::Type{Int16}) = INT16
+matlab_type(::Type{UInt32}) = UINT32
+matlab_type(::Type{Int32}) = INT32
+matlab_type(::Type{UInt64}) = UINT64
+matlab_type(::Type{Int64}) = INT64
 
 matlab_type(::Type{Complex{Float32}}) = COMPLEX_SINGLE
 matlab_type(::Type{Complex{Float64}}) = COMPLEX_DOUBLE
 
-matlab_type(::Type{Complex{UInt8}})   = COMPLEX_UINT8
-matlab_type(::Type{Complex{Int8}})    = COMPLEX_INT8
-matlab_type(::Type{Complex{UInt16}})   = COMPLEX_UINT16
-matlab_type(::Type{Complex{Int16}})    = COMPLEX_INT16
-matlab_type(::Type{Complex{UInt32}})   = COMPLEX_UINT32
-matlab_type(::Type{Complex{Int32}})    = COMPLEX_INT32
-matlab_type(::Type{Complex{UInt64}})   = COMPLEX_UINT64
-matlab_type(::Type{Complex{Int64}})    = COMPLEX_INT64
+matlab_type(::Type{Complex{UInt8}}) = COMPLEX_UINT8
+matlab_type(::Type{Complex{Int8}}) = COMPLEX_INT8
+matlab_type(::Type{Complex{UInt16}}) = COMPLEX_UINT16
+matlab_type(::Type{Complex{Int16}}) = COMPLEX_INT16
+matlab_type(::Type{Complex{UInt32}}) = COMPLEX_UINT32
+matlab_type(::Type{Complex{Int32}}) = COMPLEX_INT32
+matlab_type(::Type{Complex{UInt64}}) = COMPLEX_UINT64
+matlab_type(::Type{Complex{Int64}}) = COMPLEX_INT64
 
-matlab_type(::Type{Array{T, N}}) where {T <: Union{Number, String}, N} = matlab_type(T)
+matlab_type(::Type{Array{T,N}}) where {T<:Union{Number,String},N} = matlab_type(T)
 
 matlab_type(::MATFrostArrayEmpty) = DOUBLE
 matlab_type(::MATFrostArrayStruct) = STRUCT
@@ -104,10 +127,12 @@ matlab_type(::MATFrostArrayString) = matlab_type(String)
 matlab_type(::MATFrostArrayPrimitive{T}) where {T} = matlab_type(T)
 
 
-@noinline function matlab_type_nospecialize(@nospecialize(marr::MATFrostArrayAbstract))::Int32
+@noinline function matlab_type_nospecialize(
+    @nospecialize(marr::MATFrostArrayAbstract)
+)::Int32
     if marr isa MATFrostArrayEmpty
         matlab_type(marr)
-    
+
     elseif marr isa MATFrostArrayStruct
         matlab_type(marr)
     elseif marr isa MATFrostArrayString
@@ -123,7 +148,7 @@ matlab_type(::MATFrostArrayPrimitive{T}) where {T} = matlab_type(T)
     elseif marr isa MATFrostArrayPrimitive{Float32}
         matlab_type(marr)
 
-        
+
     elseif marr isa MATFrostArrayPrimitive{Complex{Float64}}
         matlab_type(marr)
     elseif marr isa MATFrostArrayPrimitive{Complex{Float32}}
@@ -225,7 +250,7 @@ function matlab_type_name(type::Int32)
         "cell"
     elseif type == STRUCT
         "struct"
-        
+
     elseif type == OBJECT
         "object"
     elseif type == VALUE_OBJECT
@@ -245,11 +270,27 @@ end
 
 
 const PRIMITIVE_TYPES_AND_SIZE = (
-    (LOGICAL, 1), 
-    (DOUBLE, 8), (SINGLE, 4), 
-    (INT8, 1), (UINT8, 1), (INT16, 2), (UINT16,2), (INT32,4), (UINT32,4), (INT64,8), (UINT64,8),
-    (COMPLEX_DOUBLE, 16), (COMPLEX_SINGLE,8),
-    (COMPLEX_INT8, 2), (COMPLEX_UINT8, 2), (COMPLEX_INT16, 4), (COMPLEX_UINT16,4), (COMPLEX_INT32,8), (COMPLEX_UINT32,8), (COMPLEX_INT64,16), (COMPLEX_UINT64,16),
+    (LOGICAL, 1),
+    (DOUBLE, 8),
+    (SINGLE, 4),
+    (INT8, 1),
+    (UINT8, 1),
+    (INT16, 2),
+    (UINT16, 2),
+    (INT32, 4),
+    (UINT32, 4),
+    (INT64, 8),
+    (UINT64, 8),
+    (COMPLEX_DOUBLE, 16),
+    (COMPLEX_SINGLE, 8),
+    (COMPLEX_INT8, 2),
+    (COMPLEX_UINT8, 2),
+    (COMPLEX_INT16, 4),
+    (COMPLEX_UINT16, 4),
+    (COMPLEX_INT32, 8),
+    (COMPLEX_UINT32, 8),
+    (COMPLEX_INT64, 16),
+    (COMPLEX_UINT64, 16),
 )
 
 function sizeof_matlab_primitive(type::Int32)

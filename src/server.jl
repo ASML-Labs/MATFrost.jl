@@ -1,7 +1,7 @@
 module _Server
 
 import ..MATFrost as MATFrost
-import ..MATFrost._Read:  read_matfrostarray!
+import ..MATFrost._Read: read_matfrostarray!
 import ..MATFrost._Write: write_matfrostarray!
 using ..MATFrost._Types
 using ..MATFrost._Constants
@@ -32,7 +32,8 @@ struct MATFrostResultMATLAB{T}
 end
 
 
-AmbiguityError(f::Function) = MATFrostException("matfrostjulia:call:ambigiousFunction",ambiguous_method_error(f))
+AmbiguityError(f::Function) =
+    MATFrostException("matfrostjulia:call:ambigiousFunction", ambiguous_method_error(f))
 """
 This function is the basis of the MATFrostServer.
 """
@@ -42,8 +43,8 @@ function MATFrost.matfrostserve(host::String, port::Int)
     Sockets.nagle(client, false)
 
     println("MATFrost server connected. Ready for requests.")
-    
-    try 
+
+    try
         while true
             callsequence(client)
         end
@@ -62,7 +63,7 @@ function MATFrost.matfrostserve(host::String, port::Int)
 end
 
 function package_is_loaded(packagename)
-    try 
+    try
         # Check if package is loaded. 
         getfield(Main, packagename)
         return true
@@ -73,15 +74,15 @@ end
 
 function callsequence(io::IO)
     callstruct = read_matfrostarray!(io)
-    
+
     marr = try
 
         if !(callstruct isa MATFrostArrayCell) || length(callstruct.values) != 2
             throw("error")
         end
-        
+
         callmeta = _ConvertToJulia.convert_matfrostarray(CallMeta, callstruct.values[1])
-        syms = Symbol.(split(callmeta.fully_qualified_name,"."))
+        syms = Symbol.(split(callmeta.fully_qualified_name, "."))
         packagename = syms[1]
 
 
@@ -89,13 +90,16 @@ function callsequence(io::IO)
             try
                 Main.eval(:(import $packagename))
             catch e
-                throw(MATFrostException("matfrostjulia:call:packageNotFound", 
-"""
-Package not found exception:
-
-Package: $(packagename)
-"""
-))
+                throw(
+                    MATFrostException(
+                        "matfrostjulia:call:packageNotFound",
+                        """
+                        Package not found exception:
+                        
+                        Package: $(packagename)
+                        """,
+                    ),
+                )
             end
         end
 
@@ -104,8 +108,8 @@ Package: $(packagename)
         # This ofcourse is not ideal and should be treated with care.
         Base.invokelatest(callsequence_latest_world_age, callmeta, callstruct.values[2])
 
-    catch e 
-        
+    catch e
+
         buf = IOBuffer()
         Base.showerror(buf, e)
         Base.show_backtrace(buf, Base.catch_backtrace())
@@ -130,7 +134,7 @@ Package: $(packagename)
 end
 
 function callsequence_latest_world_age(callmeta, callargs)
-    (f,Args) = getMethod(callmeta)
+    (f, Args) = getMethod(callmeta)
     args = try
         _ConvertToJulia.convert_matfrostarray(Args, callargs)
     catch e
@@ -156,7 +160,10 @@ function _load_and_eval_type(typestring::AbstractString)
     pkg_names = Set{String}()
 
     # Collect top-level package names from any qualified identifiers.
-    for m in eachmatch(r"\b([A-Za-z_][A-Za-z0-9_]*)\.(?:[A-Za-z_][A-Za-z0-9_]*)(?:\.[A-Za-z_][A-Za-z0-9_]*)*", typestring)
+    for m in eachmatch(
+        r"\b([A-Za-z_][A-Za-z0-9_]*)\.(?:[A-Za-z_][A-Za-z0-9_]*)(?:\.[A-Za-z_][A-Za-z0-9_]*)*",
+        typestring,
+    )
         pkg = m.captures[1]
         if !(pkg in ("Base", "Core", "Main"))
             push!(pkg_names, pkg)
@@ -168,9 +175,12 @@ function _load_and_eval_type(typestring::AbstractString)
             try
                 Main.eval(:(import $(Symbol(pkg_name))))
             catch e
-                throw(MATFrostException("matfrostjulia:call:packageNotFound",
-                    "Package not found: $pkg_name required for type $typestring"
-                ))
+                throw(
+                    MATFrostException(
+                        "matfrostjulia:call:packageNotFound",
+                        "Package not found: $pkg_name required for type $typestring",
+                    ),
+                )
             end
         end
     end
@@ -182,7 +192,11 @@ function getMethod(meta::CallMeta)
     # Parse fully qualified name
     m = match(r"^([^.]+)\.([^(]+)$", meta.fully_qualified_name)
     if m === nothing
-        throw(ErrorException("Incompatible fully_qualified_name: $(meta.fully_qualified_name)"))
+        throw(
+            ErrorException(
+                "Incompatible fully_qualified_name: $(meta.fully_qualified_name)",
+            ),
+        )
     end
     (packagename, function_name) = m.captures
 
@@ -195,26 +209,34 @@ function getMethod(meta::CallMeta)
             if isa(f, Function)
                 continue
             else
-                throw(MATFrostException("matfrostjulia:call:functionNotFound",
-                """
-                Function not found exception:
-                Function $(meta.fully_qualified_name) 
-                """
-                ))
+                throw(
+                    MATFrostException(
+                        "matfrostjulia:call:functionNotFound",
+                        """
+                        Function not found exception:
+                        Function $(meta.fully_qualified_name) 
+                        """,
+                    ),
+                )
             end
         end
     end
 
     mtds = methods(f)
-    argtypes = !isempty(meta.signature) ?
-        [_load_and_eval_type(strip(s)) for sig in meta.signature for s in split_types_respecting_braces(sig)] :
-        (length(mtds) == 1 ? collect(mtds[1].sig.types[2:end]) : nothing)
+    argtypes =
+        !isempty(meta.signature) ?
+        [
+            _load_and_eval_type(strip(s)) for sig in meta.signature for
+            s in split_types_respecting_braces(sig)
+        ] : (length(mtds) == 1 ? collect(mtds[1].sig.types[2:end]) : nothing)
 
     if argtypes === nothing
-        throw(MATFrostException(
-            "matfrostjulia:call:multipleMethodDefinitions",
-            ambiguous_method_error(f)
-        ))
+        throw(
+            MATFrostException(
+                "matfrostjulia:call:multipleMethodDefinitions",
+                ambiguous_method_error(f),
+            ),
+        )
     end
 
     return (f, Tuple{argtypes...})
@@ -225,42 +247,38 @@ function matfrostinputconversionexception(e::MATFrostConversionException)
 
     tracestring = (
         if s isa Int64
-            "[$(s)]" 
+            "[$(s)]"
         elseif s isa Symbol
             ".$s"
         else
             ""
-        end for s in tracereverse)
-            
+        end for s in tracereverse
+    )
+
     message = "$(e.message)\n\nInput invalid at: arg$(tracestring...)"
     MATFrostException(e.id, message)
 end
 
 function matfrostexceptionresult(e)
     if e isa MATFrostException
-        MATFrostResultMATLAB{MATFrostException}(
-            "ERROR",
-            "",
-            e
-        )
+        MATFrostResultMATLAB{MATFrostException}("ERROR", "", e)
     else
-        MATFrostResultMATLAB(
-            "ERROR",
-            "",
-            e
-        )
+        MATFrostResultMATLAB("ERROR", "", e)
     end
 end
 
 function ambiguous_method_error(f)
     mtd = methods(f)
-    numbered = ["   [$i] $(strip(split(string(sig), '@')[1]))" for (i, sig) in enumerate(mtd)]
+    numbered =
+        ["   [$i] $(strip(split(string(sig), '@')[1]))" for (i, sig) in enumerate(mtd)]
     example = split(numbered[1], "] ")[2]
     m = match(r"^([^(]+)(\(.*\))$", example)
-    example_name, example_args = m !== nothing ? (strip(m.captures[1]), strip(m.captures[2])) : (example, "")
+    example_name, example_args =
+        m !== nothing ? (strip(m.captures[1]), strip(m.captures[2])) : (example, "")
     raw_types = split_types_respecting_braces(example_args)
-    types = [occursin("::", p) ? split(split(p, "::"; limit=2)[2], "="; limit=2)[1] : "Any"
-         for p in raw_types if !isempty(strip(p))]
+    types = [
+        occursin("::", p) ? split(split(p, "::"; limit = 2)[2], "="; limit = 2)[1] : "Any" for p in raw_types if !isempty(strip(p))
+    ]
     sigstring = join(types, ", ")
     return """
         Ambiguous function call: The function $(f) has multiple methods.
@@ -282,11 +300,11 @@ function split_types_respecting_braces(signature_args::AbstractString)::Vector{S
     parts = String[]
     current = ""
     depth = 0
-    
+
     for c in strip(signature_args, ['(', ')'])
-        if c == '{' 
+        if c == '{'
             depth += 1
-        elseif c == '}' 
+        elseif c == '}'
             depth -= 1
         elseif c == ',' && depth == 0
             push!(parts, current)

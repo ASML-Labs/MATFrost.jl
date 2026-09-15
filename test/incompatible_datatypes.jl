@@ -19,24 +19,17 @@ end
 primitive_tests = (
     (Float32, Float32(4321)),
     (Float64, 4321.4321),
-
-    (Int8,  Int8(-21)),
-    (UInt8,  UInt8(21)),
-    (Int16,  Int16(-4321)),
+    (Int8, Int8(-21)),
+    (UInt8, UInt8(21)),
+    (Int16, Int16(-4321)),
     (UInt16, UInt16(4321)),
-    (Int32,  Int32(-433421)),
+    (Int32, Int32(-433421)),
     (UInt32, UInt32(43321)),
-    (Int64,  Int64(-4323421)),
+    (Int64, Int64(-4323421)),
     (UInt64, UInt64(4323421)),
-
     (String, "TestString"),
-
     (StructTest1, StructTest1(3.0, 3, "FEFE")),
-
-    (Tuple{Float64, Int64, String}, (3.0, 3, "FEFE"))
-
-
-    
+    (Tuple{Float64,Int64,String}, (3.0, 3, "FEFE")),
 )
 
 
@@ -51,7 +44,7 @@ primitive_tests = (
             @test read_matfrostarray!(stream, pt[1]).x.x isa MATFrostException
             @test bytesavailable(stream) == 20
         end
-        
+
         @testset "Vector-Target" begin
             _clearbuffer!(stream)
             _writebuffermatfrostarray!(stream, pt2[2])
@@ -59,7 +52,7 @@ primitive_tests = (
             @test read_matfrostarray!(stream, Vector{pt[1]}).x.x isa MATFrostException
             @test bytesavailable(stream) == 20
         end
-        
+
         @testset "Matrix-Target" begin
             _clearbuffer!(stream)
             _writebuffermatfrostarray!(stream, pt2[2])
