@@ -33,11 +33,7 @@ using MATFrost
 using ..GeometryExampleToMATLAB
 
 function MATFrost.convert_to_matlab_extension(p::GeometryExampleToMATLAB.Point)
-    return Dict(
-        "__type__" => "Point",
-        "x" => p.x,
-        "y" => p.y,
-    )
+    return Dict("__type__" => "Point", "x" => p.x, "y" => p.y)
 end
 
 end

@@ -41,7 +41,8 @@ buffer = IOBuffer()
 
 _writebuffermatfrostarray!(stream::IOBuffer, value) = write_matfrostarray!(stream, value)
 _clearbuffer!(stream::IOBuffer) = (seekstart(stream); truncate(stream, 0); nothing)
-_addbuffer!(stream::IOBuffer, n::Integer) = (write(stream, zeros(UInt8, n)); seekstart(stream); nothing)
+_addbuffer!(stream::IOBuffer, n::Integer) =
+    (write(stream, zeros(UInt8, n)); seekstart(stream); nothing)
 
 
 """
@@ -197,5 +198,3 @@ end
 end
 
 end
-
-

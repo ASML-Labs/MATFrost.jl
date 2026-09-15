@@ -148,5 +148,3 @@ Fallback keeps backward compatibility by returning `value` unchanged.
 convert_to_matlab_extension(value) = value
 convert_to_matlab(value) = convert_to_matlab_extension(value)
 end
-
-

@@ -64,11 +64,7 @@ using .GeometryExampleToJulia
 end
 
 @testset "convert_from_matlab_extension custom hooks" begin
-    matlab_repr = Dict(
-        "__type__" => "Point",
-        "x" => 3.0,
-        "y" => 4.0,
-    )
+    matlab_repr = Dict("__type__" => "Point", "x" => 3.0, "y" => 4.0)
 
     point = MATFrost.convert_from_matlab_extension(matlab_repr)
     @test point isa Point

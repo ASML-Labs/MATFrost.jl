@@ -13,6 +13,3 @@ include("simulate_communication.jl")
 # include("incompatible_datatypes.jl")
 
 include("converttojulia.jl")
-
-
-
