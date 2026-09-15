@@ -5,6 +5,7 @@ using Test
 using JET
 
 using MATFrost._Read: read_matfrostarray!
+using MATFrost._Write: write_matfrostarray!
 using MATFrost._ConvertToJulia: convert_matfrostarray
 
 struct StructTest1
@@ -37,6 +38,12 @@ end
 
 
 buffer = IOBuffer()
+
+_writebuffermatfrostarray!(stream::IOBuffer, value) = write_matfrostarray!(stream, value)
+_clearbuffer!(stream::IOBuffer) = (seekstart(stream); truncate(stream, 0); nothing)
+_addbuffer!(stream::IOBuffer, n::Integer) =
+    (write(stream, zeros(UInt8, n)); seekstart(stream); nothing)
+
 
 """
 Scalar: Number, String
