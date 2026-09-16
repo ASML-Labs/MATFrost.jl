@@ -2,8 +2,7 @@ module _ConvertToJulia
 
 using .._Types
 using .._Constants
-import ..MATFrost: convert_from_matlab
-
+import ..MATFrost: convert_from_matlab, convert_from_matlab_extension
 
 supported_number_type(::Type{T}) where {T} = isprimitivetype(T)
 supported_number_type(::Type{Complex{T}}) where {T} = isprimitivetype(T)
@@ -673,17 +672,21 @@ end
 
     unsupported_datatype_exception(typename)
 end
-
-
-
-
-
-
-
 """
 MATLAB -> Julia extension point.
 
-Fallback keeps backward compatibility by returning `value` unchanged.
+External packages can specialize this method for a target Julia type and
+a MATFrost wire representation.
+
+The fallback uses MATFrost's built-in conversion.
 """
-convert_from_matlab(value) = value
+convert_from_matlab_extension(value) = value
+
+convert_from_matlab(value) = convert_from_matlab_extension(value)
+
+convert_from_matlab_extension(::Type{T}, marr::MATFrostArrayAbstract) where {T} =
+    convert_matfrostarray(T, marr)
+
+convert_from_matlab(::Type{T}, marr::MATFrostArrayAbstract) where {T} =
+    convert_from_matlab_extension(T, marr)
 end

@@ -1,5 +1,6 @@
 using Test
 using MATFrost
+using MATFrost._Types
 
 module TestConversionExtension
 import MATFrost: convert_from_matlab, convert_to_matlab
@@ -14,6 +15,18 @@ end
 
 convert_from_matlab(value::FakeMatlabObject) = FakeJuliaObject(value.value)
 convert_to_matlab(value::FakeJuliaObject) = FakeMatlabObject(value.value)
+end
+
+module TestTypedConversionExtension
+import MATFrost: convert_from_matlab_extension
+using MATFrost._Types
+
+struct LabeledValue
+    label::String
+end
+
+convert_from_matlab_extension(::Type{LabeledValue}, marr::MATFrostArrayString) =
+    LabeledValue(marr.values[1])
 end
 
 @testset "MATFrost conversion extension points" begin
@@ -41,5 +54,18 @@ end
         nested_value = [Dict("value" => 1)]
         @test convert_from_matlab(nested_value) === nested_value
         @test convert_to_matlab(nested_value) === nested_value
+    end
+
+    @testset "type-aware wire conversion hook" begin
+        marr = MATFrostArrayString(Int64[1], ["PointLabel"])
+        value = convert_from_matlab(TestTypedConversionExtension.LabeledValue, marr)
+
+        @test value isa TestTypedConversionExtension.LabeledValue
+        @test value.label == "PointLabel"
+    end
+
+    @testset "typed fallback uses built-in conversion" begin
+        marr = MATFrostArrayPrimitive{Int64}(Int64[1], Int64[7])
+        @test convert_from_matlab(Int64, marr) == 7
     end
 end
