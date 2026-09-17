@@ -106,6 +106,7 @@ compute_measure(m::CompositeMeasure) = Float64(m.c.v1 + m.c.v2 + m.c.v3)
 
 # Convenient methods that accept existing concrete types by delegating to the wrappers
 compute_measure(c::CompositeNumberType) = compute_measure(CompositeMeasure(c))
+compute_measure(p::SimplePopulationType) = compute_measure(convert(PopulationMeasure, p))
 
 nest2_identity(v::Nest2) = v
 

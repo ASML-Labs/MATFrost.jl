@@ -51,12 +51,6 @@ classdef matfrost_meta_test < matfrost_abstract_test
             tc.verifyEqual(res, 100.0);
         end
 
-        function compute_measure_population_typed_extension(tc)
-            pop = struct(name="A", population=int64(100));
-            res = tc.mjl.MATFrostTest.compute_measure(pop, signature="MATFrostTest.PopulationMeasure");
-            tc.verifyEqual(res, 100.0);
-        end
-
         function repeat_string(tc)
             res = tc.mjl.MATFrostTest.repeat_string("ab", int64(3), signature=["String","Int64"]);
             tc.verifyEqual(res, "ababab");

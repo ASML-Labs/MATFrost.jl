@@ -122,7 +122,7 @@ Convert to Tuples
                     (
                         quote
                             try
-                                convert_matfrostarray(
+                                convert_from_matlab(
                                     $(fieldtype(T, fi)),
                                     marr.values[$fi],
                                 )
@@ -673,20 +673,61 @@ end
     unsupported_datatype_exception(typename)
 end
 """
-MATLAB -> Julia extension point.
+    convert_from_matlab_extension(::Type{T}, value) where {T}
+
+MATLAB to Julia extension point.
 
 External packages can specialize this method for a target Julia type and
 a MATFrost wire representation.
 
 The fallback uses MATFrost's built-in conversion.
 """
-convert_from_matlab_extension(value) = value
+function convert_from_matlab_extension(
+    ::Type{T},
+    value::MATFrostArrayAbstract,
+) where {T}
+    return convert_matfrostarray(T, value)
+end
 
-convert_from_matlab(value) = convert_from_matlab_extension(value)
+"""
+    convert_from_matlab(::Type{T}, value) where {T}
 
-convert_from_matlab_extension(::Type{T}, marr::MATFrostArrayAbstract) where {T} =
-    convert_matfrostarray(T, marr)
+Convert a value received from MATLAB to the requested Julia type.
+"""
+function convert_from_matlab(
+    ::Type{T},
+    value,
+) where {T}
+    return convert_from_matlab_extension(T, value)
+end
 
-convert_from_matlab(::Type{T}, marr::MATFrostArrayAbstract) where {T} =
-    convert_from_matlab_extension(T, marr)
+"""
+Convert the top-level MATLAB argument cell.
+
+The extension hook is applied once per function argument. Recursive conversion
+within ordinary arrays, tuples, and structs remains handled by
+`convert_matfrostarray`.
+"""
+function convert_from_matlab(
+    ::Type{T},
+    callargs::MATFrostArrayCell,
+) where {T<:Tuple}
+    validate_array_dimensions(T, callargs)
+
+    converted = ntuple(fieldcount(T)) do i
+        try
+            convert_from_matlab_extension(
+                fieldtype(T, i),
+                callargs.values[i],
+            )
+        catch e
+            if e isa MATFrostConversionException
+                push!(e.stacktrace, i)
+            end
+            rethrow(e)
+        end
+    end
+
+    return T(converted)
+end
 end
