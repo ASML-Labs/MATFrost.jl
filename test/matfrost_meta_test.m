@@ -97,7 +97,7 @@ classdef matfrost_meta_test < matfrost_abstract_test
             p.name = "Amsterdam";
             p.population = int64(100);
 
-            actual = tc.mjl.MATFrostTest.compute_measure(p);
+            actual = tc.mjl.MATFrostTest.compute_measure(p,signature="MATFrostTest.SimplePopulationType");
 
             tc.verifyEqual(actual,100.0);
 
