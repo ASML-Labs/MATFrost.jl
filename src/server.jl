@@ -136,7 +136,7 @@ end
 function callsequence_latest_world_age(callmeta, callargs)
     (f, Args) = getMethod(callmeta)
     args = try
-        _ConvertToJulia.convert_matfrostarray(Args, callargs)
+        MATFrost.convert_from_matlab(Args, callargs)
     catch e
         if e isa MATFrostConversionException
             rethrow(matfrostinputconversionexception(e))
@@ -147,7 +147,9 @@ function callsequence_latest_world_age(callmeta, callargs)
     # Call the function using invokelatest for world age safety
     out = f(args...)
 
-    _ConvertToMATLAB.convert_matfrostarray(MATFrostResultMATLAB("SUCCESFUL", "", out))
+    _ConvertToMATLAB.convert_matfrostarray(
+        MATFrostResultMATLAB("SUCCESFUL", "", MATFrost.convert_to_matlab(out)),
+    )
 end
 
 

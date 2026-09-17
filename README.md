@@ -213,13 +213,17 @@ mjl.TupleExample.tuple_sum({3.0; 4.0; 5.0; 6.0}) % 18.0
 
 ## Custom Type Conversion
 
-MATFrost provides two extension points that allow external packages to
+MATFrost provides conversion extension points that allow external packages to
 participate in the MATLAB ↔ Julia conversion process:
 
 ```julia
 # Julia
 convert_from_matlab(value)
+convert_from_matlab(::Type{TargetType}, value)
+convert_from_matlab_extension(::Type{TargetType}, value)
+
 convert_to_matlab(value)
+convert_to_matlab_extension(value)
 ```
 
 By default, both functions return the input unchanged:
@@ -270,14 +274,15 @@ named tuple:
 (x = 1.0, y = 2.0)
 ```
 
-The package can provide a conversion rule:
+The package can provide a typed inbound conversion rule:
 
 ```julia
 # Julia
-import MATFrost: convert_from_matlab
+import MATFrost: convert_from_matlab_extension
 
-convert_from_matlab(
-    value::NamedTuple{(:x, :y)}
+convert_from_matlab_extension(
+    ::Type{Point},
+    value::NamedTuple{(:x, :y)},
 ) = Point(value.x, value.y)
 ```
 

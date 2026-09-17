@@ -1,6 +1,5 @@
 module MATFrostTest
 
-
 export compute_measure
 elementwise_addition_f64(c::Float64, x::Vector{Float64}) = c .+ x
 
@@ -96,6 +95,7 @@ struct PopulationMeasure <: AbstractMeasure
     p::SimplePopulationType
 end
 
+Base.convert(::Type{PopulationMeasure},p::SimplePopulationType) = PopulationMeasure(p)
 struct CompositeMeasure <: AbstractMeasure
     c::CompositeNumberType
 end
@@ -105,7 +105,6 @@ compute_measure(m::PopulationMeasure) = Float64(m.p.population)
 compute_measure(m::CompositeMeasure) = Float64(m.c.v1 + m.c.v2 + m.c.v3)
 
 # Convenient methods that accept existing concrete types by delegating to the wrappers
-compute_measure(p::SimplePopulationType) = compute_measure(PopulationMeasure(p))
 compute_measure(c::CompositeNumberType) = compute_measure(CompositeMeasure(c))
 
 nest2_identity(v::Nest2) = v

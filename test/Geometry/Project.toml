@@ -1,0 +1,4 @@
+name = "Geometry"
+uuid = "2fcba198-df7c-4c9e-ae5d-289e03a66e9b"
+version = "0.1.0"
+authors = ["Lennard Mulder <lennard.mulder@asml.com>"]
