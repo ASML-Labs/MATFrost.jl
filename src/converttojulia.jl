@@ -122,10 +122,7 @@ Convert to Tuples
                     (
                         quote
                             try
-                                convert_from_matlab(
-                                    $(fieldtype(T, fi)),
-                                    marr.values[$fi],
-                                )
+                                convert_from_matlab($(fieldtype(T, fi)), marr.values[$fi])
                             catch e
                                 if e isa MATFrostConversionException
                                     push!(e.stacktrace, $fi)
@@ -682,10 +679,7 @@ a MATFrost wire representation.
 
 The fallback uses MATFrost's built-in conversion.
 """
-function convert_from_matlab_extension(
-    ::Type{T},
-    value::MATFrostArrayAbstract,
-) where {T}
+function convert_from_matlab_extension(::Type{T}, value::MATFrostArrayAbstract) where {T}
     return convert_matfrostarray(T, value)
 end
 
@@ -694,10 +688,7 @@ end
 
 Convert a value received from MATLAB to the requested Julia type.
 """
-function convert_from_matlab(
-    ::Type{T},
-    value,
-) where {T}
+function convert_from_matlab(::Type{T}, value) where {T}
     return convert_from_matlab_extension(T, value)
 end
 
@@ -708,18 +699,12 @@ The extension hook is applied once per function argument. Recursive conversion
 within ordinary arrays, tuples, and structs remains handled by
 `convert_matfrostarray`.
 """
-function convert_from_matlab(
-    ::Type{T},
-    callargs::MATFrostArrayCell,
-) where {T<:Tuple}
+function convert_from_matlab(::Type{T}, callargs::MATFrostArrayCell) where {T<:Tuple}
     validate_array_dimensions(T, callargs)
 
     converted = ntuple(fieldcount(T)) do i
         try
-            convert_from_matlab_extension(
-                fieldtype(T, i),
-                callargs.values[i],
-            )
+            convert_from_matlab_extension(fieldtype(T, i), callargs.values[i])
         catch e
             if e isa MATFrostConversionException
                 push!(e.stacktrace, i)

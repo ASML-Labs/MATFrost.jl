@@ -95,7 +95,7 @@ struct PopulationMeasure <: AbstractMeasure
     p::SimplePopulationType
 end
 
-Base.convert(::Type{PopulationMeasure},p::SimplePopulationType) = PopulationMeasure(p)
+Base.convert(::Type{PopulationMeasure}, p::SimplePopulationType) = PopulationMeasure(p)
 struct CompositeMeasure <: AbstractMeasure
     c::CompositeNumberType
 end

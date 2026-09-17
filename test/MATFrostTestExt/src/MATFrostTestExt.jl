@@ -2,9 +2,7 @@ module MATFrostTestExt
 
 using MATFrost
 
-import MATFrost:
-    convert_from_matlab_extension,
-    convert_to_matlab_extension
+import MATFrost: convert_from_matlab_extension, convert_to_matlab_extension
 
 struct Point
     label::String
@@ -17,9 +15,7 @@ function convert_from_matlab_extension(
     Point(value.values[1])
 end
 
-convert_to_matlab_extension(
-    value::Point,
-) = value.label
+convert_to_matlab_extension(value::Point) = value.label
 
 get_label(point::Point) = point.label
 

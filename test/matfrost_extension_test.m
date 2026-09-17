@@ -3,7 +3,8 @@ classdef matfrost_extension_test < matfrost_abstract_test
 
     methods(Test, TestTags="dispatch") % Test methods
         function geometry_dispatch(tc)
-
+            
+            tc.mjl.MATFrostGeometryExt.activate();
             result = tc.mjl.Geometry.get_label( ...
                 "Amsterdam", ...
                 signature="Geometry.Point");
