@@ -33,7 +33,7 @@ classdef matfrost_sysimage_test < matfrost_abstract_test
 
             jl = matfrostjulia(version=tc.tested_julia_version, project=project_path, ...
                 sysimage=sysimage_name);
-            tc.addTeardown(@delete, jl);
+
 
             tc.verifyTrue(endsWith(string(jl.MATFrostTest.sysimage_path()), sysimage_name), ...
                 "Relative sysimage path was not resolved correctly.");
