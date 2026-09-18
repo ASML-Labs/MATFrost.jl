@@ -2,11 +2,14 @@ classdef matfrost_sysimage_test < matfrost_abstract_test
 
     properties
         tested_julia_version (1,1) string
+        servers
     end
 
     methods(TestClassSetup)
         function store_julia_version(tc, julia_version)
             tc.tested_julia_version = julia_version;
+            % matfrostjulia has a private delete, so servers must outlive the test methods.
+            tc.servers = containers.Map('KeyType', 'char', 'ValueType', 'any');
         end
     end
 
@@ -17,7 +20,7 @@ classdef matfrost_sysimage_test < matfrost_abstract_test
 
             jl = matfrostjulia(version=tc.tested_julia_version, project=project_path, ...
                 sysimage=fullfile(sysimage_dir, sysimage_name));
-
+            tc.servers(char(sysimage_dir)) = jl;
 
             tc.verifyTrue(endsWith(string(jl.MATFrostTest.sysimage_path()), sysimage_name), ...
                 "Julia was not started with the requested sysimage.");
@@ -33,7 +36,7 @@ classdef matfrost_sysimage_test < matfrost_abstract_test
 
             jl = matfrostjulia(version=tc.tested_julia_version, project=project_path, ...
                 sysimage=sysimage_name);
-
+            tc.servers(char(sysimage_dir)) = jl;
 
             tc.verifyTrue(endsWith(string(jl.MATFrostTest.sysimage_path()), sysimage_name), ...
                 "Relative sysimage path was not resolved correctly.");
@@ -62,10 +65,7 @@ classdef matfrost_sysimage_test < matfrost_abstract_test
 end
 
 function remove_folder_quietly(folder)
-    for attempt = 1:10
-        if ~isfolder(folder) || rmdir(folder, 's')
-            return
-        end
-        pause(0.5);
+    if isfolder(folder)
+        [~] = rmdir(folder, 's');
     end
 end
