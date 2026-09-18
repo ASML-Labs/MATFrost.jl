@@ -17,7 +17,7 @@ classdef matfrost_sysimage_test < matfrost_abstract_test
 
             jl = matfrostjulia(version=tc.tested_julia_version, project=project_path, ...
                 sysimage=fullfile(sysimage_dir, sysimage_name));
-            tc.addTeardown(@delete, jl);
+
 
             tc.verifyTrue(endsWith(string(jl.MATFrostTest.sysimage_path()), sysimage_name), ...
                 "Julia was not started with the requested sysimage.");
