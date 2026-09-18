@@ -1,12 +1,12 @@
 classdef matfrost_meta_test < matfrost_abstract_test
-% Unit test for matfrostjulia testing the translations of the base types from MATLAB to Julia and back.
+    % Unit test for matfrostjulia testing the translations of the base types from MATLAB to Julia and back.
 
-    methods(Test, TestTags="ErrorHandling") % Test methods        
+    methods(Test, TestTags="ErrorHandling") % Test methods
         function missing_package_test(tc)
             tc.verifyError(@() tc.mjl.PackageDoesNotExist.test(), 'matfrostjulia:call:packageNotFound');
         end
 
-        function missing_function_test(tc)          
+        function missing_function_test(tc)
             tc.verifyError(@() tc.mjl.MATFrostTest.function_does_not_exist(), 'matfrostjulia:call:functionNotFound');
             tc.verifyError(@() tc.mjl.MATFrostTest.ModuleDoesNotExist.function_does_not_exist(), 'matfrostjulia:call:functionNotFound');
         end
@@ -20,17 +20,43 @@ classdef matfrost_meta_test < matfrost_abstract_test
             tc.verifyError(@() tc.mjl.MATFrostTest.multiple_method_definitions(23.0, signature={42}), ...
                 "matfrostjulia:invalidSignature");
         end
+
         function invalid_signature_size(tc)
-            % Pass a numeric value in the signature to trigger the exception
+            % Pass too many signatures to trigger the exception
             tc.verifyError(@() tc.mjl.MATFrostTest.multiple_method_definitions(23.0, signature=["Float64","Float64"]), ...
                 "matfrostjulia:invalidSignatureSize");
         end
+
+        function typed_extension_missing_hook_throws(tc)
+            pop = struct(name="A", population=int64(100));
+            tc.verifyError(@() tc.mjl.MATFrostTest.compute_measure(pop, signature="MATFrostTest.CompositeMeasure"), ...
+                'matfrostjulia:conversion:missingFields');
+        end
+        function multiple_methods_error_contains_signature_hint(tc)
+            try
+                tc.mjl.MATFrostTest.compute_measure( ...
+                    struct(name="A", population=int64(100)));
+                tc.assertFail( ...
+                    "Expected an ambiguous-method error.");
+            catch exception
+                tc.verifyEqual( ...
+                    exception.identifier, ...
+                    'matfrostjulia:call:multipleMethodDefinitions');
+                tc.verifySubstring( ...
+                    exception.message, ...
+                    'signature="MATFrostTest.PopulationMeasure"');
+            end
+        end
+
     end
+
+
     methods(Test, TestTags="basic function call")
         function no_signature_provided(tc)
             res = tc.mjl.MATFrostTest.elementwise_addition_f64(2.0, [1.0, 2.0, 3.0]);
             tc.verifyEqual(res, [3.0, 4.0, 5.0]');
         end
+
         function elementwise_addition(tc)
             res = tc.mjl.MATFrostTest.elementwise_addition_f64(2.0, [1.0, 2.0, 3.0], signature=["Float64","Vector{Float64}"]);
             tc.verifyEqual(res, [3.0, 4.0, 5.0]');
@@ -52,6 +78,7 @@ classdef matfrost_meta_test < matfrost_abstract_test
             tc.verifyEqual(res, "abc");
         end
     end
+
     methods(Test, TestTags="multi-dispatch calls")
         function multiple_method_float(tc)
             res = tc.mjl.MATFrostTest.multiple_method_definitions(23.0, signature="Float64");
@@ -75,10 +102,22 @@ classdef matfrost_meta_test < matfrost_abstract_test
 
             % Call the overloaded Base.+ method for Point
             res = tc.mjl.Base.('+')(p1, p2, signature=["MATFrostTest.Point", "MATFrostTest.Point"]);
-            
+
             % Verify the result is a Point with expected values
             tc.verifyEqual(res.x, int64(4));
             tc.verifyEqual(res.y, int64(6));
+        end
+
+        function struct_to_population_dispatch(tc)
+
+            p = struct();
+            p.name = "Amsterdam";
+            p.population = int64(100);
+
+            actual = tc.mjl.MATFrostTest.compute_measure(p,signature="MATFrostTest.SimplePopulationType");
+
+            tc.verifyEqual(actual,100.0);
+
         end
     end
 

@@ -14,7 +14,7 @@ using MATFrost: _ConvertToMATLAB, _ConvertToJulia
 Scalar: Number, String
 Array: Number, String
 """
-function deepequal(a::T, b::T) where {T<:Union{Number, String, Array{<:Number}, Array{String}}} 
+function deepequal(a::T, b::T) where {T<:Union{Number,String,Array{<:Number},Array{String}}}
     return a==b
 end
 
@@ -23,7 +23,7 @@ Array: Structs, NamedTuple, Tuple
 """
 function deepequal(a::Array, b::Array)
     typeof(a) == typeof(b) || return false
-    size(a) == size(b)     || return false
+    size(a) == size(b) || return false
     for i in eachindex(a)
         deepequal(a[i], b[i]) || return false
     end
@@ -36,7 +36,7 @@ Scalar: Structs, NamedTuple, Tuple
 function deepequal(a, b)
     typeof(a) == typeof(b) || return false
     N = fieldcount(typeof(a))
-    for i in 1:N
+    for i = 1:N
         deepequal(getfield(a, i), getfield(b, i)) || return false
     end
     return true
@@ -46,22 +46,22 @@ end
 primitive_tests = (
     (Float32, Float32(4321)),
     (Float64, 4321.4321),
-
-    (Int8,  Int8(-21)),
-    (UInt8,  UInt8(21)),
-    (Int16,  Int16(-4321)),
+    (Int8, Int8(-21)),
+    (UInt8, UInt8(21)),
+    (Int16, Int16(-4321)),
     (UInt16, UInt16(4321)),
-    (Int32,  Int32(-433421)),
+    (Int32, Int32(-433421)),
     (UInt32, UInt32(43321)),
-    (Int64,  Int64(-4323421)),
+    (Int64, Int64(-4323421)),
     (UInt64, UInt64(4323421)),
-    
-    
 )
 
-function test_matfrostarray_read(v_write, v_exp; raw=false)
+function test_matfrostarray_read(v_write, v_exp; raw = false)
     buffer = IOBuffer()
-    write_matfrostarray!(buffer, raw ? v_write : _ConvertToMATLAB.convert_matfrostarray(v_write))
+    write_matfrostarray!(
+        buffer,
+        raw ? v_write : _ConvertToMATLAB.convert_matfrostarray(v_write),
+    )
     seekstart(buffer)
     v_act = read_matfrostarray!(buffer)
 
@@ -70,7 +70,7 @@ function test_matfrostarray_read(v_write, v_exp; raw=false)
 
     # test read conversion
     @test deepequal(v_act, v_exp)
-    
+
     if ! raw
         # test reverse conversion
         v_act2 = _ConvertToJulia.convert_matfrostarray(typeof(v_write), v_act)
@@ -84,11 +84,11 @@ end
 
     v_write = MATFrostArrayStruct([0], [:one, :two], MATFrostArrayAbstract[])
     v_exp = MATFrostArrayEmpty()
-    test_matfrostarray_read(v_write, v_exp; raw=true)
+    test_matfrostarray_read(v_write, v_exp; raw = true)
 end
 
 @testset "Primitives-Behavior-String" begin
-    v_write = ["Hello",  "MATFrost!"]
+    v_write = ["Hello", "MATFrost!"]
     v_exp = MATFrostArrayString([2], v_write)
     test_matfrostarray_read(v_write, v_exp)
 end
@@ -106,17 +106,17 @@ end
         test_matfrostarray_read(v_write, v_exp)
     end
 
-    
+
     @testset "Read-Matrix" begin
         v_write = [true false true; false false true; false false false]
-        v_exp = MATFrostArrayPrimitive{Bool}([3,3], vec(v_write))
+        v_exp = MATFrostArrayPrimitive{Bool}([3, 3], vec(v_write))
         test_matfrostarray_read(v_write, v_exp)
     end
 end
 
 
-@testset "Primitives-Behavior-$(pt[1])" for pt in primitive_tests 
-    
+@testset "Primitives-Behavior-$(pt[1])" for pt in primitive_tests
+
     @testset "Read-Scalar" begin
         v_write = pt[2]
         v_exp = MATFrostArrayPrimitive{pt[1]}([1], [pt[2]])
@@ -129,7 +129,7 @@ end
         test_matfrostarray_read(v_write, v_exp)
     end
 
-    @testset "Read-Vector" begin        
+    @testset "Read-Vector" begin
         v_write = pt[1][pt[2], pt[2]+1, pt[2]+2]
         v_exp = MATFrostArrayPrimitive{pt[1]}([3], v_write)
         test_matfrostarray_read(v_write, v_exp)
@@ -138,13 +138,13 @@ end
 
     @testset "Read-ComplexVector" begin
         v = Complex{pt[1]}(pt[2], pt[1](2) * pt[2])
-        v_write= Complex{pt[1]}[v + 1, v+2, v+3]
+        v_write = Complex{pt[1]}[v+1, v+2, v+3]
         v_exp = MATFrostArrayPrimitive{Complex{pt[1]}}([3], v_write)
         test_matfrostarray_read(v_write, v_exp)
     end
 
     @testset "Read-Matrix" begin
-        v_write = Matrix{pt[1]}(undef, (7,5))
+        v_write = Matrix{pt[1]}(undef, (7, 5))
         for i in eachindex(v_write)
             v_write[i] = pt[2] + pt[1](i)
         end
@@ -153,7 +153,7 @@ end
     end
 
     @testset "Read-ComplexMatrix" begin
-        v_write = Matrix{Complex{pt[1]}}(undef, (5,7))
+        v_write = Matrix{Complex{pt[1]}}(undef, (5, 7))
         for i in eachindex(v_write)
             v_write[i] = Complex{pt[1]}(pt[2], pt[1](i)+3)
         end
