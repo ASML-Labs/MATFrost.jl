@@ -3,7 +3,7 @@ module _ConvertToMATLAB
 
 using .._Types
 using .._Constants
-import ..MATFrost: convert_to_matlab, convert_to_matlab_extension
+import ..MATFrost: convert_to_matlab
 
 supported_number_type(::Type{T}) where {T} = isprimitivetype(T)
 supported_number_type(::Type{Complex{T}}) where {T} = isprimitivetype(T)
@@ -133,18 +133,13 @@ end
 
 @noinline function unsupported_datatype_exception(::Type{T}) where {T}
     typename = _typename(T)
-
     unsupported_datatype_exception(typename)
 end
-
-
-
-
 """
-Julia -> MATLAB extension point.
+Convert a Julia value before MATFrost serializes it for MATLAB.
 
-Fallback keeps backward compatibility by returning `value` unchanged.
+The default implementation returns the value unchanged. External packages
+can add more specific methods for domain-specific Julia types.
 """
-convert_to_matlab_extension(value) = value
-convert_to_matlab(value) = convert_to_matlab_extension(value)
+convert_to_matlab(value) = value
 end

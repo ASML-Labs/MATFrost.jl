@@ -3,13 +3,13 @@ module MATFrostGeometryExt
 using Geometry
 using MATFrost
 
-import MATFrost: convert_from_matlab_extension
+import MATFrost: convert_from_matlab
 
 export activate
 
 activate() = nothing
 
-function convert_from_matlab_extension(
+function convert_from_matlab(
     ::Type{Geometry.Point},
     value::MATFrost._Types.MATFrostArrayString,
 )

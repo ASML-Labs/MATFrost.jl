@@ -220,10 +220,8 @@ participate in the MATLAB ↔ Julia conversion process:
 # Julia
 convert_from_matlab(value)
 convert_from_matlab(::Type{TargetType}, value)
-convert_from_matlab_extension(::Type{TargetType}, value)
 
 convert_to_matlab(value)
-convert_to_matlab_extension(value)
 ```
 
 By default, both functions return the input unchanged:
@@ -278,9 +276,9 @@ The package can provide a typed inbound conversion rule:
 
 ```julia
 # Julia
-import MATFrost: convert_from_matlab_extension
+import MATFrost: convert_from_matlab
 
-convert_from_matlab_extension(
+convert_from_matlab(
     ::Type{Point},
     value::NamedTuple{(:x, :y)},
 ) = Point(value.x, value.y)

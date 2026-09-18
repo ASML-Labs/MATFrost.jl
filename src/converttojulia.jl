@@ -2,7 +2,7 @@ module _ConvertToJulia
 
 using .._Types
 using .._Constants
-import ..MATFrost: convert_from_matlab, convert_from_matlab_extension
+import ..MATFrost: convert_from_matlab
 
 supported_number_type(::Type{T}) where {T} = isprimitivetype(T)
 supported_number_type(::Type{Complex{T}}) where {T} = isprimitivetype(T)
@@ -670,41 +670,34 @@ end
     unsupported_datatype_exception(typename)
 end
 """
-    convert_from_matlab_extension(::Type{T}, value) where {T}
+Convert a MATFrost wire value to the requested Julia type.
 
-MATLAB to Julia extension point.
-
-External packages can specialize this method for a target Julia type and
-a MATFrost wire representation.
-
-The fallback uses MATFrost's built-in conversion.
+External packages may add more specific methods for domain types.
 """
-function convert_from_matlab_extension(::Type{T}, value::MATFrostArrayAbstract) where {T}
+function convert_from_matlab(
+    ::Type{T},
+    value::MATFrostArrayAbstract,
+) where {T}
     return convert_matfrostarray(T, value)
 end
-
 """
-    convert_from_matlab(::Type{T}, value) where {T}
+Convert a top-level MATLAB argument list.
 
-Convert a value received from MATLAB to the requested Julia type.
+Each function argument is routed through `convert_from_matlab` separately,
+allowing external packages to specialize conversion by target type.
 """
-function convert_from_matlab(::Type{T}, value) where {T}
-    return convert_from_matlab_extension(T, value)
-end
-
-"""
-Convert the top-level MATLAB argument cell.
-
-The extension hook is applied once per function argument. Recursive conversion
-within ordinary arrays, tuples, and structs remains handled by
-`convert_matfrostarray`.
-"""
-function convert_from_matlab(::Type{T}, callargs::MATFrostArrayCell) where {T<:Tuple}
+function convert_from_matlab(
+    ::Type{T},
+    callargs::MATFrostArrayCell,
+) where {T<:Tuple}
     validate_array_dimensions(T, callargs)
 
     converted = ntuple(fieldcount(T)) do i
         try
-            convert_from_matlab_extension(fieldtype(T, i), callargs.values[i])
+            convert_from_matlab(
+                fieldtype(T, i),
+                callargs.values[i],
+            )
         catch e
             if e isa MATFrostConversionException
                 push!(e.stacktrace, i)

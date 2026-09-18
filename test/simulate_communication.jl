@@ -75,19 +75,37 @@ using Sockets
             @test response isa MATFrostArrayStruct
             @test response.fieldnames == Symbol[:status, :log, :value]
 
-            # Extract status
-            status = _ConvertToJulia.convert_matfrostarray(String, response.values[1])
+            status = _ConvertToJulia.convert_matfrostarray(
+                String,
+                response.values[1],
+            )
+
+            if status == "ERROR"
+                server_error = _ConvertToJulia.convert_matfrostarray(
+                    MATFrostException,
+                    response.values[3],
+                )
+
+                error(
+                    "MATFrost server returned $(server_error.id):\n" *
+                        server_error.message,
+                )
+            end
+
             @test status == "SUCCESFUL"
 
-            # Extract result value
-            result = _ConvertToJulia.convert_matfrostarray(Float64, response.values[3])
+            result = _ConvertToJulia.convert_matfrostarray(
+                Float64,
+                response.values[3],
+            )
+
             @test result ≈ 8.0
         end
 
     finally
         close(client)
         # Stop the server
-        schedule(server_task, InterruptException(), error = true)
+        schedule(server_task, InterruptException(), error=true)
     end
 
     # @testset "Error Handling - Nonexistent Function" begin

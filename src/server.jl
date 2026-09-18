@@ -269,28 +269,75 @@ function matfrostexceptionresult(e)
     end
 end
 
+"""
+Create a MATLAB name-value argument for selecting a Julia method.
+
+Examples:
+    signature="Float64"
+    signature=["String","Int64"]
+"""
+function matlab_signature_expression(argument_types)
+    type_names = string.(argument_types)
+
+    if length(type_names) == 1
+        return "signature=\"$(only(type_names))\""
+    end
+
+    quoted_types = ["\"$(name)\"" for name in type_names]
+    return "signature=[$(join(quoted_types, ","))]"
+end
+
+"""
+Create a clickable MATLAB Command Window link.
+
+Clicking the displayed call copies it to the MATLAB clipboard.
+"""
+function copy_call_link(call_expression::String)
+    # Escape apostrophes inside the MATLAB single-quoted string.
+    clipboard_text = replace(call_expression, "'" => "''")
+
+"""
+Create a clickable MATLAB Command Window link.
+
+Clicking the displayed call copies it to the MATLAB clipboard.
+"""
+function copy_call_link(call_expression::String)
+    # Escape apostrophes inside MATLAB's single-quoted string.
+    clipboard_text = replace(call_expression, "'" => "''")
+
+    # Escape double quotes inside the HTML href attribute.
+    href_text = replace(clipboard_text, "\"" => "&quot;")
+
+    return string(Char(60), "a href=\"matlab:clipboard('copy','",href_text,"')\"",
+        Char(62), call_expression, Char(60),"/a", Char(62))
+end
+end
+
 function ambiguous_method_error(f)
-    mtd = methods(f)
-    numbered =
-        ["   [$i] $(strip(split(string(sig), '@')[1]))" for (i, sig) in enumerate(mtd)]
-    example = split(numbered[1], "] ")[2]
-    m = match(r"^([^(]+)(\(.*\))$", example)
-    example_name, example_args =
-        m !== nothing ? (strip(m.captures[1]), strip(m.captures[2])) : (example, "")
-    raw_types = split_types_respecting_braces(example_args)
-    types = [
-        occursin("::", p) ? split(split(p, "::"; limit = 2)[2], "="; limit = 2)[1] : "Any" for p in raw_types if !isempty(strip(p))
-    ]
-    sigstring = join(types, ", ")
+    function_name = "$(parentmodule(f)).$(nameof(f))"
+    method_lines = String[]
+
+    for (index, method) in enumerate(methods(f))
+        method_text = strip(split(string(method), '@')[1])
+
+        method_signature = Base.unwrap_unionall(method.sig)
+        argument_types = method_signature.parameters[2:end]
+
+        signature_expression = matlab_signature_expression(argument_types)
+
+        call_expression = string(function_name,"(..., ", signature_expression,")")
+
+        push!(
+            method_lines,
+            "   [$index] $method_text => $(copy_call_link(call_expression))",
+        )
+    end
+
     return """
         Ambiguous function call: The function $(f) has multiple methods.
         Please specify the desired method signature to disambiguate your call.
-
         Available methods:
-        $(join(numbered, "\n"))
-
-        Example usage:
-        CallMeta(\"$(example_name)\", \"$(sigstring)\")
+        $(join(method_lines, "\n"))
         """
 end
 

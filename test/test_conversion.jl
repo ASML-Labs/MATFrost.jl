@@ -22,7 +22,7 @@ end
 
 module TestTypedConversionExtension
 
-import MATFrost: convert_from_matlab_extension
+import MATFrost: convert_from_matlab
 
 using MATFrost._Types
 
@@ -30,7 +30,7 @@ struct LabeledValue
     label::String
 end
 
-convert_from_matlab_extension(::Type{LabeledValue}, marr::MATFrostArrayString) =
+convert_from_matlab(::Type{LabeledValue}, marr::MATFrostArrayString) =
     LabeledValue(marr.values[1])
 
 end
