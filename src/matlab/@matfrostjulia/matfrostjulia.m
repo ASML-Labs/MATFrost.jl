@@ -20,6 +20,7 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
         id                (1,1) uint64
         mh                     matlab.mex.MexHost
         project           (1,1) string
+        sysimage          (1,1) string = ""
         host              (1,1) string
         port              (1,1) int64
         timeout           (1,1) uint64
@@ -39,6 +40,8 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                     % This will overrule the version specification.
                     % NOTE: Only needed if version is not specified.
                 argstruct.project     (1,1) string = ""
+                argstruct.sysimage    (1,1) string {mustBeFile}
+                    % Custom system image, passed as --sysimage.
 
                 argstruct.timeout     (1,1) uint64 = 24*60*60*1000 % 1day
             end
@@ -50,6 +53,11 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
 
             obj.timeout = argstruct.timeout;
             obj.project = argstruct.project;
+
+            if isfield(argstruct, 'sysimage')
+                [~, sysimage_info] = fileattrib(argstruct.sysimage);
+                obj.sysimage = string(sysimage_info.Name);
+            end
 
             if isfield(argstruct, 'bindir')
                 if ispc()
@@ -82,6 +90,12 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                 project_cmdline = "";
             end
 
+            if strlength(obj.sysimage) > 0
+                sysimage_cmdline = sprintf("--sysimage=""%s""", obj.sysimage);
+            else
+                sysimage_cmdline = "";
+            end
+
             bootstrap = fullfile(fileparts(mfilename("fullpath")), "bootstrap.jl");
 
             createstruct = struct;
@@ -90,7 +104,7 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
             createstruct.host = obj.host;
             createstruct.port = obj.port;
             createstruct.timeout = obj.timeout;
-            createstruct.cmdline = sprintf("%s %s ""%s""", obj.julia, project_cmdline, bootstrap);
+            createstruct.cmdline = sprintf("%s %s %s ""%s""", obj.julia, sysimage_cmdline, project_cmdline, bootstrap);
             
             if obj.USE_MEXHOST
                 obj.mh.feval("matfrostjuliacall", createstruct);
