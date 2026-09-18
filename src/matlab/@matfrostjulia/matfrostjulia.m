@@ -142,23 +142,11 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                 varargout{1} = jlo.value;
             elseif jlo.status =="ERROR"
                 v = jlo.value;
-
                 if isfield(v, "id") && isfield(v,"message")
-                    switch v.id
-                        case "matfrostjulia:call:multipleMethodDefinitions"
-                            lines = splitlines(string(v.message));
-                            idx = find(startsWith(lines, ["Example usage:","Available methods:"]));
-                            if ~isempty(idx)
-                                pattern = '::(\w+(?:\{[^}]*\})?)';
-                                tokens = regexp(lines(idx(1)+1), pattern, 'tokens');
-                                % Format for the new error message
-                                lines(idx(2)+1) = sprintf("%s( ..., signature=[%s]) \n \t to uniquely identify [1] as the targeted method", callmeta.fully_qualified_name, strjoin("""" + tokens + """", ", "));
-                                v.message = join(lines(1:idx(2)+2),newline);
-                            end
-                    end
+                    v = enhanceErrorMessage(v);
                     throw(MException(v.id, "%s", v.message));
                 else
-                    throw(MException("matfrostjulia:error", v))
+                    throw(MException( "matfrostjulia:error", "%s", string(v)));
                 end
             end
 
@@ -203,4 +191,84 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
             n=1;
         end
     end
+end
+function v = enhanceErrorMessage(v)
+
+    switch string(v.id)
+        case "matfrostjulia:call:multipleMethodDefinitions"
+            v.message = enhanceMultipleMethodDefinitionsMessage( ...
+                v.message);
+    end
+
+end
+
+
+function message = enhanceMultipleMethodDefinitionsMessage(message)
+
+    lines = splitlines(string(message));
+
+    availableIdx = find( ...
+        startsWith(strtrim(lines), "Available methods:"), ...
+        1);
+
+    if isempty(availableIdx)
+        return
+    end
+
+    methodLines = strings(0, 1);
+    firstMethodTypes = strings(0, 1);
+
+    for k = availableIdx + 1:numel(lines)
+        line = strtrim(lines(k));
+
+        if startsWith(line, "[")
+            methodLines(end + 1, 1) = lines(k);
+
+            if isempty(firstMethodTypes)
+                tokens = regexp( ...
+                    line, ...
+                    '::([^,\)\s]+(?:\{[^}]*\})?)', ...
+                    'tokens');
+
+                if ~isempty(tokens)
+                    firstMethodTypes = strings(numel(tokens), 1);
+
+                    for tokenIdx = 1:numel(tokens)
+                        firstMethodTypes(tokenIdx) = ...
+                            string(tokens{tokenIdx}{1});
+                    end
+                end
+            end
+
+        elseif ~isempty(methodLines)
+            break
+        end
+    end
+
+    if isempty(methodLines) || isempty(firstMethodTypes)
+        return
+    end
+
+    if isscalar(firstMethodTypes)
+        signatureHint = sprintf( ...
+            'signature="%s"', ...
+            firstMethodTypes(1));
+    else
+        quotedTypes = """" + firstMethodTypes + """";
+
+        signatureHint = sprintf( ...
+            'signature=[%s]', ...
+            strjoin(quotedTypes, ", "));
+    end
+
+    message = join( ...
+        [ ...
+            lines(1:availableIdx); ...
+            methodLines; ...
+            ""; ...
+            "Hint:"; ...
+            "  " + signatureHint ...
+        ], ...
+        newline);
+
 end

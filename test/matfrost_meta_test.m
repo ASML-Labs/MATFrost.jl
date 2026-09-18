@@ -32,7 +32,24 @@ classdef matfrost_meta_test < matfrost_abstract_test
             tc.verifyError(@() tc.mjl.MATFrostTest.compute_measure(pop, signature="MATFrostTest.CompositeMeasure"), ...
                 'matfrostjulia:conversion:missingFields');
         end
+        function multiple_methods_error_contains_signature_hint(tc)
+            try
+                tc.mjl.MATFrostTest.compute_measure( ...
+                    struct(name="A", population=int64(100)));
+                tc.assertFail( ...
+                    "Expected an ambiguous-method error.");
+            catch exception
+                tc.verifyEqual( ...
+                    exception.identifier, ...
+                    'matfrostjulia:call:multipleMethodDefinitions');
+                tc.verifySubstring( ...
+                    exception.message, ...
+                    'signature="MATFrostTest.PopulationMeasure"');
+            end
+        end
+
     end
+
 
     methods(Test, TestTags="basic function call")
         function no_signature_provided(tc)
