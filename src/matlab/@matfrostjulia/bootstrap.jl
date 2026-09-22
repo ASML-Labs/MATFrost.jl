@@ -14,7 +14,7 @@ catch _
     try
         using MATFrost
     catch _
-        Pkg.add(name="MATFrost", version=MATFROST_MATLAB_VERSION)
+        Pkg.add(name = "MATFrost", version = MATFROST_MATLAB_VERSION)
         using MATFrost
     end
 end
@@ -29,12 +29,21 @@ let
         VersionNumber(project["version"])
     end
 
-    if MATFROST_MATLAB_VERSION > MATFROST_JULIA_VERSION
+    if MATFROST_MATLAB_VERSION == v"0.0.0"
+        # Development/source-tree fallback:
+        # This file is patched during release/install with the MATLAB binding
+        # version. Keep source checkouts usable by skipping strict mismatch
+        # checks when the sentinel value is still present.
+    elseif MATFROST_MATLAB_VERSION > MATFROST_JULIA_VERSION
         import Pkg
-        Pkg.add(name="MATFrost", version=MATFROST_MATLAB_VERSION)
-        error("MATFrost version mismatch.\n MATFrost-Julia has been updated. Please restart matfrostjulia \n    MATLAB-MATFrost: $(MATFROST_MATLAB_VERSION)\n    Julia-MATFrost: $(MATFROST_JULIA_VERSION)")
+        Pkg.add(name = "MATFrost", version = MATFROST_MATLAB_VERSION)
+        error(
+            "MATFrost version mismatch.\n MATFrost-Julia has been updated. Please restart matfrostjulia \n    MATLAB-MATFrost: $(MATFROST_MATLAB_VERSION)\n    Julia-MATFrost: $(MATFROST_JULIA_VERSION)",
+        )
     elseif MATFROST_MATLAB_VERSION < MATFROST_JULIA_VERSION
-        error("MATFrost-MATLAB bindings are outdated. Please reinstall using `MATFrost.install()`\n    MATLAB-MATFrost: $(MATFROST_MATLAB_VERSION)\n    Julia-MATFrost: $(MATFROST_JULIA_VERSION)\n\n\n\n")
+        error(
+            "MATFrost-MATLAB bindings are outdated. Please reinstall using `MATFrost.install()`\n    MATLAB-MATFrost: $(MATFROST_MATLAB_VERSION)\n    Julia-MATFrost: $(MATFROST_JULIA_VERSION)\n\n\n\n",
+        )
     end
 
 

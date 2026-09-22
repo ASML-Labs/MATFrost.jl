@@ -2,3 +2,13 @@
 JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
 Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+Geometry = "2fcba198-df7c-4c9e-ae5d-289e03a66e9b"
+MATFrost = "406cae98-a0f7-4766-b83f-8510a556e0e7"
+MATFrostTest = "13500e4e-9d63-4f78-ab54-2a107fc91083"
+MATFrostGeometryExt = "7ecbcfdc-3d01-4b25-aa0a-621b7438b95f"
+
+[sources]
+MATFrost = {path = ".."}
+MATFrostTest = {path = "MATFrostTest"}
+MATFrostGeometryExt = {path = "MATFrostGeometryExt"}
+Geometry = {path = "Geometry"}
