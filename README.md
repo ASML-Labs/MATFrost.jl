@@ -4,10 +4,6 @@
 ![Linux](https://img.shields.io/badge/Linux-FCC624)
 [![Tests](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests.yml/badge.svg?event=schedule)](https://github.com/ASML-Labs/MATFrost.jl/actions/workflows/run-tests.yml)
 
-
-> [!IMPORTANT]  
-> Linux supported as v0.6.0
-
 # MATFrost.jl - Embedding Julia in MATLAB
 
 MATFrost enables quick and easy embedding of Julia inside MATLAB. It is like Bifrost but between Julia and MATLAB
