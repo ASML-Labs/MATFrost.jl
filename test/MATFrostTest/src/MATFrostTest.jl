@@ -392,4 +392,6 @@ end
 
 
 
+sysimage_path() = unsafe_string(Base.JLOptions().image_file)
+
 end # module MATFrostTest

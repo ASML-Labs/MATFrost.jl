@@ -61,6 +61,32 @@ jl = matfrostjulia(project="<projectdir>");
    % acts like: `julia --project=<projectdir> ...`
 ```
 
+## Use a custom system image (faster startup)
+
+Heavy packages can be compiled ahead of time into a Julia system image with
+[PackageCompiler.jl](https://github.com/JuliaLang/PackageCompiler.jl), so no
+compilation happens when the MATFrost server starts:
+
+```julia
+# Julia (run inside the environment you pass as `project`)
+using PackageCompiler
+create_sysimage(["MATFrost", "MyPackage"];
+                sysimage_path = "matfrost_sys.dll",          # .so on Linux
+                precompile_execution_file = "warmup.jl")     # optional: typical calls
+```
+
+```matlab
+% MATLAB
+jl = matfrostjulia(version="1.12", project="<projectdir>", sysimage="matfrost_sys.dll");
+   % acts like: `julia --sysimage=<sysimage> --project=<projectdir> ...`
+```
+
+Notes:
+
+- The system image only works with the exact Julia version that built it; select that version with `version` or `bindir`.
+- Include `MATFrost` in the system image and keep it in the `project` environment, otherwise it is loaded (and compiled) the normal way.
+- The MATFrost version in the system image must match the installed MATLAB bindings.
+
 ## Calling Julia functions
 Julia functions are called according to:
 ```matlab
