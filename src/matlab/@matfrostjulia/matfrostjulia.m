@@ -70,6 +70,12 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
 
     end
 
+    methods (Static)
+        function message = enhanceMultipleMethodDefinitionsMessage(message)
+            message = localEnhanceMultipleMethodDefinitionsMessage(message);
+        end
+    end
+
     methods (Access=private)
 
         function obj = start_server(obj)
@@ -196,14 +202,14 @@ function v = enhanceErrorMessage(v)
 
     switch string(v.id)
         case "matfrostjulia:call:multipleMethodDefinitions"
-            v.message = enhanceMultipleMethodDefinitionsMessage( ...
+            v.message = localEnhanceMultipleMethodDefinitionsMessage( ...
                 v.message);
     end
 
 end
 
 
-function message = enhanceMultipleMethodDefinitionsMessage(message)
+function message = localEnhanceMultipleMethodDefinitionsMessage(message)
 
     lines = splitlines(string(message));
 
