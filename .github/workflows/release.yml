@@ -112,6 +112,8 @@ jobs:
     needs: [version, test-mex-binaries-matlab-compatability]
     runs-on: ubuntu-latest
     name: Create the release
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v7
