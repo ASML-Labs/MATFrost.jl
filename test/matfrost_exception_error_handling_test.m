@@ -1,6 +1,7 @@
-classdef test_error_handling <  matlab.unittest.TestCase
+classdef matfrost_exception_error_handling_test < matfrost_abstract_test
+
     methods (Test)
-        function test_enhance_error_message(tc)
+        function enhance_multiple_method_definitions_message_hint(tc)
 
             msg = [
                 "Ambiguous function call"
@@ -10,8 +11,8 @@ classdef test_error_handling <  matlab.unittest.TestCase
                 "[2] compute_measure(m::MATFrostTest.CompositeMeasure)"
             ];
 
-            actual = enhanceMultipleMethodDefinitionsMessage( ...
-                join(msg,newline));
+            actual = matfrostjulia.enhanceMultipleMethodDefinitionsMessage( ...
+                join(msg, newline));
 
             tc.verifyThat(actual, ...
                 matlab.unittest.constraints.ContainsSubstring("Hint:"));

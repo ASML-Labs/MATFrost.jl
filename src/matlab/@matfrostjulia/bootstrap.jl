@@ -29,7 +29,12 @@ let
         VersionNumber(project["version"])
     end
 
-    if MATFROST_MATLAB_VERSION > MATFROST_JULIA_VERSION
+    if MATFROST_MATLAB_VERSION == v"0.0.0"
+        # Development/source-tree fallback:
+        # This file is patched during release/install with the MATLAB binding
+        # version. Keep source checkouts usable by skipping strict mismatch
+        # checks when the sentinel value is still present.
+    elseif MATFROST_MATLAB_VERSION > MATFROST_JULIA_VERSION
         import Pkg
         Pkg.add(name = "MATFrost", version = MATFROST_MATLAB_VERSION)
         error(
