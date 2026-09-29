@@ -41,7 +41,7 @@ using MATFrostTest
     @test MATFrostTest.logical_f64_multiplication(true, 2.5) == 2.5
     @test MATFrostTest.logical_f64_multiplication(false, 2.5) == 0.0
 
-   end
+end
 
 @testset "Multi-Dispatch Tests" begin
     # Test multiple_method_definitions
@@ -51,7 +51,7 @@ using MATFrostTest
     # Test compute_measure multi-dispatch
     p = MATFrostTest.SimplePopulationType("C", 150)
     cnt = MATFrostTest.CompositeNumberType(4, Int32(5), UInt8(6))
-    @test MATFrostTest.compute_measure(p) == 150.0  
+    @test MATFrostTest.compute_measure(p) == 150.0
     @test MATFrostTest.compute_measure(cnt) == 15.0
 end
 

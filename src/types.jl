@@ -1,11 +1,17 @@
 module _Types
 
-export MATFrostArrayAbstract, MATFrostArrayEmpty, MATFrostArrayPrimitive, MATFrostArrayString, MATFrostArrayCell, MATFrostArrayStruct, MATFrostException, MATFrostConversionException
+export MATFrostArrayAbstract,
+    MATFrostArrayEmpty,
+    MATFrostArrayPrimitive,
+    MATFrostArrayString,
+    MATFrostArrayCell,
+    MATFrostArrayStruct,
+    MATFrostException,
+    MATFrostConversionException
 
 abstract type MATFrostArrayAbstract end
 
-struct MATFrostArrayEmpty <: MATFrostArrayAbstract
-end
+struct MATFrostArrayEmpty <: MATFrostArrayAbstract end
 
 struct MATFrostArrayPrimitive{T<:Number} <: MATFrostArrayAbstract
     dims::Vector{Int64}
@@ -28,7 +34,7 @@ struct MATFrostArrayStruct <: MATFrostArrayAbstract
     values::Vector{MATFrostArrayAbstract}
 end
 
-struct MATFrostException <: Exception 
+struct MATFrostException <: Exception
     id::String
     message::String
 end

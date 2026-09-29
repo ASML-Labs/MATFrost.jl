@@ -2,21 +2,21 @@ using Test
 using MATFrost
 
 @testset "MATFrost._Server.CallMeta" begin
-        name = "MATFrost._Convert.convert_matfrostarray"
-        callMeta = MATFrost._Server.CallMeta(name)
-        @test callMeta.fully_qualified_name == name
-        @test callMeta.signature == String[]
+    name = "MATFrost._Convert.convert_matfrostarray"
+    callMeta = MATFrost._Server.CallMeta(name)
+    @test callMeta.fully_qualified_name == name
+    @test callMeta.signature == String[]
 
-        signature = "(:Type{String}, marr::MATFrost._Types.MATFrostArrayAbstract)"
-        callMeta = MATFrost._Server.CallMeta(name,signature)
-        @test callMeta.fully_qualified_name == name
-        @test callMeta.signature == [signature]
+    signature = "(:Type{String}, marr::MATFrost._Types.MATFrostArrayAbstract)"
+    callMeta = MATFrost._Server.CallMeta(name, signature)
+    @test callMeta.fully_qualified_name == name
+    @test callMeta.signature == [signature]
 
 end
 @testset "MATFrost._Server.getMethod" begin
     # Test: function with one method
     callMeta = MATFrost._Server.CallMeta("MATFrost._Server.getMethod")
-    (f,m) = MATFrost._Server.getMethod(callMeta)
+    (f, m) = MATFrost._Server.getMethod(callMeta)
     @test isa(f, Function)
     @test m == Tuple{MATFrost._Server.CallMeta}
 
@@ -33,16 +33,22 @@ end
     @test err.id == "matfrostjulia:call:multipleMethodDefinitions"
 
     # Test: lower level function with many methods, specific signature
-    callMeta = MATFrost._Server.CallMeta("MATFrost._ConvertToJulia.convert_matfrostarray",["Type{String}", "MATFrost._Types.MATFrostArrayAbstract"])
-    (f,m) = MATFrost._Server.getMethod(callMeta)
+    callMeta = MATFrost._Server.CallMeta(
+        "MATFrost._ConvertToJulia.convert_matfrostarray",
+        ["Type{String}", "MATFrost._Types.MATFrostArrayAbstract"],
+    )
+    (f, m) = MATFrost._Server.getMethod(callMeta)
     @test isa(f, Function)
-    @test m==Tuple{Type{String}, MATFrost._Types.MATFrostArrayAbstract}
+    @test m==Tuple{Type{String},MATFrost._Types.MATFrostArrayAbstract}
 
     # Test: signature with comma in type name
-    callMeta = MATFrost._Server.CallMeta("MATFrost._ConvertToJulia.convert_matfrostarray","Type{String}, Tuple{Int, String}")
-    (f,m) = MATFrost._Server.getMethod(callMeta)
+    callMeta = MATFrost._Server.CallMeta(
+        "MATFrost._ConvertToJulia.convert_matfrostarray",
+        "Type{String}, Tuple{Int, String}",
+    )
+    (f, m) = MATFrost._Server.getMethod(callMeta)
     @test isa(f, Function)
-    @test m==Tuple{Type{String}, Tuple{Int, String}}
+    @test m==Tuple{Type{String},Tuple{Int,String}}
 
     # Test: non-existing function should throw error
     callMeta = MATFrost._Server.CallMeta("MATFrost.nonExistentFunction")
@@ -50,7 +56,8 @@ end
     try
         MATFrost._Server.getMethod(callMeta)
     catch e
-        @test e.message == "Function not found exception:\nFunction MATFrost.nonExistentFunction \n"
+        @test e.message ==
+              "Function not found exception:\nFunction MATFrost.nonExistentFunction \n"
         @test e.id == "matfrostjulia:call:functionNotFound"
     end
 end
@@ -69,13 +76,18 @@ end
 
     # Test 4: Generic types with nested braces
     result = MATFrost._Server._load_and_eval_type("Tuple{Int, String}")
-    @test result == Tuple{Int, String}
+    @test result == Tuple{Int,String}
 
     # Test 5: Nested type with non-leading package qualification
-    result = MATFrost._Server._load_and_eval_type("Vector{MATFrost._Types.MATFrostArrayAbstract}")
+    result = MATFrost._Server._load_and_eval_type(
+        "Vector{MATFrost._Types.MATFrostArrayAbstract}",
+    )
     @test result == Vector{MATFrost._Types.MATFrostArrayAbstract}
 
     # Test 6: Non-existent package should throw
-    callMeta = MATFrost._Server.CallMeta("MATFrost._ConvertToJulia.convert_matfrostarray", "NonExistentPkg.SomeType")
+    callMeta = MATFrost._Server.CallMeta(
+        "MATFrost._ConvertToJulia.convert_matfrostarray",
+        "NonExistentPkg.SomeType",
+    )
     @test_throws MATFrost._Types.MATFrostException MATFrost._Server.getMethod(callMeta)
 end

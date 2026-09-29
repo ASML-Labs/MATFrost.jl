@@ -6,7 +6,7 @@
 
 # MATFrost.jl - Embedding Julia in MATLAB
 
-MATFrost enables quick and easy embedding of Julia inside MATLAB. It is like Bifrost but between Julia and MATLAB
+MATFrost enables quick and easy embedding of Julia inside MATLAB.
 
 Characteristics:
 1. Interface defined on Julia side.
@@ -16,8 +16,9 @@ Characteristics:
 # Quick start 🚀
 ```matlab
 % MATLAB
-system('julia -e "import Pkg ; Pkg.add(ARGS[1]) ; using MATFrost ; MATFrost.install()" "MATFrost"');
-   % Install MATLAB bindings. This will install @matfrostjulia inside current working directory.
+ system('julia --project=. -e "using MATFrost ; MATFrost.install()"');
+    % Install MATLAB bindings from a local MATFrost checkout.
+    % This will install @matfrostjulia inside the current working directory.
 
 jl = matfrostjulia(); 
    % Spawn a matfrostjulia server running JULIA
@@ -51,9 +52,10 @@ Specify Julia environment. If not defined will use default startup environment.
 https://pkgdocs.julialang.org/v1/environments/
 
 ```matlab
-   jl = matfrostjulia(project="<projectdir>");    
-      % Directory containing Julia environment.
-      % acts like: `julia --project=<projectdir> ...`
+% MATLAB
+jl = matfrostjulia(project="<projectdir>");    
+   % Directory containing Julia environment.
+   % acts like: `julia --project=<projectdir> ...`
 ```
 
 ## Use a custom system image (faster startup)
@@ -99,7 +101,7 @@ Package1.function1(arg1, arg2)
 
 Additionally nested modules are supported:
 ```matlab
-%MATLAB
+% MATLAB
 jl.Package1.NestedModule1.function1(arg1, arg2)    
 ```
 
@@ -110,6 +112,7 @@ MATFrost now supports calling overloaded Julia functions by specifying the targe
 Suppose you define a custom `Point` type and overload the `Base.+` operator in Julia:
 
 ```julia
+# Julia
 module MyGeometry
 
 struct Point
@@ -127,14 +130,14 @@ You can then use MATFrost from MATLAB to create and add `Point` objects, specify
 ```matlab
 % MATLAB
 % Create two Julia Point objects
-p1 = tc.mjl.MATFrostTest.Point(int64(1), int64(2),signature=["Int64","Int64"]);
-p2 = tc.mjl.MATFrostTest.Point(int64(3), int64(4),signature=["Int64","Int64"]);
+p1 = jl.MATFrostTest.Point(int64(1), int64(2),signature=["Int64","Int64"]);
+p2 = jl.MATFrostTest.Point(int64(3), int64(4),signature=["Int64","Int64"]);
 
 % Call the overloaded Base.+ method for Point
-res = tc.mjl.Base.('+')(p1, p2, signature=["MATFrostTest.Point", "MATFrostTest.Point"]);  % returns Point(4, 6)
+res = jl.Base.('+')(p1, p2, signature=["MATFrostTest.Point", "MATFrostTest.Point"]);  % returns Point(4, 6)
 ```
 
-Here, `signature=["MyGeometry.Point", "MyGeometry.Point"]` ensures the correct method for adding two `Point` objects is called.
+Here, `signature=["MATFrostTest.Point", "MATFrostTest.Point"]` ensures the correct method for adding two `Point` objects is called.
 
 **Notes:**
 - Use a string for a single type, or a cell/string array for multiple types.
@@ -142,10 +145,48 @@ Here, `signature=["MyGeometry.Point", "MyGeometry.Point"]` ensures the correct m
 
 This feature allows you to disambiguate overloaded Julia functions directly from MATLAB.
 
+## Keyword arguments
+
+MATFrost supports calling Julia functions that accept keyword arguments, using Julia-like inline
+`name=value` syntax from MATLAB.
+
+Suppose you define a Julia function with a positional argument and two keyword arguments of
+different types:
+
+```julia
+# Julia
+module MyGeometry
+
+annotate(value::Float64; label::String="", precision::Int64=2) =
+    string(round(value; digits=precision), " ", label)
+
+end
+```
+
+Call it from MATLAB like this:
+
+```matlab
+% MATLAB
+res = jl.MyGeometry.annotate(3.14159, label="pi", precision=int64(3), signature=["Float64","String","Int64"]);
+% res == "3.142 pi"
+```
+
+**Notes:**
+- Positional arguments must come before keyword arguments in the call.
+- Any call that includes keyword arguments **requires** an explicit `signature`. `signature` must
+  list positional types first, followed by keyword types, in the order the keyword arguments were
+  passed at the call site: `signature=[Tpos1,...,TposN,Tkw1,...,TkwM]`. In the example above,
+  `value` is positional (`Float64`), and `label`/`precision` are keywords passed in that order
+  (`String`, `Int64`), so `signature=["Float64","String","Int64"]`.
+- If keyword arguments are used without a `signature`, MATFrost throws
+  `matfrostjulia:missingKwargsSignature` rather than guessing types.
+- Calls without any keyword arguments are unaffected: `signature` remains optional there, exactly
+  as described above for disambiguating overloaded methods.
+
 ## Type mapping
 
-### Scalars and Arrays conversions
-MATLAB doesn't have the same flexibility of expressing scalars and arrays as Julia. The following conversions scheme has been implemented. This scheme applies to all including primitives, structs, named tuples, tuples.
+### Scalar and array conversions
+MATLAB and Julia represent scalars and arrays differently. The following conversion scheme is implemented. It applies to primitives, structs, named tuples, and tuples.
 
 | MATLAB                               |      Julia           |
 |--------------------------------------|----------------------|
@@ -211,7 +252,7 @@ cities = [struct(name="Amsterdam", population=int64(920)); ...
 
 country = struct(cities=cities, area=321.0)
 
-mjl.Population.total_population(cities) % 920+565+246 = 1731
+mjl.Population.total_population(country) % 920+565+246 = 1731
 ```
 
 ### Tuples
@@ -231,4 +272,125 @@ end
 mjl.TupleExample.tuple_sum({3.0; 4.0; 5.0; 6.0}) % 18.0
 ```
 
+## Custom Type Conversion
 
+MATFrost provides conversion extension points that allow external packages to
+participate in the MATLAB ↔ Julia conversion process:
+
+```julia
+# Julia
+convert_from_matlab(value)
+convert_from_matlab(::Type{TargetType}, value)
+
+convert_to_matlab(value)
+```
+
+By default, both functions return the input unchanged:
+
+```julia
+# Julia
+convert_from_matlab(value) = value
+convert_to_matlab(value) = value
+```
+
+This ensures full backward compatibility.
+
+### Motivation
+
+MATFrost is responsible for transporting data between MATLAB and Julia.
+However, downstream packages may prefer richer domain-specific Julia types
+instead of the raw values returned by the transport layer.
+
+Without extension points, users must explicitly convert values after every
+call:
+
+```julia
+# Julia
+raw = get_variable(...)
+obj = convert_to_domain_object(raw)
+```
+
+By introducing conversion hooks, domain-specific packages can own their
+conversion logic while MATFrost remains independent of those packages.
+
+### Example
+
+Suppose a geometry package defines:
+
+```julia
+# Julia
+struct Point
+    x::Float64
+    y::Float64
+end
+```
+
+A package may choose to represent points in MATLAB using a simple
+named tuple:
+
+```julia
+# Julia
+(x = 1.0, y = 2.0)
+```
+
+The package can provide a typed inbound conversion rule:
+
+```julia
+# Julia
+import MATFrost: convert_from_matlab
+
+convert_from_matlab(
+    ::Type{Point},
+    value::NamedTuple{(:x, :y)},
+) = Point(value.x, value.y)
+```
+
+Users can then work directly with `Point` objects without MATFrost having any
+knowledge of the geometry package.
+
+### Extending MATFrost
+
+Custom conversions are implemented using standard Julia multiple dispatch:
+
+```julia
+# Julia
+import MATFrost: convert_from_matlab
+
+struct MyJuliaType
+    value
+end
+
+convert_from_matlab(
+    value::Dict
+) = MyJuliaType(value)
+```
+
+Similarly, return values can be converted before being sent back to MATLAB:
+
+```julia
+# Julia
+import MATFrost: convert_to_matlab
+
+convert_to_matlab(
+    value::MyJuliaType
+) = value.value
+```
+
+### Leverage Multiple Dispatch
+
+MATFrost uses standard Julia multiple dispatch for conversion hooks.
+```julia
+# Julia
+convert_from_matlab(value::MyType) = ...
+convert_to_matlab(value::MyType) = ...
+```
+This keeps converter definitions idiomatic, lightweight, and easy to place in package extensions.
+
+### Package Extensions
+
+The conversion API is designed to work naturally with Julia package
+extensions. Packages can define conversion methods in their own extension
+modules without introducing additional dependencies into MATFrost.
+
+As a result, MATFrost remains a generic transport layer while external
+packages own their domain-specific conversion logic.
