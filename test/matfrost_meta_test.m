@@ -49,7 +49,7 @@ classdef matfrost_meta_test < matfrost_abstract_test
         end
 
         function kwargs_missing_signature(tc)
-            tc.verifyError(@() tc.mjl.MATFrostTest.affine_with_kwargs(2.0, scale=3.0, bias=1.0), ...
+            tc.verifyError(@() tc.mjl.MATFrostTest.annotate(3.14159, label="pi", precision=int64(3)), ...
                 "matfrostjulia:missingKwargsSignature");
         end
 
@@ -84,9 +84,10 @@ classdef matfrost_meta_test < matfrost_abstract_test
         end
 
         function kwargs_call(tc)
-            res = tc.mjl.MATFrostTest.affine_with_kwargs(2.0, scale=3.0, bias=1.0, ...
-                signature=["Float64","Float64","Float64"]);
-            tc.verifyEqual(res, 7.0);
+            % Exercises a signature mixing positional and keyword types, per the README example.
+            res = tc.mjl.MATFrostTest.annotate(3.14159, label="pi", precision=int64(3), ...
+                signature=["Float64","String","Int64"]);
+            tc.verifyEqual(res, "3.142 pi");
         end
     end
 

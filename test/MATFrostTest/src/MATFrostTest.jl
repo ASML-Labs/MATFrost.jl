@@ -146,7 +146,8 @@ repeat_string(s::String, num::Int64) = reduce(*, (s for _ = 1:num))
 
 concat_strings(s::Vector{String}) = reduce(*, s)
 
-affine_with_kwargs(x::Float64; scale::Float64=1.0, bias::Float64=0.0) = x * scale + bias
+annotate(value::Float64; label::String="", precision::Int64=2) =
+    string(round(value; digits=precision), " ", label)
 
 
 double_scalar_f32(v::Float32) = v+v

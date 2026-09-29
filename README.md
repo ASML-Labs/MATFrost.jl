@@ -147,18 +147,41 @@ This feature allows you to disambiguate overloaded Julia functions directly from
 
 ## Keyword arguments
 
-MATFrost supports calling Julia keyword arguments from MATLAB using Julia-like inline syntax (`name=value`):
+MATFrost supports calling Julia functions that accept keyword arguments, using Julia-like inline
+`name=value` syntax from MATLAB.
+
+Suppose you define a Julia function with a positional argument and two keyword arguments of
+different types:
+
+```julia
+# Julia
+module MyGeometry
+
+annotate(value::Float64; label::String="", precision::Int64=2) =
+    string(round(value; digits=precision), " ", label)
+
+end
+```
+
+Call it from MATLAB like this:
 
 ```matlab
 % MATLAB
-res = jl.MATFrostTest.affine_with_kwargs(2.0, scale=3.0, bias=1.0, signature=["Float64","Float64","Float64"]);
+res = jl.MyGeometry.annotate(3.14159, label="pi", precision=int64(3), signature=["Float64","String","Int64"]);
+% res == "3.142 pi"
 ```
 
-Notes:
-- Positional arguments must come before keyword arguments.
-- Calls with keyword arguments require an explicit `signature`, covering both positional and
-  keyword argument types, in that order: `signature=[Tpos1,...,TposN,Tkw1,...,TkwM]`. The keyword
-  types must be listed in the same order the keyword arguments were passed at the call site.
+**Notes:**
+- Positional arguments must come before keyword arguments in the call.
+- Any call that includes keyword arguments **requires** an explicit `signature`. `signature` must
+  list positional types first, followed by keyword types, in the order the keyword arguments were
+  passed at the call site: `signature=[Tpos1,...,TposN,Tkw1,...,TkwM]`. In the example above,
+  `value` is positional (`Float64`), and `label`/`precision` are keywords passed in that order
+  (`String`, `Int64`), so `signature=["Float64","String","Int64"]`.
+- If keyword arguments are used without a `signature`, MATFrost throws
+  `matfrostjulia:missingKwargsSignature` rather than guessing types.
+- Calls without any keyword arguments are unaffected: `signature` remains optional there, exactly
+  as described above for disambiguating overloaded methods.
 
 ## Type mapping
 
