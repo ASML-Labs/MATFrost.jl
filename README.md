@@ -149,28 +149,20 @@ Here, `signature=["MATFrostTest.Point", "MATFrostTest.Point"]` ensures the corre
 
 This feature allows you to disambiguate overloaded Julia functions directly from MATLAB.
 
-## Keyword arguments (`kwargs`)
+## Keyword arguments
 
-MATFrost supports calling Julia keyword arguments from MATLAB.
-
-Preferred (Julia-like) syntax:
+MATFrost supports calling Julia keyword arguments from MATLAB using Julia-like inline syntax (`name=value`):
 
 ```matlab
 % MATLAB
-res = jl.MATFrostTest.affine_with_kwargs(2.0, scale=3.0, bias=1.0, signature="Float64");
-```
-
-Alternative explicit object syntax:
-
-```matlab
-% MATLAB
-kw = jl.kwargs("scale", 3.0, "bias", 1.0);
-res = jl.MATFrostTest.affine_with_kwargs(2.0, kw, signature="Float64");
+res = jl.MATFrostTest.affine_with_kwargs(2.0, scale=3.0, bias=1.0, signature=["Float64","Float64","Float64"]);
 ```
 
 Notes:
 - Positional arguments must come before keyword arguments.
-- If a call is ambiguous because positional values look like keyword names, use `jl.kwargs(...)` explicitly.
+- Calls with keyword arguments require an explicit `signature`, covering both positional and
+  keyword argument types, in that order: `signature=[Tpos1,...,TposN,Tkw1,...,TkwM]`. The keyword
+  types must be listed in the same order the keyword arguments were passed at the call site.
 
 ## Type mapping
 

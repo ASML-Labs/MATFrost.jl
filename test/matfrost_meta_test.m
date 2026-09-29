@@ -48,17 +48,9 @@ classdef matfrost_meta_test < matfrost_abstract_test
             end
         end
 
-        function kwargs_invalid_pairs(tc)
-            tc.verifyError(@() tc.mjl.kwargs("scale"), "Kwargs:InvalidInput");
-        end
-
-        function kwargs_invalid_name_type(tc)
-            tc.verifyError(@() tc.mjl.kwargs(int64(1), 3.0), "Kwargs:InvalidName");
-        end
-
-        function kwargs_invalid_position(tc)
-            tc.verifyError(@() tc.mjl.MATFrostTest.affine_with_kwargs(2.0, tc.mjl.kwargs("scale", 3.0), 11.0, signature="Float64"), ...
-                "matfrostjulia:invalidKwargsPosition");
+        function kwargs_missing_signature(tc)
+            tc.verifyError(@() tc.mjl.MATFrostTest.affine_with_kwargs(2.0, scale=3.0, bias=1.0), ...
+                "matfrostjulia:missingKwargsSignature");
         end
 
     end
@@ -92,12 +84,8 @@ classdef matfrost_meta_test < matfrost_abstract_test
         end
 
         function kwargs_call(tc)
-            res = tc.mjl.MATFrostTest.affine_with_kwargs(2.0, scale=3.0, bias=1.0, signature="Float64");
-            tc.verifyEqual(res, 7.0);
-        end
-
-        function kwargs_call_no_signature(tc)
-            res = tc.mjl.MATFrostTest.affine_with_kwargs(2.0, scale=3.0, bias=1.0);
+            res = tc.mjl.MATFrostTest.affine_with_kwargs(2.0, scale=3.0, bias=1.0, ...
+                signature=["Float64","Float64","Float64"]);
             tc.verifyEqual(res, 7.0);
         end
     end

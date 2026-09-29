@@ -143,34 +143,17 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
             end
             fully_qualified_name_arr = arrayfun(@(in) string(in.Name), indexOp(1:end-1));
 
-            % Intercept mjl.kwargs(...) and construct a kwargs object locally
-            % so users never need the bare kwargs class on their MATLAB path.
-            if isequal(fully_qualified_name_arr, "kwargs")
-                varargout{1} = kwargs(indexOp(end).Indices{:});
-                return;
-            end
-
             % Remove any name-value pair for 'signature' from the call-site indices so
             % that parseArguments only sees the real positional arguments.
-            [arguments, signature, kwargs_inline] = parseArguments( indexOp(end).Indices{:} );
-
-            % Separate explicit kwargs objects from positional arguments (backward compat).
-            kwidx = cellfun(@(a) isa(a, 'kwargs'), arguments);
-            merged_kwargs = kwargs_inline;          % start from inline name=value kwargs
-            for kwobj_i = find(kwidx)
-                kwobj_fn = fieldnames(arguments{kwobj_i}.Data);
-                for kwobj_fi = 1:numel(kwobj_fn)
-                    merged_kwargs.(kwobj_fn{kwobj_fi}) = arguments{kwobj_i}.Data.(kwobj_fn{kwobj_fi});
-                end
-            end
-            positional_args = arguments(~kwidx);
+            [positional_args, signature, kwsignature, kwargs_struct] = parseArguments( indexOp(end).Indices{:} );
 
             % This is the object being sent to MATLAB 
             callstruct.id = obj.id;
             callstruct.action = "CALL";
             callmeta.fully_qualified_name = join(fully_qualified_name_arr, ".");
             callmeta.signature = signature;
-            callstruct.callstruct = {callmeta; positional_args(:); merged_kwargs};
+            callmeta.kwsignature = kwsignature;
+            callstruct.callstruct = {callmeta; positional_args(:); kwargs_struct};
 
             if obj.USE_MEXHOST
                 jlo = obj.mh.feval("matfrostjuliacall", callstruct);
@@ -190,12 +173,17 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                 end
             end
 
-            function [args, signature, kwargs_struct] = parseArguments(varargin)
+            function [positional, signature, kwsignature, kwargs_struct] = parseArguments(varargin)
                 % Hard boundary: only known params (e.g. 'signature') trigger inputParser.
                 % Inline Julia kwargs are discovered by scanning the positional portion
                 % from the right for trailing (string_key, value) pairs, but only when
                 % a non-string element provides an unambiguous break — preventing
                 % positional string arguments from being misread as kwarg keys.
+                %
+                % When keyword arguments are present, 'signature' must be supplied and
+                % must cover both positional and keyword argument types, in that order:
+                % signature = [Tpos1, ..., TposN, Tkw1, ..., TkwM], where Tkw1..TkwM
+                % correspond, in order, to the keyword arguments as they were parsed.
 
                 p = inputParser; p.KeepUnmatched = true;
                 addParameter(p, 'signature', [], @(x) validateSignature(x));
@@ -214,36 +202,29 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                     post_kw    = p.Unmatched;
                 end
 
-                % Position check for explicit kwargs objects.
-                kwmask = cellfun(@(a) isa(a, 'kwargs'), pre_args);
-                if any(kwmask)
-                    first_kw = find(kwmask, 1, 'first');
-                    last_pos = find(~kwmask, 1, 'last');
-                    if ~isempty(last_pos) && last_pos > first_kw
-                        throw(MException("matfrostjulia:invalidKwargsPosition", ...
-                            "Positional arguments must come before keyword arguments (kwargs)."));
-                    end
-                end
+                % Extract trailing inline kwargs from the positional portion.
+                [positional, inline_kw] = trailingKwargs(pre_args);
 
-                % Extract trailing inline kwargs from the non-object portion.
-                pure_args = pre_args(~kwmask);
-                [positional, inline_kw] = trailingKwargs(pure_args);
-
-                % Return positionals + explicit kwargs objects (dotReference extracts them).
-                args = [positional, pre_args(kwmask)];
-
-                % Validate signature against true positional count.
-                nPositionalArgs = numel(positional);
-                if validateSignature(sig_result, nPositionalArgs)
-                    signature = sig_result;
-                end
-
-                % Merge inline kwargs with any unmatched params after 'signature'.
+                % Merge inline kwargs with any unmatched name-value params after 'signature'.
                 kwargs_struct = inline_kw;
                 fn_kw = fieldnames(post_kw);
                 for fni = 1:numel(fn_kw)
                     kwargs_struct.(fn_kw{fni}) = post_kw.(fn_kw{fni});
                 end
+
+                nPositionalArgs = numel(positional);
+                nKwargs = numel(fieldnames(kwargs_struct));
+
+                validateSignature(sig_result, nPositionalArgs + nKwargs);
+
+                if nKwargs > 0 && isempty(sig_result)
+                    throw(MException("matfrostjulia:missingKwargsSignature", ...
+                        "Calls with keyword arguments require an explicit 'signature' covering " + ...
+                        "both positional and keyword argument types, e.g. signature=[Tpos1,...,TposN,Tkw1,...,TkwM]."));
+                end
+
+                signature   = sig_result(1:nPositionalArgs);
+                kwsignature = sig_result(nPositionalArgs+1:end);
 
                 function [pos, kw] = trailingKwargs(cell_args)
                     % Scan from the right for trailing (string_key, value) pairs.

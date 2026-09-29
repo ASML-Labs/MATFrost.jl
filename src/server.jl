@@ -13,15 +13,16 @@ using Sockets
 struct CallMeta
     fully_qualified_name::String
     signature::Vector{String}
+    kwsignature::Vector{String}
     # Inner constructors
-    function CallMeta(fully_qualified_name::String, signature::Vector{String})
-        new(fully_qualified_name, signature)
+    function CallMeta(fully_qualified_name::String, signature::Vector{String}, kwsignature::Vector{String})
+        new(fully_qualified_name, signature, kwsignature)
     end
-    function CallMeta(fully_qualified_name::String, signature::String)
-        new(fully_qualified_name, [signature])
+    function CallMeta(fully_qualified_name::String, signature::String, kwsignature::Vector{String})
+        new(fully_qualified_name, [signature], kwsignature)
     end
     function CallMeta(fully_qualified_name::String)
-        new(fully_qualified_name, String[])
+        new(fully_qualified_name, String[], String[])
     end
 end
 
@@ -148,7 +149,7 @@ function callsequence_latest_world_age(callmeta, callargs, kwargs_marr)
 
     # Build kwargs dict from the transmitted struct (empty struct = no kwargs).
     kwargs = if kwargs_marr isa MATFrostArrayStruct && !isempty(kwargs_marr.fieldnames)
-        convert_kwargs(kwargs_marr)
+        convert_kwargs(kwargs_marr, kwargtypes(callmeta, kwargs_marr))
     else
         nothing
     end
@@ -166,39 +167,31 @@ function callsequence_latest_world_age(callmeta, callargs, kwargs_marr)
 end
 
 """
-Convert a MATFrostArrayStruct (1 element) to a Dict{Symbol,Any} for use as keyword arguments.
-Each field value is converted using the natural/native Julia type for that MATLAB value.
+Match `callmeta.kwsignature` (kwarg types, in the order MATLAB parsed the kwargs) to the
+transmitted kwarg struct's field order, producing a Dict{Symbol,Type} for typed conversion.
 """
-function convert_kwargs(marr::MATFrostArrayStruct)::Dict{Symbol,Any}
-    d = Dict{Symbol,Any}()
-    nfields = length(marr.fieldnames)
-    for fi in 1:nfields
-        d[marr.fieldnames[fi]] = convert_matfrost_native(marr.values[fi])
+function kwargtypes(callmeta::CallMeta, marr::MATFrostArrayStruct)::Dict{Symbol,Type}
+    if length(callmeta.kwsignature) != length(marr.fieldnames)
+        throw(MATFrostException("matfrostjulia:call:missingKwargsSignature",
+            "Keyword argument count ($(length(marr.fieldnames))) does not match the number " *
+            "of keyword types in 'signature' ($(length(callmeta.kwsignature)))."))
     end
-    d
+    Dict{Symbol,Type}(fn => _load_and_eval_type(strip(t)) for (fn, t) in zip(marr.fieldnames, callmeta.kwsignature))
 end
 
 """
-Best-effort conversion of a MATFrost array to the natural Julia value, without a type target.
-Used for kwargs whose types are not known ahead of time.
+Convert a MATFrostArrayStruct to a Dict{Symbol,Any} for use as keyword arguments.
+Each field is converted using its concrete type from `KwargTypes`, the same typed
+conversion path used for positional arguments.
 """
-function convert_matfrost_native(@nospecialize(marr::MATFrostArrayAbstract))
-    if marr isa MATFrostArrayEmpty
-        return nothing
-    elseif marr isa MATFrostArrayPrimitive
-        return length(marr.values) == 1 ? marr.values[1] : marr.values
-    elseif marr isa MATFrostArrayString
-        return length(marr.values) == 1 ? marr.values[1] : marr.values
-    elseif marr isa MATFrostArrayCell
-        return [convert_matfrost_native(v) for v in marr.values]
-    elseif marr isa MATFrostArrayStruct
-        # Convert to a NamedTuple so field access works naturally on the Julia side.
-        ks = Tuple(marr.fieldnames)
-        vs = Tuple(convert_matfrost_native(marr.values[i]) for i in 1:length(marr.fieldnames))
-        return NamedTuple{ks}(vs)
-    else
-        return marr
+function convert_kwargs(marr::MATFrostArrayStruct, KwargTypes::Dict{Symbol,Type})::Dict{Symbol,Any}
+    d = Dict{Symbol,Any}()
+    nfields = length(marr.fieldnames)
+    for fi in 1:nfields
+        fn = marr.fieldnames[fi]
+        d[fn] = _ConvertToJulia.convert_matfrostarray(KwargTypes[fn], marr.values[fi])
     end
+    d
 end
 
 
