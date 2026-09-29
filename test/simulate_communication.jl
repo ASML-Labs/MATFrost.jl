@@ -42,10 +42,11 @@ using Sockets
             # Create CallMeta struct
             callmeta_struct = MATFrostArrayStruct(
                 Int64[1],  # dims
-                Symbol[:fully_qualified_name, :signature],  # field names
+                Symbol[:fully_qualified_name, :signature, :kwsignature],  # field names
                 MATFrostArrayAbstract[
                     MATFrostArrayString(Int64[1], String["Base.sum"]),
                     MATFrostArrayString(Int64[1], String["Vector{Float64}"]),
+                    MATFrostArrayEmpty(),
                 ],
             )
 

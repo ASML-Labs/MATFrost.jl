@@ -21,6 +21,12 @@ struct CallMeta
     function CallMeta(fully_qualified_name::String, signature::String, kwsignature::Vector{String})
         new(fully_qualified_name, [signature], kwsignature)
     end
+    function CallMeta(fully_qualified_name::String, signature::Vector{String})
+        new(fully_qualified_name, signature, String[])
+    end
+    function CallMeta(fully_qualified_name::String, signature::String)
+        new(fully_qualified_name, [signature], String[])
+    end
     function CallMeta(fully_qualified_name::String)
         new(fully_qualified_name, String[], String[])
     end
