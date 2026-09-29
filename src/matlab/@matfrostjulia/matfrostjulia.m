@@ -223,8 +223,13 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
                         "both positional and keyword argument types, e.g. signature=[Tpos1,...,TposN,Tkw1,...,TkwM]."));
                 end
 
-                signature   = sig_result(1:nPositionalArgs);
-                kwsignature = sig_result(nPositionalArgs+1:end);
+                if isempty(sig_result)
+                    signature   = sig_result;
+                    kwsignature = sig_result;
+                else
+                    signature   = sig_result(1:nPositionalArgs);
+                    kwsignature = sig_result(nPositionalArgs+1:end);
+                end
 
                 function [pos, kw] = trailingKwargs(cell_args)
                     % Scan from the right for trailing (string_key, value) pairs.
