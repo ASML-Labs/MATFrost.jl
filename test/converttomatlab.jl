@@ -1,6 +1,6 @@
 using Test
 using MATFrost._ConvertToMATLAB
-using MATFrost._Types
+using MATFrost
 
 @testset "convert_matfrostarray Vector{NamedTuple}" begin
     v = NamedTuple[(a = 1, b = "x"), (a = 2, b = "y")]

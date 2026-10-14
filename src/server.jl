@@ -3,7 +3,7 @@ module _Server
 import ..MATFrost as MATFrost
 import ..MATFrost._Read: read_matfrostarray!
 import ..MATFrost._Write: write_matfrostarray!
-using ..MATFrost._Types
+using ..MATFrost
 using ..MATFrost._Constants
 using ..MATFrost._ConvertToJulia: _ConvertToJulia
 using ..MATFrost._ConvertToMATLAB: _ConvertToMATLAB

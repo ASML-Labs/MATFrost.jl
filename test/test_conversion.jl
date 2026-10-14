@@ -1,6 +1,6 @@
 using Test
 using MATFrost
-using MATFrost._Types
+using MATFrost
 
 module TestConversionExtension
 
@@ -24,7 +24,7 @@ module TestTypedConversionExtension
 
 import MATFrost: convert_from_matlab
 
-using MATFrost._Types
+using MATFrost
 
 struct LabeledValue
     label::String

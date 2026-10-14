@@ -6,7 +6,7 @@ using Test
 using ..Types
 using ..BufferPrimitives
 using MATFrost._Read2: read_matfrostarray!
-using MATFrost._Types
+using MATFrost
 
 stream = IOBuffer()
 
