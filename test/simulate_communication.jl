@@ -1,6 +1,6 @@
 using Test
 using MATFrost
-using MATFrost._Types
+using MATFrost
 using MATFrost._Read: read_matfrostarray!
 using MATFrost._Write: write_matfrostarray!
 using MATFrost._ConvertToJulia

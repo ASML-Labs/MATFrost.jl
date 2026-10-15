@@ -3,7 +3,7 @@ module _Write
 
 
 using .._Constants
-using .._Types
+using ..MATFrost
 
 
 @noinline function write_matfrost_vector(io::IO, ptr::Ptr, nb)

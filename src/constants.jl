@@ -38,7 +38,7 @@ export LOGICAL,
     SPARSE_DOUBLE,
     SPARSE_COMPLEX_DOUBLE
 
-using .._Types
+using ..MATFrost
 
 const LOGICAL = Int32(0)  # 0x00
 

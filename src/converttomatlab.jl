@@ -1,9 +1,9 @@
 
 module _ConvertToMATLAB
 
-using .._Types
+using ..MATFrost
 using .._Constants
-import ..MATFrost: convert_to_matlab
+import ..convert_to_matlab
 
 supported_number_type(::Type{T}) where {T} = isprimitivetype(T)
 supported_number_type(::Type{Complex{T}}) where {T} = isprimitivetype(T)

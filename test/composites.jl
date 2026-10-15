@@ -2,7 +2,6 @@
 module CompositeTests
 
 using Test
-using JET
 
 using MATFrost._Read: read_matfrostarray!
 using MATFrost._ConvertToJulia: convert_matfrostarray

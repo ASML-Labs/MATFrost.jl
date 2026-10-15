@@ -1,8 +1,8 @@
 module _ConvertToJulia
 
-using .._Types
+using ..MATFrost
 using .._Constants
-import ..MATFrost: convert_from_matlab
+import ..convert_from_matlab
 
 supported_number_type(::Type{T}) where {T} = isprimitivetype(T)
 supported_number_type(::Type{Complex{T}}) where {T} = isprimitivetype(T)

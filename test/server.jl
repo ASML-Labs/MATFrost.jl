@@ -7,7 +7,7 @@ using MATFrost
     @test callMeta.fully_qualified_name == name
     @test callMeta.signature == String[]
 
-    signature = "(:Type{String}, marr::MATFrost._Types.MATFrostArrayAbstract)"
+    signature = "(:Type{String}, marr::MATFrost.MATFrostArrayAbstract)"
     callMeta = MATFrost._Server.CallMeta(name, signature)
     @test callMeta.fully_qualified_name == name
     @test callMeta.signature == [signature]
@@ -22,7 +22,7 @@ end
 
     # Test: function with multiple methods should throw ambiguity error
     callMeta = MATFrost._Server.CallMeta("MATFrost._ConvertToJulia.convert_matfrostarray")
-    @test_throws MATFrost._Types.MATFrostException MATFrost._Server.getMethod(callMeta)
+    @test_throws MATFrost.MATFrostException MATFrost._Server.getMethod(callMeta)
     err = nothing
     try
         MATFrost._Server.getMethod(callMeta)
@@ -35,11 +35,11 @@ end
     # Test: lower level function with many methods, specific signature
     callMeta = MATFrost._Server.CallMeta(
         "MATFrost._ConvertToJulia.convert_matfrostarray",
-        ["Type{String}", "MATFrost._Types.MATFrostArrayAbstract"],
+        ["Type{String}", "MATFrost.MATFrostArrayAbstract"],
     )
     (f, m) = MATFrost._Server.getMethod(callMeta)
     @test isa(f, Function)
-    @test m==Tuple{Type{String},MATFrost._Types.MATFrostArrayAbstract}
+    @test m==Tuple{Type{String},MATFrost.MATFrostArrayAbstract}
 
     # Test: signature with comma in type name
     callMeta = MATFrost._Server.CallMeta(
@@ -52,7 +52,7 @@ end
 
     # Test: non-existing function should throw error
     callMeta = MATFrost._Server.CallMeta("MATFrost.nonExistentFunction")
-    @test_throws MATFrost._Types.MATFrostException MATFrost._Server.getMethod(callMeta)
+    @test_throws MATFrost.MATFrostException MATFrost._Server.getMethod(callMeta)
     try
         MATFrost._Server.getMethod(callMeta)
     catch e
@@ -67,8 +67,8 @@ end
     @test result == String
 
     # Test 2: Load type from MATFrost (fully qualified)
-    result = MATFrost._Server._load_and_eval_type("MATFrost._Types.MATFrostArrayAbstract")
-    @test result == MATFrost._Types.MATFrostArrayAbstract
+    result = MATFrost._Server._load_and_eval_type("MATFrost.MATFrostArrayAbstract")
+    @test result == MATFrost.MATFrostArrayAbstract
 
     # Test 3: Simple type without package prefix
     result = MATFrost._Server._load_and_eval_type("Int")
@@ -80,14 +80,14 @@ end
 
     # Test 5: Nested type with non-leading package qualification
     result = MATFrost._Server._load_and_eval_type(
-        "Vector{MATFrost._Types.MATFrostArrayAbstract}",
+        "Vector{MATFrost.MATFrostArrayAbstract}",
     )
-    @test result == Vector{MATFrost._Types.MATFrostArrayAbstract}
+    @test result == Vector{MATFrost.MATFrostArrayAbstract}
 
     # Test 6: Non-existent package should throw
     callMeta = MATFrost._Server.CallMeta(
         "MATFrost._ConvertToJulia.convert_matfrostarray",
         "NonExistentPkg.SomeType",
     )
-    @test_throws MATFrost._Types.MATFrostException MATFrost._Server.getMethod(callMeta)
+    @test_throws MATFrost.MATFrostException MATFrost._Server.getMethod(callMeta)
 end

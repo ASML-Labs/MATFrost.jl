@@ -1,5 +1,3 @@
-module _Types
-
 export MATFrostArrayAbstract,
     MATFrostArrayEmpty,
     MATFrostArrayPrimitive,
@@ -43,6 +41,4 @@ struct MATFrostConversionException <: Exception
     id::String
     message::String
     stacktrace::Vector{Any}
-end
-
 end
