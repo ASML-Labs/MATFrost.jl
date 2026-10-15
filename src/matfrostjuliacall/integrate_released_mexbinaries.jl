@@ -19,10 +19,16 @@ end
 
 
 Pkg.Artifacts.bind_artifact!(
-    joinpath(pkgdir(MATFrost), "Artifacts.toml"), 
+    joinpath(pkgdir(MATFrost), "Artifacts.toml"),
     "matfrost-mex",
-    artifact_id, 
-    download_info=Tuple[(
-        "https://github.com/ASML-Labs/MATFrost.jl/releases/download/v" * MATFROST_VERSION * "/matfrost-mex-v" * MATFROST_VERSION * ".tar.gz", 
-        mexzip_sha256
-    )], force=true)
+    artifact_id,
+    download_info = Tuple[(
+        "https://github.com/ASML-Labs/MATFrost.jl/releases/download/v" *
+        MATFROST_VERSION *
+        "/matfrost-mex-v" *
+        MATFROST_VERSION *
+        ".tar.gz",
+        mexzip_sha256,
+    )],
+    force = true,
+)

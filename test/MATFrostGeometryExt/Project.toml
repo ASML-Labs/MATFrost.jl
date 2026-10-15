@@ -1,0 +1,12 @@
+name = "MATFrostGeometryExt"
+uuid = "7ecbcfdc-3d01-4b25-aa0a-621b7438b95f"
+version = "0.1.0"
+authors = ["Lennard Mulder <lennard.mulder@asml.com>"]
+
+[deps]
+Geometry = "2fcba198-df7c-4c9e-ae5d-289e03a66e9b"
+MATFrost = "406cae98-a0f7-4766-b83f-8510a556e0e7"
+
+[sources]
+Geometry = {path = "..\\Geometry"}
+MATFrost = {path = "..\\.."}

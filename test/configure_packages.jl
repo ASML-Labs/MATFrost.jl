@@ -1,6 +1,4 @@
 import Pkg
 
-# MATFROST package
-Pkg.develop(path=ARGS[1])
-Pkg.resolve()
+Pkg.activate(@__DIR__)
 Pkg.instantiate()
