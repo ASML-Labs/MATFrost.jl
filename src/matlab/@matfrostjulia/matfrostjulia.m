@@ -148,21 +148,47 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
             [positional_args, signature, kwsignature, kwargs_struct] = parseArguments( indexOp(end).Indices{:} );
 
             % This is the object being sent to MATLAB 
-            callstruct.id = obj.id;
-            callstruct.action = "CALL";
             callmeta.fully_qualified_name = join(fully_qualified_name_arr, ".");
             callmeta.signature = signature;
             callmeta.kwsignature = kwsignature;
+            callstruct.id = obj.id;
+            callstruct.action = "CALL";
             callstruct.callstruct = {callmeta; positional_args(:); kwargs_struct};
 
-            if obj.USE_MEXHOST
-                jlo = obj.mh.feval("matfrostjuliacall", callstruct);
-            else
-                jlo = matfrostjuliacall(callstruct);
+            jlo = invokeCall(obj, callstruct);
+
+            if isfield(jlo, "status") && strcmp(jlo.status, "ERROR") && isfield(jlo.value, "id")
+                v = jlo.value;
+                if strcmp(string(v.id), "matfrostjulia:call:functionNotFound")
+                    fallback = bangFallback(callmeta.fully_qualified_name);
+                    if ~strcmp(fallback, callmeta.fully_qualified_name)
+                        callmeta.fully_qualified_name = fallback;
+                        callstruct.callstruct = {callmeta; positional_args(:); kwargs_struct};
+                        jlo = invokeCall(obj, callstruct);
+                    end
+                end
+            end
+
+            function jlo = invokeCall(obj, callstruct)
+                if obj.USE_MEXHOST
+                    jlo = obj.mh.feval("matfrostjuliacall", callstruct);
+                else
+                    jlo = matfrostjuliacall(callstruct);
+                end
+            end
+
+            function fallback = bangFallback(name)
+                if endsWith(name, "_bang")
+                    fallback = regexprep(name, "_bang$", "!");
+                elseif endsWith(name, "!")
+                    fallback = name;
+                else
+                    fallback = name + "!";
+                end
             end
             
             if jlo.status == "SUCCESFUL"
-                varargout{1} = jlo.value;
+                varargout{1} = decodeDataFrameWire(jlo.value);
             elseif jlo.status =="ERROR"
                 v = jlo.value;
                 if isfield(v, "id") && isfield(v,"message")
@@ -378,5 +404,105 @@ function message = localEnhanceMultipleMethodDefinitionsMessage(message)
             "  " + signatureHint ...
         ], ...
         newline);
+
+end
+
+function value = decodeDataFrameWire(value)
+
+    if isstruct(value)
+        if shouldConvertDataFrameWire(value)
+            try
+                value = dataframeWireToTable(value);
+                return
+            catch
+            end
+        end
+
+        fns = fieldnames(value);
+        for struct_i = 1:numel(value)
+            for fn_i = 1:numel(fns)
+                fn = fns{fn_i};
+                value(struct_i).(fn) = decodeDataFrameWire(value(struct_i).(fn));
+            end
+        end
+
+    elseif iscell(value)
+        for cell_i = 1:numel(value)
+            value{cell_i} = decodeDataFrameWire(value{cell_i});
+        end
+    end
+
+end
+
+function tf = shouldConvertDataFrameWire(value)
+
+    tf = isscalar(value) ...
+        && isfield(value, "variable_names") ...
+        && isfield(value, "variable_types") ...
+        && isfield(value, "columns") ...
+        && iscell(value.columns);
+
+    if ~tf
+        return
+    end
+
+    variable_names = string(value.variable_names(:));
+    variable_types = string(value.variable_types(:));
+
+    tf = ...
+        numel(variable_names) > 0 ...
+        && numel(variable_types) == numel(variable_names) ...
+        && numel(value.columns) == numel(variable_names);
+
+end
+
+function tbl = dataframeWireToTable(value)
+
+    variable_names = cellstr(string(value.variable_names(:))');
+    wire_types = string(value.variable_types(:));
+    table_types = wire_types;
+    table_types(table_types == "unsupported") = "cell";
+
+    nvars = numel(variable_names);
+    data = cell(1, nvars);
+
+    for i = 1:nvars
+        col = value.columns{i};
+        if isrow(col)
+            col = col.';
+        end
+        data{i} = col;
+    end
+
+    if nvars == 0
+        tbl = table();
+        return
+    end
+
+    nrows = size(data{1}, 1);
+    tbl = table( ...
+        "Size", [nrows, nvars], ...
+        "VariableTypes", cellstr(table_types'), ...
+        "VariableNames", variable_names);
+
+    for i = 1:nvars
+        tbl.(variable_names{i}) = castDataFrameWireColumn(data{i}, wire_types(i));
+    end
+
+end
+
+function col = castDataFrameWireColumn(col, wire_type)
+
+    switch string(wire_type)
+        case "string"
+            col = string(col);
+        case "logical"
+            col = logical(col);
+        case "int64"
+            col = int64(col);
+        case "double"
+            col = double(col);
+        otherwise
+    end
 
 end

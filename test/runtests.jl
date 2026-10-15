@@ -10,3 +10,5 @@ include("simulate_communication.jl")
 # include("primitives.jl")
 # include("incompatible_datatypes.jl")
 include("test_conversion.jl")
+include("geometry_dataframe_wire.jl")
+
