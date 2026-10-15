@@ -83,14 +83,13 @@ end
 end
 
 @generated function convert_matfrostarray(tup::Tuple)
+    # Unrolled to avoid runtime dispatch on heterogeneous tuples.
     quote
-        
         values = MATFrostArrayAbstract[
-            convert_matfrostarray(el) for el in tup
+            $((:(convert_matfrostarray(tup[$i])) for i in 1:fieldcount(tup))...)
         ]
 
-        MATFrostArrayCell(Int64[length(tup)], values)
-
+        MATFrostArrayCell(Int64[$(fieldcount(tup))], values)
     end
 
 end

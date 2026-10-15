@@ -6,6 +6,7 @@ include("read.jl")
 # include("composites.jl")
 include("server.jl")
 include("converttomatlab.jl")
+include("static_inference.jl")
 
 include("simulate_communication.jl")
 
