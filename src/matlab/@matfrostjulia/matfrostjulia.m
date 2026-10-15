@@ -411,11 +411,8 @@ function value = decodeDataFrameWire(value)
 
     if isstruct(value)
         if shouldConvertDataFrameWire(value)
-            try
-                value = dataframeWireToTable(value);
-                return
-            catch
-            end
+            value = dataframeWireToTable(value);
+            return
         end
 
         fns = fieldnames(value);
@@ -471,7 +468,7 @@ function tbl = dataframeWireToTable(value)
         if isrow(col)
             col = col.';
         end
-        data{i} = col;
+        data{i} = castDataFrameWireColumn(col, wire_types(i));
     end
 
     if nvars == 0
@@ -480,13 +477,19 @@ function tbl = dataframeWireToTable(value)
     end
 
     nrows = size(data{1}, 1);
-    tbl = table( ...
-        "Size", [nrows, nvars], ...
-        "VariableTypes", cellstr(table_types'), ...
-        "VariableNames", variable_names);
+    try
+        tbl = table( ...
+            "Size", [nrows, nvars], ...
+            "VariableTypes", cellstr(table_types'), ...
+            "VariableNames", variable_names);
 
-    for i = 1:nvars
-        tbl.(variable_names{i}) = castDataFrameWireColumn(data{i}, wire_types(i));
+        for i = 1:nvars
+            tbl.(variable_names{i}) = data{i};
+        end
+    catch
+        % Compatibility fallback for MATLAB versions/builds that reject one
+        % or more VariableTypes entries in preallocation mode.
+        tbl = table(data{:}, "VariableNames", variable_names);
     end
 
 end
