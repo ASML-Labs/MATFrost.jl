@@ -51,7 +51,7 @@ jobs:
       fail-fast: false
       matrix:
         matlab-version: ['R2021b']
-        julia-version: ['1.12']
+        julia-version: ['1.13']
         os: ['windows-latest', 'ubuntu-latest']
     with:
       os: ${{ matrix.os }}
@@ -67,7 +67,7 @@ jobs:
       - name: Download MEX artifacts
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          pattern: mexbin-*-R2021b-1.12
+          pattern: mexbin-*-R2021b-1.13
           path: mexbin
           merge-multiple: true
       - name: Display structure of downloade MEX binaries.
@@ -99,7 +99,7 @@ jobs:
       fail-fast: false
       matrix:
         matlab-version: ['R2021b','R2022a','R2022b','R2023a','R2023b','R2024a','R2024b','R2025a','R2025b','R2026a','R2026b']
-        julia-version: ['1.12']
+        julia-version: ['1.13']
         os: ['windows-latest', 'ubuntu-latest']
     with:
       os: ${{ matrix.os }}
