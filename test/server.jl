@@ -54,28 +54,62 @@ end
         @test e.id == "matfrostjulia:call:functionNotFound"
     end
 end
-@testset "MATFrost._Server._load_and_eval_type" begin
-    # Test 1: Load type from already-loaded package (no-op)
-    result = MATFrost._Server._load_and_eval_type("Base.String")
-    @test result == String
+@testset "MATFrost._Server.qualified_roots" begin
+    # Test 1: Already-available modules are never reported as packages to load
+    @test MATFrost._Server.qualified_roots("Base.String") == Set{Symbol}()
+    @test MATFrost._Server.qualified_roots("Core.Int64") == Set{Symbol}()
+    @test MATFrost._Server.qualified_roots("Main.MyPkg.foo") == Set{Symbol}()
 
-    # Test 2: Load type from MATFrost (fully qualified)
-    result = MATFrost._Server._load_and_eval_type("MATFrost._Types.MATFrostArrayAbstract")
-    @test result == MATFrost._Types.MATFrostArrayAbstract
+    # Test 2: Only the root of a qualified chain is reported
+    @test MATFrost._Server.qualified_roots("MATFrost._Types.MATFrostArrayAbstract") == Set([:MATFrost])
 
-    # Test 3: Simple type without package prefix
-    result = MATFrost._Server._load_and_eval_type("Int")
-    @test result == Int
+    # Test 3: Unqualified names carry no package information
+    @test MATFrost._Server.qualified_roots("Int") == Set{Symbol}()
 
     # Test 4: Generic types with nested braces
-    result = MATFrost._Server._load_and_eval_type("Tuple{Int, String}")
-    @test result == Tuple{Int, String}
+    @test MATFrost._Server.qualified_roots("Tuple{Int, String}") == Set{Symbol}()
 
     # Test 5: Nested type with non-leading package qualification
-    result = MATFrost._Server._load_and_eval_type("Vector{MATFrost._Types.MATFrostArrayAbstract}")
-    @test result == Vector{MATFrost._Types.MATFrostArrayAbstract}
+    @test MATFrost._Server.qualified_roots("Vector{MATFrost._Types.MATFrostArrayAbstract}") == Set([:MATFrost])
 
-    # Test 6: Non-existent package should throw
+    # Test 6: Every root in a nested parametric type is collected
+    @test MATFrost._Server.qualified_roots("Pkg1.T{Pkg2.U, Vector{Pkg3.V}}") == Set([:Pkg1, :Pkg2, :Pkg3])
+
+    # Test 7: Roots in where clauses and spaced qualifications
+    @test MATFrost._Server.qualified_roots("Vector{T} where T<:Pkg.Abs") == Set([:Pkg])
+    @test MATFrost._Server.qualified_roots("Pkg . Type") == Set([:Pkg])
+
+    # Test 8: Numeric literals never yield a root
+    @test MATFrost._Server.qualified_roots("Tuple{Int, 1.0e3}") == Set{Symbol}()
+
+    # Test 9: The roots argument accumulates across calls and is returned
+    roots = Set{Symbol}()
+    MATFrost._Server.qualified_roots("Pkg1.A", roots)
+    MATFrost._Server.qualified_roots("Pkg2.B{Pkg3.C}", roots)
+    @test roots == Set([:Pkg1, :Pkg2, :Pkg3])
+    @test MATFrost._Server.qualified_roots("Pkg4.D", roots) === roots
+    @test roots == Set([:Pkg1, :Pkg2, :Pkg3, :Pkg4])
+end
+@testset "MATFrost._Server.load_dependencies" begin
+    # Test 1: Already-loaded packages in name and signature are a no-op
+    callMeta = MATFrost._Server.CallMeta(
+        "MATFrost._ConvertToJulia.convert_matfrostarray",
+        ["Type{String}", "MATFrost._Types.MATFrostArrayAbstract"])
+    @test MATFrost._Server.load_dependencies(callMeta) === nothing
+
+    # Test 2: Non-existent package in the function name should throw
+    callMeta = MATFrost._Server.CallMeta("NonExistentPkg.someFunction")
+    @test_throws MATFrost._Types.MATFrostException MATFrost._Server.load_dependencies(callMeta)
+
+    # Test 3: Non-existent package in the signature should throw
     callMeta = MATFrost._Server.CallMeta("MATFrost._ConvertToJulia.convert_matfrostarray", "NonExistentPkg.SomeType")
-    @test_throws MATFrost._Types.MATFrostException MATFrost._Server.getMethod(callMeta)
+    @test_throws MATFrost._Types.MATFrostException MATFrost._Server.load_dependencies(callMeta)
+    err = nothing
+    try
+        MATFrost._Server.load_dependencies(callMeta)
+    catch e
+        err = e
+    end
+    @test err.id == "matfrostjulia:call:packageNotFound"
+    @test occursin("NonExistentPkg", err.message)
 end
