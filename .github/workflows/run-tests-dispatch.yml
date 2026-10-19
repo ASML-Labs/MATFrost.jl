@@ -24,6 +24,8 @@ on:
           - 'R2024b'
           - 'R2025a'
           - 'R2025b'
+          - 'R2026a'
+          - 'R2026b'
       julia-version:
         required: false
         description: "Julia version to test"
