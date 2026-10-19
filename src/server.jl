@@ -81,23 +81,9 @@ function callsequence(io::IO)
         end
         
         callmeta = _ConvertToJulia.convert_matfrostarray(CallMeta, callstruct.values[1])
-        syms = Symbol.(split(callmeta.fully_qualified_name,"."))
-        packagename = syms[1]
 
-
-        if !Base.invokelatest(package_is_loaded, packagename)
-            try
-                Main.eval(:(import $packagename))
-            catch e
-                throw(MATFrostException("matfrostjulia:call:packageNotFound", 
-"""
-Package not found exception:
-
-Package: $(packagename)
-"""
-))
-            end
-        end
+        # Loads the required dependencies for the call described by `callmeta` if not loaded already.
+        Base.invokelatest(load_dependencies, callmeta)
 
         # As packages (currently) are loaded loaded on-demand after MATFrost server has been started,
         # the functions in those packages need to be called from a newer world age.
@@ -147,36 +133,97 @@ function callsequence_latest_world_age(callmeta, callargs)
 end
 
 
-function _load_and_eval_type(typestring::AbstractString)
-    """
-    Parse and evaluate a type string, loading any required packages first.
-    Handles fully qualified types like "myPkg.DataType" and nested cases
-    like "Pkg1.Type{Pkg2.OtherType}" by importing all package prefixes.
-    """
-    pkg_names = Set{String}()
+"""
+Matches a dotted identifier chain (`Pkg.Sub.Type`) and captures only its root segment.
 
-    # Collect top-level package names from any qualified identifiers.
-    for m in eachmatch(r"\b([A-Za-z_][A-Za-z0-9_]*)\.(?:[A-Za-z_][A-Za-z0-9_]*)(?:\.[A-Za-z_][A-Za-z0-9_]*)*", typestring)
-        pkg = m.captures[1]
-        if !(pkg in ("Base", "Core", "Main"))
-            push!(pkg_names, pkg)
-        end
+- `(?<![\\w.])` prevents the match from starting in the middle of a chain, so `Pkg.Sub.Type`
+  yields `Pkg` only and never `Sub` or `Type`. It also rejects roots glued to a preceding
+  word character, which keeps the exponent of a float literal such as `1.0e3` from matching.
+- `([A-Za-z_]\\w*)` is the captured root. Starting with a non-digit means numeric literals
+  can never produce a root.
+- `(?:\\s*\\.\\s*[A-Za-z_]\\w*)+` requires at least one dotted segment, so an unqualified name
+  such as `Float64` is not matched. `\\s*` tolerates spacing like `Pkg . Type`.
+"""
+const _QUALIFIED_RE = r"(?<![\w.])([A-Za-z_]\w*)(?:\s*\.\s*[A-Za-z_]\w*)+"
+
+"""
+    qualified_roots(s::AbstractString, roots=Set{Symbol}()) -> Set{Symbol}
+
+Collect the root module names of every qualified identifier appearing in `s`.
+
+`s` is a type or function string such as `"Pkg1.T{Pkg2.U, Vector{Pkg3.V}}"`; the returned set
+is `Set([:Pkg1, :Pkg2, :Pkg3])`. Nested qualifications inside braces, tuples and `where`
+clauses are found because the scan continues after each matched chain.
+
+Roots named `Base`, `Core` or `Main` are skipped, as those modules are always available and
+are never loaded as packages.
+
+Pass `roots` to accumulate across several strings; it is mutated in place and also returned,
+which lets the results of multiple calls be merged into one set.
+
+Returns an empty set when `s` contains no dotted names, since an unqualified name like
+`Float64` carries no package information.
+
+Being purely lexical, this does not distinguish code from text: a qualified name inside a
+string literal, a comment, or a quoted expression is still reported. For the type and
+function strings handled here that does not occur, and a spurious root only costs one extra
+import attempt in [`load_dependencies`](@ref).
+
+A chain already rooted at a wrapper module, such as `Main.MyPkg.foo`, contributes nothing
+because the root is `Main`; qualify from the package itself to have it loaded.
+"""
+function qualified_roots(s::AbstractString, roots=Set{Symbol}())
+    for m in eachmatch(_QUALIFIED_RE, s)
+        root = m.captures[1]
+        root in ("Base", "Core", "Main") && continue
+        push!(roots, Symbol(root))
     end
+    return roots
+end
 
-    for pkg_name in pkg_names
-        if !Base.invokelatest(package_is_loaded, Symbol(pkg_name))
+"""
+    load_dependencies(callmeta::CallMeta)
+
+Import every package the call described by `callmeta` needs, before the call is resolved.
+
+Root module names are collected with [`qualified_roots`](@ref) from both
+`callmeta.fully_qualified_name` and each entry of `callmeta.signature`, so packages appearing
+only in an argument type (for example `"Pkg2.U"` in a signature) are loaded as well. Each
+root that is not already available is imported into `Main`.
+
+Throws a `MATFrostException` with id `matfrostjulia:call:packageNotFound` when a package
+cannot be imported, naming the package so the MATLAB side can report which dependency is
+missing from the active environment.
+
+Packages are loaded on demand while the server is already running, so importing here
+advances the world age. Call this through `Base.invokelatest`, as `callsequence` does, and
+resolve the function itself in a later world age.
+"""
+function load_dependencies(callmeta::CallMeta)
+
+    roots = qualified_roots(callmeta.fully_qualified_name)
+
+    foreach(callmeta.signature) do signature
+        qualified_roots(signature, roots)
+    end
+    
+    for packagename in roots
+        if !package_is_loaded(packagename)
             try
-                Main.eval(:(import $(Symbol(pkg_name))))
+                Main.eval(:(import $packagename))
             catch e
-                throw(MATFrostException("matfrostjulia:call:packageNotFound",
-                    "Package not found: $pkg_name required for type $typestring"
+                throw(MATFrostException("matfrostjulia:call:packageNotFound", 
+                    """
+                    Package not found exception:
+
+                    Package: $(packagename)
+                    """
                 ))
             end
         end
     end
-
-    return Main.eval(Meta.parse(typestring))
 end
+
 
 function getMethod(meta::CallMeta)
     # Parse fully qualified name
@@ -196,10 +243,10 @@ function getMethod(meta::CallMeta)
                 continue
             else
                 throw(MATFrostException("matfrostjulia:call:functionNotFound",
-                """
-                Function not found exception:
-                Function $(meta.fully_qualified_name) 
-                """
+                    """
+                    Function not found exception:
+                    Function $(meta.fully_qualified_name) 
+                    """
                 ))
             end
         end
@@ -207,7 +254,7 @@ function getMethod(meta::CallMeta)
 
     mtds = methods(f)
     argtypes = !isempty(meta.signature) ?
-        [_load_and_eval_type(strip(s)) for sig in meta.signature for s in split_types_respecting_braces(sig)] :
+        [Main.eval(Meta.parse(strip(s))) for sig in meta.signature for s in split_types_respecting_braces(sig)] :
         (length(mtds) == 1 ? collect(mtds[1].sig.types[2:end]) : nothing)
 
     if argtypes === nothing
