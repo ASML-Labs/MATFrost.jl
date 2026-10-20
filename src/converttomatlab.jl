@@ -4,6 +4,8 @@ module _ConvertToMATLAB
 using .._Types
 using .._Constants
 
+import ..MATFrost: store_handle, use_matfrost_handle
+
 supported_number_type(::Type{T}) where T = isprimitivetype(T)
 supported_number_type(::Type{Complex{T}}) where T = isprimitivetype(T)
 
@@ -40,17 +42,32 @@ end
 end
 
 
-@generated function convert_matfrostarray(structval::T) where {T}
-    quote
-        
-        values=MATFrostArrayAbstract[$((
-            :(convert_matfrostarray(structval.$fn)) for fn in fieldnames(T)
-        )...)]
-        MATFrostArrayStruct(Int64[1], Symbol[fieldnames(T)...], values)
-
+@noinline function convert_matfrostarray(structval::T) where {T}
+    if use_matfrost_handle(T)
+        return store_handle(structval)
     end
+
+    return convert_struct_matfrostarray(structval)
 end
 
+@generated function convert_struct_matfrostarray(
+    structval::T,
+) where {T}
+    quote
+        values = MATFrostArrayAbstract[
+            $((
+                :(convert_matfrostarray(structval.$fn))
+                for fn in fieldnames(T)
+            )...)
+        ]
+
+        MATFrostArrayStruct(
+            Int64[1],
+            Symbol[fieldnames(T)...],
+            values,
+        )
+    end
+end
 
 @generated function convert_matfrostarray(arr::Array{T,N}) where {T,N}
     if isstructtype(T) && isconcretetype(T)

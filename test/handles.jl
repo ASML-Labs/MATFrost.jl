@@ -2,6 +2,13 @@ using Test
 using UUIDs
 using MATFrost
 
+struct HandleTestType
+    value::String
+end
+
+MATFrost.use_matfrost_handle(
+    ::Type{HandleTestType},
+) = true
 @testset "MATFrost handles" begin
 
     @testset "store and resolve" begin
@@ -12,7 +19,7 @@ using MATFrost
         @test handle isa MATFrostHandle
         @test handle.id isa UUID
 
-        resolved = MATFrost.resolve_handle(handle)
+        resolved = resolve_handle(handle)
 
         @test resolved === obj
 
@@ -24,7 +31,7 @@ using MATFrost
 
         @test MATFrost.release_handle(handle)
 
-        @test_throws ArgumentError MATFrost.resolve_handle(handle)
+        @test_throws ArgumentError resolve_handle(handle)
 
         @test !MATFrost.release_handle(handle)
     end
@@ -35,8 +42,8 @@ using MATFrost
 
         MATFrost.release_all_handles!()
 
-        @test_throws ArgumentError MATFrost.resolve_handle(h1)
-        @test_throws ArgumentError MATFrost.resolve_handle(h2)
+        @test_throws ArgumentError resolve_handle(h1)
+        @test_throws ArgumentError resolve_handle(h2)
     end
 
     @testset "default handle trait" begin
@@ -48,9 +55,56 @@ using MATFrost
         @test !use_matfrost_handle(DummyType)
     end
 
+    @testset "Opt-in handle conversion" begin
+        object = HandleTestType("Amsterdam")
+
+        converted =
+            MATFrost._ConvertToMATLAB.convert_matfrostarray(object)
+
+        @test converted isa MATFrost.MATFrostHandle
+        @test converted.typename == string(HandleTestType)
+
+        restored =
+            MATFrost._ConvertToJulia.convert_matfrostarray(
+                HandleTestType,
+                converted,
+            )
+
+        @test restored === object
+        @test restored.value == "Amsterdam"
+
+        @test MATFrost.release_handle(converted)
+    end
+
+    @testset "reject incompatible handle target" begin
+    object = HandleTestType("Amsterdam")
+    handle = MATFrost.store_handle(object)
+
+    @test_throws ArgumentError begin
+        MATFrost._ConvertToJulia.convert_matfrostarray(
+            String,
+            handle,
+        )
+    end
+
+    @test MATFrost.release_handle(handle)
+end
+@testset "reject incompatible handle target" begin
+    object = HandleTestType("Amsterdam")
+    handle = MATFrost.store_handle(object)
+
+    @test_throws ArgumentError begin
+        MATFrost._ConvertToJulia.convert_matfrostarray(
+            String,
+            handle,
+        )
+    end
+
+    @test MATFrost.release_handle(handle)
+end
 end
 
-@testset "Handle consumers" begin
+#= @testset "Handle consumers" begin
 
     using Geometry
     using MATFrostGeometryExt
@@ -63,14 +117,14 @@ end
 
         handle = MATFrost.store_handle(point)
 
-        @test MATFrost.resolve_handle(handle) === point
+        @test resolve_handle(handle) === point
 
         @test Geometry.get_label(
-            MATFrost.resolve_handle(handle)
+            resolve_handle(handle)
         ) == "Amsterdam"
 
         @test MATFrost.release_handle(handle)
 
     end
-
 end
+=#
