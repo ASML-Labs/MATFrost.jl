@@ -10,6 +10,7 @@ function matfrostserve end
 
 include("types.jl")
 include("constants.jl")
+include("handles.jl")
 
 
 include("read.jl")
@@ -22,5 +23,10 @@ include("server.jl")
 include("example.jl")
 
 include("install.jl")
+
+export MATFrostHandle
+export use_matfrost_handle
+export release_handle
+export release_all_handles!
 
 end

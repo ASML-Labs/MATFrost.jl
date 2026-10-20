@@ -1,13 +1,15 @@
 name = "MATFrost"
 uuid = "406cae98-a0f7-4766-b83f-8510a556e0e7"
+version = "0.0.0"
 authors = ["Joris Belier <joris.belier@asml.com>", "Paolo Accordini <paolo.accordini@asml.com>", "Mark Hu <mark.hu@asml.com>"]
-version = "0.0.0" # Version is patched automatically during release
 
 [deps]
 Artifacts = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
 TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
+UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [compat]
 TOML = "1"
+UUIDs = "1.11.0"
 julia = "1.7"
