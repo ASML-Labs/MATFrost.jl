@@ -3,13 +3,11 @@ import Pkg
 test_root = @__DIR__
 
 if VERSION < v"1.11"
-	for path in (
-		joinpath(test_root, "Geometry"),
-		joinpath(test_root, ".."),
-		joinpath(test_root, "MATFrostGeometryExt"),
-	)
-		Pkg.develop(path=path)
-	end
+	Pkg.develop([
+		Pkg.PackageSpec(path=joinpath(test_root, "Geometry")),
+		Pkg.PackageSpec(path=joinpath(test_root, "..")),
+		Pkg.PackageSpec(path=joinpath(test_root, "MATFrostGeometryExt")),
+	])
 end
 
 Pkg.resolve()
