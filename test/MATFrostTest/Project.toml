@@ -10,5 +10,5 @@ MATFrostGeometryExt = "7ecbcfdc-3d01-4b25-aa0a-621b7438b95f"
 
 [sources]
 Geometry = {path = "../Geometry"}
-MATFrost = {path = "C:\\Users\\lmulder\\.julia\\dev\\MATFrost"}
+MATFrost = {path = "../.."}
 MATFrostGeometryExt = {path = "../MATFrostGeometryExt"}
