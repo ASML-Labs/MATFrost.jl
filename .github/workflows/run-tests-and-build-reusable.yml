@@ -80,6 +80,7 @@ jobs:
           '
 
       - name: Test Julia
+        timeout-minutes: 30
         if: ${{ inputs.julia-tests }}
         uses: julia-actions/julia-runtest@6e050c8013b833b1195105ff2fce9cd802f53271 # v1.12.0
           
