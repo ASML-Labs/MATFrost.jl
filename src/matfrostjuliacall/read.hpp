@@ -75,18 +75,15 @@ namespace MATFrost::Read {
             dims,
             {"dataType", "id", "typename"}
         );
-        auto marker_value = handle[0];
-        marker_value["dataType"] = factory.createScalar("matfrost_handle");
+        handle[0]["dataType"] = factory.createScalar("matfrost_handle");
 
         matlab::data::StringArray id_array = factory.createArray<matlab::data::MATLABString>({1});
         id_array[0] = matlab::engine::convertUTF8StringToUTF16String(id);
-        auto id_value = handle[0];
-        id_value["id"] = id_array;
+        handle[0]["id"] = id_array;
 
         matlab::data::StringArray typename_array = factory.createArray<matlab::data::MATLABString>({1});
         typename_array[0] = matlab::engine::convertUTF8StringToUTF16String(typename_string);
-        auto typename_value = handle[0];
-        typename_value["typename"] = typename_array;
+        handle[0]["typename"] = typename_array;
         return handle;
     }
 
