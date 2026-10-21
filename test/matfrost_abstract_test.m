@@ -10,13 +10,16 @@ classdef matfrost_abstract_test < matlab.unittest.TestCase
     
     properties
         mjl
+        supports_package_extensions (1,1) logical
     end
 
     methods(TestClassSetup)
         function setup_matfrost(tc, julia_version)
+            needs_explicit_develop = julia_version_older_than(julia_version, [1 11]);
+            tc.supports_package_extensions = ~needs_explicit_develop;
             test_root = fileparts(mfilename('fullpath'));
             project_path = fullfile(test_root, "MATFrostTest");
-            if str2double(julia_version) < 1.11
+            if needs_explicit_develop
                 configuration_packages_path = fullfile(test_root, "configure_packages.jl");
                 cmdline = sprintf('julia %s%s --project="%s" "%s"', '+', julia_version, project_path, configuration_packages_path);
 
@@ -43,5 +46,19 @@ function version = get_julia_version()
         version = strsplit(getenv('JULIA_VERSIONS'), ',');
     else
         version={'1.12'};
+    end
+end
+
+function tf = julia_version_older_than(julia_version, reference)
+    % Compares version components; str2double would rank "1.7" above "1.11".
+    parts = str2double(strsplit(string(julia_version), "."));
+    parts(isnan(parts)) = 0;
+    parts(end+1:numel(reference)) = 0;
+    tf = false;
+    for k = 1:numel(reference)
+        if parts(k) ~= reference(k)
+            tf = parts(k) < reference(k);
+            return
+        end
     end
 end

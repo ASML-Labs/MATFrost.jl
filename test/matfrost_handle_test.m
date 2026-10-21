@@ -33,6 +33,9 @@ classdef matfrost_handle_test < matfrost_abstract_test
         end
 
         function point_handle_roundtrip(tc)
+            % Geometry.Point handle support comes from a package extension (Julia >= 1.11).
+            tc.assumeTrue(tc.supports_package_extensions);
+
             point = tc.mjl.Geometry.Point( ...
                 "Amsterdam", ...
                 signature="String");
