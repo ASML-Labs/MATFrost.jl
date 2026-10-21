@@ -2,6 +2,8 @@ module MATFrostTest
 
 
 using MATFrost
+using MATFrostGeometryExt
+using Geometry
 
 export compute_measure,
     make_handle_test_type,

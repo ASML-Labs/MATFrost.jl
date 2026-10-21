@@ -1,6 +1,8 @@
 using Test
 using UUIDs
+using TOML
 using MATFrost
+using MATFrostGeometryExt
 
 struct HandleTestType
     value::String
@@ -104,27 +106,26 @@ end
 end
 end
 
-#= @testset "Handle consumers" begin
+@testset "Geometry handle extension" begin
+    @test !isdefined(Main, :Geometry)
 
-    using Geometry
-    using MATFrostGeometryExt
+    @eval Main using Geometry
 
-    @testset "Geometry.Point opt-in" begin
+    geometry_project = TOML.parsefile(
+        joinpath(dirname(pathof(Geometry)), "..", "Project.toml"),
+    )
+    @test !haskey(get(geometry_project, "deps", Dict{String,Any}()), "MATFrost")
+    @test MATFrost.use_matfrost_handle(Geometry.Point)
 
-        @test use_matfrost_handle(Geometry.Point)
+    point = Geometry.Point("Amsterdam")
+    handle = MATFrost._ConvertToMATLAB.convert_matfrostarray(point)
+    @test handle isa MATFrost.MATFrostHandle
+    @test MATFrost.resolve_handle(handle) === point
+    @test Geometry.get_label(MATFrost.resolve_handle(handle)) == "Amsterdam"
 
-        point = Geometry.Point("Amsterdam")
-
-        handle = MATFrost.store_handle(point)
-
-        @test resolve_handle(handle) === point
-
-        @test Geometry.get_label(
-            resolve_handle(handle)
-        ) == "Amsterdam"
-
-        @test MATFrost.release_handle(handle)
-
+    try
+        nothing
+    finally
+        MATFrost.release_all_handles!()
     end
 end
-=#
