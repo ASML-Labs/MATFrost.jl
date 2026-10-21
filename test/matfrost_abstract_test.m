@@ -16,20 +16,21 @@ classdef matfrost_abstract_test < matlab.unittest.TestCase
         function setup_matfrost(tc, julia_version)
             test_root = fileparts(mfilename('fullpath'));
             project_path = fullfile(test_root, "MATFrostTest");
-            configuration_packages_path = fullfile(test_root, "configure_packages.jl");
+            if str2double(julia_version) < 1.11
+                configuration_packages_path = fullfile(test_root, "configure_packages.jl");
+                cmdline = sprintf('julia %s%s --project="%s" "%s"', '+', julia_version, project_path, configuration_packages_path);
 
-            cmdline = sprintf('julia %s%s --project="%s" "%s"', '+', julia_version, project_path, configuration_packages_path);
-
-            if ispc
-                [resolve_julia_project_status, resolve_julia_project_log] = ...
-                    shell('cmd.exe', '/c', cmdline)
-            elseif isunix
-                % LD_LIBRARY_PATH should be cleared to prevent loading of
-                % MATLAB libraries in Julia process.
-                [resolve_julia_project_status, resolve_julia_project_log] = ...
-                    shell('/bin/sh', '-c', cmdline, 'environmentVariables', struct('LD_LIBRARY_PATH', ''))
-            else
-                error("Not supported")
+                if ispc
+                    [resolve_julia_project_status, resolve_julia_project_log] = ...
+                        shell('cmd.exe', '/c', cmdline)
+                elseif isunix
+                    % LD_LIBRARY_PATH should be cleared to prevent loading of
+                    % MATLAB libraries in Julia process.
+                    [resolve_julia_project_status, resolve_julia_project_log] = ...
+                        shell('/bin/sh', '-c', cmdline, 'environmentVariables', struct('LD_LIBRARY_PATH', ''))
+                else
+                    error("Not supported")
+                end
             end
             
             tc.mjl = matfrostjulia(version=julia_version, project=project_path);

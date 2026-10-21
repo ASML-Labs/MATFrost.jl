@@ -54,6 +54,31 @@ jobs:
           include-matrix: false
       - uses: julia-actions/julia-buildpkg@e3eb439fad4f9aba7da2667e7510e4a46ebc46e1 # v1.7.0
 
+      - name: Configure Julia <1.11 test project
+        if: ${{ inputs.julia-tests && (inputs.julia-version == '1.7' || inputs.julia-version == '1.8' || inputs.julia-version == '1.9' || inputs.julia-version == '1.10') }}
+        shell: bash
+        run: |
+          julia --startup-file=no -e '
+            using TOML
+
+            project_path = joinpath("test", "Project.toml")
+            project = TOML.parsefile(project_path)
+            local_packages = ("MATFrost", "MATFrostTest", "Geometry", "MATFrostGeometryExt")
+
+            for section in ("deps", "sources")
+                values = get(project, section, nothing)
+              if values !== nothing
+                for package in local_packages
+                  pop!(values, package, nothing)
+                end
+                end
+            end
+
+            open(project_path, "w") do io
+                TOML.print(io, project)
+            end
+          '
+
       - name: Test Julia
         if: ${{ inputs.julia-tests }}
         uses: julia-actions/julia-runtest@6e050c8013b833b1195105ff2fce9cd802f53271 # v1.12.0

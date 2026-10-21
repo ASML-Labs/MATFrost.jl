@@ -1,6 +1,9 @@
 using MATFrost
 using Test
 
+if VERSION < v"1.11"
+    include("configure_packages.jl")
+end
 
 include("read.jl")
 # include("composites.jl")

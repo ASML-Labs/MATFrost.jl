@@ -2,7 +2,10 @@ using Test
 using UUIDs
 using TOML
 using MATFrost
-using MATFrostGeometryExt
+
+if VERSION >= v"1.11"
+    using MATFrostGeometryExt
+end
 
 struct HandleTestType
     value::String
@@ -106,6 +109,7 @@ end
 end
 end
 
+if VERSION >= v"1.11"
 @testset "Geometry handle extension" begin
     @test !isdefined(Main, :Geometry)
 
@@ -128,4 +132,5 @@ end
     finally
         MATFrost.release_all_handles!()
     end
+end
 end
