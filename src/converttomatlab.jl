@@ -4,7 +4,7 @@ module _ConvertToMATLAB
 using .._Types
 using .._Constants
 
-import ..MATFrost: store_handle, use_matfrost_handle
+import ..MATFrost: store_handle, use_matfrost_handle, convert_to_matlab
 
 supported_number_type(::Type{T}) where T = isprimitivetype(T)
 supported_number_type(::Type{Complex{T}}) where T = isprimitivetype(T)
@@ -45,6 +45,11 @@ end
 @noinline function convert_matfrostarray(structval::T) where {T}
     if use_matfrost_handle(T)
         return store_handle(structval)
+    end
+
+    surrogate = convert_to_matlab(structval)
+    if !isa(surrogate, T)
+        return convert_matfrostarray(surrogate)
     end
 
     return convert_struct_matfrostarray(structval)

@@ -1,0 +1,12 @@
+name = "MATFrostDemographicsExt"
+uuid = "fccc8646-aec4-4b83-9b60-84bdce7f549a"
+version = "0.1.0"
+authors = ["Lennard Mulder <lennard.mulder@asml.com>"]
+
+[deps]
+MATFrost = "406cae98-a0f7-4766-b83f-8510a556e0e7"
+Demographics = "d436b072-ee80-4a3b-8b2e-fdf4e33f3236"
+
+[sources]
+Demographics = {path = "../Demographics"}
+MATFrost = {path = "../.."}

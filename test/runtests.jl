@@ -15,6 +15,7 @@ end
 
 include("simulate_communication.jl")
 include("handles.jl")
+include("dataframes.jl")
 # include("primitives.jl")
 # include("incompatible_datatypes.jl")
 
