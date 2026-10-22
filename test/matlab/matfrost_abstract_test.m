@@ -1,7 +1,7 @@
 classdef matfrost_abstract_test < matlab.unittest.TestCase
     
     properties 
-        environment (1,1) string = fullfile(fileparts(mfilename('fullpath')), 'MATFrostTest');
+        environment (1,1) string = fullfile(fileparts(fileparts(mfilename('fullpath'))), 'MATFrostTest');
     end
 
     properties (ClassSetupParameter)
@@ -17,7 +17,8 @@ classdef matfrost_abstract_test < matlab.unittest.TestCase
         function setup_matfrost(tc, julia_version)
             needs_explicit_develop = julia_version_older_than(julia_version, [1 11]);
             tc.supports_package_extensions = ~needs_explicit_develop;
-            test_root = fileparts(mfilename('fullpath'));
+            % The Julia test packages live one level up, next to the matlab test folder.
+            test_root = fileparts(fileparts(mfilename('fullpath')));
             project_path = fullfile(test_root, "MATFrostTest");
             if needs_explicit_develop
                 configuration_packages_path = fullfile(test_root, "configure_packages.jl");
