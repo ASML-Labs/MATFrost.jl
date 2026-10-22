@@ -32,7 +32,7 @@ classdef matfrost_demographics_test < matfrost_abstract_test
                 "Netherlands", 33481.0, ...
                  signature=["String","Float64"]);
 
-            add_city = tc.mjl.Demographics.("add_city!");
+            add_city = tc.mjl.Demographics("add_city!");
 
             add_city(country, "Amsterdam", int64(934526));
             add_city(country, "Rotterdam", int64(672960));
