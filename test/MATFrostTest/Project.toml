@@ -4,11 +4,15 @@ version = "0.1.0"
 authors = ["Joris Belier <joris.belier@asml.com>"]
 
 [deps]
+Demographics = "d436b072-ee80-4a3b-8b2e-fdf4e33f3236"
 Geometry = "2fcba198-df7c-4c9e-ae5d-289e03a66e9b"
 MATFrost = "406cae98-a0f7-4766-b83f-8510a556e0e7"
+MATFrostDemographicsExt = "fccc8646-aec4-4b83-9b60-84bdce7f549a"
 MATFrostGeometryExt = "7ecbcfdc-3d01-4b25-aa0a-621b7438b95f"
 
 [sources]
+Demographics = {path = "../Demographics"}
 Geometry = {path = "../Geometry"}
 MATFrost = {path = "../.."}
+MATFrostDemographicsExt = {path = "../MATFrostDemographicsExt"}
 MATFrostGeometryExt = {path = "../MATFrostGeometryExt"}

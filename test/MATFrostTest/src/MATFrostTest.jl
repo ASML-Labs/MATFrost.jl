@@ -3,7 +3,9 @@ module MATFrostTest
 
 using MATFrost
 using MATFrostGeometryExt
+using MATFrostDemographicsExt
 using Geometry
+using Demographics
 
 export compute_measure,
     make_handle_test_type,
