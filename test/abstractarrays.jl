@@ -1,5 +1,4 @@
 using Test
-using LinearAlgebra: transpose
 using MATFrost._Types
 using MATFrost._Read: read_matfrostarray!
 using MATFrost._Write: write_matfrostarray!
