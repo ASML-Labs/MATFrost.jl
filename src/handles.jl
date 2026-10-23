@@ -1,9 +1,15 @@
 using UUIDs
 
-struct MATFrostHandle <: _Types.MATFrostArrayAbstract
+struct MATFrostHandle
     id::UUID
     typename::String
 end
+
+# Field layout of the plain MATLAB struct that represents a handle on the wire.
+const HANDLE_MARKER_FIELD = :dataType
+const HANDLE_MARKER_VALUE = "matfrost_handle"
+const HANDLE_ID_FIELD = :id
+const HANDLE_TYPENAME_FIELD = :typename
 
 use_matfrost_handle(::Type) = false
 
@@ -23,27 +29,28 @@ function store_handle(value)::MATFrostHandle
     return handle
 end
 
-function resolve_handle(handle::MATFrostHandle)
+function resolve_handle(id::UUID)
     return lock(HANDLE_STORE_LOCK) do
-        haskey(HANDLE_STORE, handle.id) ||
+        haskey(HANDLE_STORE, id) ||
             throw(
                 ArgumentError(
-                    "Invalid or released MATFrost handle: $(handle.id)",
+                    "Invalid or released MATFrost handle: $(id)",
                 ),
             )
 
-        HANDLE_STORE[handle.id]
+        HANDLE_STORE[id]
     end
 end
 
-function release_handle(handle::MATFrostHandle)::Bool
+resolve_handle(handle::MATFrostHandle) = resolve_handle(handle.id)
+
+function release_handle(id::UUID)::Bool
     return lock(HANDLE_STORE_LOCK) do
-        pop!(HANDLE_STORE, handle.id, nothing) !== nothing
+        pop!(HANDLE_STORE, id, nothing) !== nothing
     end
 end
 
-release_handle(id::UUID) =
-    release_handle(MATFrostHandle(id, ""))
+release_handle(handle::MATFrostHandle)::Bool = release_handle(handle.id)
 
 function release_all_handles!()
     lock(HANDLE_STORE_LOCK) do

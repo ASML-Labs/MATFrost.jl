@@ -4,7 +4,6 @@ module _Write
 
 using .._Constants
 using .._Types
-import ..MATFrost: MATFrostHandle
 
 
 @noinline function write_matfrost_vector(io::IO, ptr::Ptr, nb)
@@ -75,19 +74,8 @@ end
     end
 end
 
-@noinline function write_matfrostarray_handle!(io::IO, handle::MATFrostHandle)
-    write(io, MATFROST_HANDLE)
-    write(io, 1)
-    write(io, 1)
-    write_matfrost_string!(io, string(handle.id))
-    write_matfrost_string!(io, handle.typename)
-end
-
 @noinline function write_matfrostarray!(io::IO, @nospecialize(marr::MATFrostArrayAbstract))
-    if marr isa MATFrostHandle
-        write_matfrostarray_handle!(io, marr)
-
-    elseif marr isa MATFrostArrayEmpty
+    if marr isa MATFrostArrayEmpty
         write_matfrostarray_empty!(io, marr)
 
     elseif marr isa MATFrostArrayStruct

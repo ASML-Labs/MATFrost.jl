@@ -98,6 +98,7 @@ jobs:
           fi
 
       - name: Install GCC on Linux
+        timeout-minutes: 10
         if: ${{ startsWith(inputs.os , 'ubuntu') }}
         run: |
           sudo apt-get install g++-${{ env.GCC_VERSION }}
@@ -133,13 +134,14 @@ jobs:
         with:
           command: addpath(genpath("src")) ; matfrostmake() ;
         
-      - name: Run tests
+      - name: Test MATLAB
+        timeout-minutes: 30
         uses: matlab-actions/run-tests@214a16e600ef2c705a4b2dd6c0794dc6957682a9 # v3.3.0
         env:
           JULIA_VERSIONS: ${{ inputs.julia-version }}
         with:
           source-folder: 'src/matlab'
-          select-by-folder: 'test'
+          select-by-folder: 'test/matlab'
           strict: false
           test-results-junit: test-results/results.xml
           code-coverage-cobertura: test-results/coverage.xml

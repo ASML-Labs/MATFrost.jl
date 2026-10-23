@@ -5,21 +5,14 @@
 
 #include "mex.hpp"
 #include "mexAdapter.hpp"
-#include "protocol.hpp"
 
 #include <tuple>
 // stdc++ lib
 #include <string>
 #include <complex>
-#include <regex>
 
 
 namespace MATFrost::Write {
-
-    constexpr const char* HANDLE_MARKER = "dataType";
-    constexpr const char* HANDLE_ID = "id";
-    constexpr const char* HANDLE_TYPENAME = "typename";
-
 
     void write(const std::shared_ptr<Socket::BufferedTCPSocket> socket, const matlab::data::Array arr);
 
@@ -62,58 +55,6 @@ namespace MATFrost::Write {
         }
 
     }
-
-    bool has_field(const matlab::data::StructArray& value, const char* fieldname) {
-        for (const auto& name : value.getFieldNames()) {
-            if (std::string(name) == fieldname) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    bool is_handle_struct(const matlab::data::StructArray& value) {
-        if (value.getNumberOfElements() != 1 || !has_field(value, HANDLE_MARKER)) {
-            return false;
-        }
-
-        const matlab::data::Struct element = value[0];
-        const matlab::data::Array marker_array = element[HANDLE_MARKER];
-        const auto marker = static_cast<const matlab::data::StringArray>(marker_array);
-        return marker.getNumberOfElements() == 1 && marker[0] == "matfrost_handle";
-    }
-
-    void write_handle(const std::shared_ptr<Socket::BufferedTCPSocket> socket, const matlab::data::StructArray& value) {
-        if (!is_handle_struct(value) || !has_field(value, HANDLE_ID) || !has_field(value, HANDLE_TYPENAME)) {
-            throw matlab::engine::MATLABException("matfrostjulia:conversion:invalidHandle", u"Invalid MATFrost handle representation");
-        }
-
-        const matlab::data::Struct element = value[0];
-        const matlab::data::Array id_value = element[HANDLE_ID];
-        const matlab::data::Array typename_value = element[HANDLE_TYPENAME];
-        const auto id_array = static_cast<const matlab::data::StringArray>(id_value);
-        const auto typename_array = static_cast<const matlab::data::StringArray>(typename_value);
-        if (id_array.getNumberOfElements() != 1 || typename_array.getNumberOfElements() != 1) {
-            throw matlab::engine::MATLABException("matfrostjulia:conversion:invalidHandle", u"MATFrost handle fields must be scalar strings");
-        }
-
-        const std::string id = matlab::engine::convertUTF16StringToUTF8String(id_array[0]);
-        const std::string typename_string = matlab::engine::convertUTF16StringToUTF8String(typename_array[0]);
-        static const std::regex uuid_pattern("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
-        if (!std::regex_match(id, uuid_pattern) || typename_string.empty()) {
-            throw matlab::engine::MATLABException("matfrostjulia:conversion:invalidHandle", u"MATFrost handle has an invalid UUID or typename");
-        }
-
-        int32_t mattype = Protocol::MATFROST_HANDLE;
-        size_t ndims = 1;
-        size_t dim = 1;
-        socket->write(reinterpret_cast<const uint8_t *>(&mattype), sizeof(int32_t));
-        socket->write(reinterpret_cast<const uint8_t *>(&ndims), sizeof(size_t));
-        socket->write(reinterpret_cast<const uint8_t *>(&dim), sizeof(size_t));
-        write_utf8_string(socket, id);
-        write_utf8_string(socket, typename_string);
-    }
-
 
     void write_cell(const std::shared_ptr<Socket::BufferedTCPSocket> socket, const matlab::data::CellArray mcarr) {
         int32_t mattype = static_cast<int32_t>(mcarr.getType());
@@ -163,9 +104,6 @@ namespace MATFrost::Write {
              case matlab::data::ArrayType::CELL:
                  return write_cell(socket, arr);
              case matlab::data::ArrayType::STRUCT:
-                if (is_handle_struct(arr)) {
-                    return write_handle(socket, arr);
-                }
                 return write_struct(socket, arr);
 
              case matlab::data::ArrayType::MATLAB_STRING:
@@ -270,9 +208,6 @@ namespace MATFrost::Write {
              case matlab::data::ArrayType::CELL:
                  return valid_cell(arr);
              case matlab::data::ArrayType::STRUCT:
-                if (is_handle_struct(arr)) {
-                    return true;
-                }
                 return valid_struct(arr);
 
              case matlab::data::ArrayType::MATLAB_STRING:
