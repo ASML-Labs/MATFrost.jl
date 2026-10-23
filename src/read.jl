@@ -1,7 +1,9 @@
 module _Read
 
+using UUIDs
 using .._Types
 using .._Constants
+import ..MATFrost: MATFrostHandle
 
 
 
@@ -40,6 +42,12 @@ end
 @noinline function read_matfrostarray_string!(io::IO, header::MATFrostArrayHeader) :: MATFrostArrayString
     values = String[read_string!(io) for _ in 1:header.nel]
     MATFrostArrayString(header.dims, values)
+end
+
+@noinline function read_matfrostarray_handle!(io::IO, header::MATFrostArrayHeader)::MATFrostHandle
+    uuid_string = read_string!(io)
+    typename = read_string!(io)
+    MATFrostHandle(UUID(uuid_string), typename)
 end
 
 @noinline function read_matfrostarray_struct!(io::IO, header::MATFrostArrayHeader)::MATFrostArrayStruct
@@ -98,6 +106,9 @@ end
 
     elseif header.type == MATLAB_STRING
         read_matfrostarray_string!(io, header)
+
+    elseif header.type == MATFROST_HANDLE
+        read_matfrostarray_handle!(io, header)
         
     elseif header.type == LOGICAL
         read_matfrostarray_primitive!(io, header, Bool)

@@ -10,6 +10,18 @@ try
     using MATFrost
 catch _
     import Pkg
+
+    if VERSION < v"1.11"
+        # [sources] is ignored before Julia 1.11, so path-dependencies must be developed explicitly.
+        project_file = Base.active_project()
+        sources = get(Pkg.TOML.parsefile(project_file), "sources", Dict{String,Any}())
+        specs = [Pkg.PackageSpec(path=normpath(joinpath(dirname(project_file), source["path"])))
+                 for (_, source) in sources if haskey(source, "path")]
+        if !isempty(specs)
+            Pkg.develop(specs)
+        end
+    end
+
     Pkg.instantiate()
     try
         using MATFrost
