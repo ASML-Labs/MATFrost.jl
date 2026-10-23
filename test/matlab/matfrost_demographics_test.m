@@ -52,8 +52,8 @@ classdef matfrost_demographics_test < matfrost_abstract_test
         function country_info(tc)
 
             country = tc.mjl.Demographics.Country( ...
-                "Netherlands", ...
-                33481.0);
+                "Netherlands", 33481.0, ...
+                signature = ["String", "Float64"]);
 
             add_city = tc.mjl.Demographics.("add_city!");
 
@@ -70,9 +70,9 @@ classdef matfrost_demographics_test < matfrost_abstract_test
 
         function update_city(tc)
 
-            country = tc.mjl.Demographics.Country( ...
-                "Netherlands", ...
-                33481.0);
+             country = tc.mjl.Demographics.Country( ...
+                "Netherlands", 33481.0, ...
+                signature = ["String", "Float64"]);
 
             add_city = tc.mjl.Demographics.("add_city!");
             update_city = tc.mjl.Demographics.("update_city!");
@@ -90,8 +90,8 @@ classdef matfrost_demographics_test < matfrost_abstract_test
         function remove_city(tc)
 
             country = tc.mjl.Demographics.Country( ...
-                "Netherlands", ...
-                33481.0);
+                "Netherlands", 33481.0, ...
+                signature = ["String", "Float64"]);
 
             add_city = tc.mjl.Demographics.("add_city!");
             remove_city = tc.mjl.Demographics.("remove_city!");
@@ -110,8 +110,8 @@ classdef matfrost_demographics_test < matfrost_abstract_test
         function dataframe(tc)
 
             country = tc.mjl.Demographics.Country( ...
-                "Netherlands", ...
-                33481.0);
+                "Netherlands", 33481.0, ...
+                signature = ["String", "Float64"]);
 
             add_city = tc.mjl.Demographics.("add_city!");
 
