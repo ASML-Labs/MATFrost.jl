@@ -56,6 +56,15 @@ namespace MATFrost::Read {
         return strarr;
     }
 
+    std::string read_utf8_string(const std::shared_ptr<Socket::BufferedTCPSocket> socket) {
+        size_t strbytes;
+        socket->read(reinterpret_cast<uint8_t *>(&strbytes), sizeof(size_t));
+
+        auto strdata = std::vector<uint8_t>(strbytes);
+        socket->read(strdata.data(), strbytes);
+        return std::string(reinterpret_cast<char *>(strdata.data()), strbytes);
+    }
+
     matlab::data::Array read_cell(const std::shared_ptr<Socket::BufferedTCPSocket> socket, matlab::data::ArrayDimensions dims) {
         matlab::data::ArrayFactory factory;
 

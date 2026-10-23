@@ -1,7 +1,25 @@
 module MATFrostTest
 
 
-export compute_measure
+using MATFrost
+using MATFrostGeometryExt
+using Geometry
+
+export compute_measure,
+    make_handle_test_type,
+    get_handle_test_value,
+    release_handle_test_objects
+
+struct HandleTestType
+    value::String
+end
+
+make_handle_test_type(value::String) = HandleTestType(value)
+get_handle_test_value(value::HandleTestType) = value.value
+release_handle_test_objects() = MATFrost.release_all_handles!()
+
+MATFrost.use_matfrost_handle(::Type{HandleTestType}) = true
+
 elementwise_addition_f64(c::Float64, x::Vector{Float64}) = c .+ x
 
 kron_product_matrix_f64(A::Matrix{Float64}, B::Matrix{Float64}) = kron(A, B)

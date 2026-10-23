@@ -9,6 +9,12 @@ using MATFrost._Write: write_matfrostarray!
 using MATFrost._Types
 using MATFrost: _ConvertToMATLAB, _ConvertToJulia
 
+struct ProtocolHandleValue
+    value::String
+end
+
+MATFrost.use_matfrost_handle(::Type{ProtocolHandleValue}) = true
+
 
 """
 Scalar: Number, String
@@ -85,6 +91,28 @@ end
     v_write = MATFrostArrayStruct([0], [:one, :two], MATFrostArrayAbstract[])
     v_exp = MATFrostArrayEmpty()
     test_matfrostarray_read(v_write, v_exp; raw=true)
+end
+
+@testset "MATFrostHandle protocol roundtrip" begin
+    original_object = ProtocolHandleValue("Amsterdam")
+    marr = _ConvertToMATLAB.convert_matfrostarray(original_object)
+    buffer = IOBuffer()
+
+    write_matfrostarray!(buffer, marr)
+    seekstart(buffer)
+    restored_marr = read_matfrostarray!(buffer)
+
+    @test bytesavailable(buffer) == 0
+    @test restored_marr isa MATFrostArrayStruct
+    @test restored_marr.fieldnames == Symbol[:dataType, :id, :typename]
+
+    restored_object = _ConvertToJulia.convert_matfrostarray(
+        ProtocolHandleValue,
+        restored_marr,
+    )
+    @test restored_object === original_object
+
+    MATFrost.release_all_handles!()
 end
 
 @testset "Primitives-Behavior-String" begin

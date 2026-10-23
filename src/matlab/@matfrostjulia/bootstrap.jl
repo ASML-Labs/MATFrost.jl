@@ -10,6 +10,7 @@ try
     using MATFrost
 catch _
     import Pkg
+
     Pkg.instantiate()
     try
         using MATFrost
