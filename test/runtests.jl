@@ -6,6 +6,7 @@ include("read.jl")
 # include("composites.jl")
 include("server.jl")
 include("converttomatlab.jl")
+include("abstractarrays.jl")
 if VERSION >= v"1.12"
     include("static_inference.jl")
 end
