@@ -24,10 +24,4 @@ include("example.jl")
 
 include("install.jl")
 
-export MATFrostHandle
-export use_matfrost_handle
-export resolve_handle
-export release_handle
-export release_all_handles!
-
 end
