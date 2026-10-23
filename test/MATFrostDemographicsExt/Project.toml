@@ -5,8 +5,14 @@ authors = ["Lennard Mulder <lennard.mulder@asml.com>"]
 
 [deps]
 MATFrost = "406cae98-a0f7-4766-b83f-8510a556e0e7"
+MATFrostGeometryExt = "7ecbcfdc-3d01-4b25-aa0a-621b7438b95f"
+
+[weakdeps]
 Demographics = "d436b072-ee80-4a3b-8b2e-fdf4e33f3236"
 
+[extensions]
+DemographicsExt = "Demographics"
+
 [sources]
-Demographics = {path = "../Demographics"}
 MATFrost = {path = "../.."}
+MATFrostGeometryExt = {path = "../MATFrostGeometryExt"}

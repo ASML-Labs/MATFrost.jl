@@ -38,8 +38,8 @@ Country(name::String, area::Float64) =
 # Mutating operations
 #
 
-function add_city!(country::Country, name::String, population::Integer)
-    push!(country.cities, City(name, Int64(population)))
+function add_city!(country::Country, name::String, population::Int64)
+    push!(country.cities, City(name, population))
     return country
 end
 
@@ -55,9 +55,9 @@ function has_city(country::Country, name::String)
     any(city -> city.name == name, country.cities)
 end
 
-function update_city!(country::Country, name::String, population::Integer)
+function update_city!(country::Country, name::String, population::Int64)
     city = city_info(country, name)
-    city.population = Int64(population)
+    city.population = population
     return country
 end
 
