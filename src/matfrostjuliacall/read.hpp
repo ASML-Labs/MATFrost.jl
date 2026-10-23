@@ -4,7 +4,6 @@
 
 #include "mex.hpp"
 #include "mexAdapter.hpp"
-#include "protocol.hpp"
 
 #include <tuple>
 // stdc++ lib
@@ -64,27 +63,6 @@ namespace MATFrost::Read {
         auto strdata = std::vector<uint8_t>(strbytes);
         socket->read(strdata.data(), strbytes);
         return std::string(reinterpret_cast<char *>(strdata.data()), strbytes);
-    }
-
-    matlab::data::StructArray read_handle(const std::shared_ptr<Socket::BufferedTCPSocket> socket, matlab::data::ArrayDimensions dims) {
-        const std::string id = read_utf8_string(socket);
-        const std::string typename_string = read_utf8_string(socket);
-
-        matlab::data::ArrayFactory factory;
-        matlab::data::StructArray handle = factory.createStructArray(
-            dims,
-            {"dataType", "id", "typename"}
-        );
-        handle[0]["dataType"] = factory.createScalar("matfrost_handle");
-
-        matlab::data::StringArray id_array = factory.createArray<matlab::data::MATLABString>({1});
-        id_array[0] = matlab::engine::convertUTF8StringToUTF16String(id);
-        handle[0]["id"] = id_array;
-
-        matlab::data::StringArray typename_array = factory.createArray<matlab::data::MATLABString>({1});
-        typename_array[0] = matlab::engine::convertUTF8StringToUTF16String(typename_string);
-        handle[0]["typename"] = typename_array;
-        return handle;
     }
 
     matlab::data::Array read_cell(const std::shared_ptr<Socket::BufferedTCPSocket> socket, matlab::data::ArrayDimensions dims) {
@@ -150,8 +128,6 @@ matlab::data::Array read(const std::shared_ptr<Socket::BufferedTCPSocket> socket
             return read_struct(socket, dims);
         case matlab::data::ArrayType::MATLAB_STRING:
              return read_string(socket, dims);
-        case static_cast<matlab::data::ArrayType>(Protocol::MATFROST_HANDLE):
-               return read_handle(socket, dims);
         case matlab::data::ArrayType::LOGICAL:
             return read_primitive<bool>(socket, dims);
 

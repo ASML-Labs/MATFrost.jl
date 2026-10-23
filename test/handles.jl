@@ -2,6 +2,7 @@ using Test
 using UUIDs
 using TOML
 using MATFrost
+using MATFrost._Types
 
 if VERSION >= v"1.11"
     using MATFrostGeometryExt
@@ -66,8 +67,10 @@ MATFrost.use_matfrost_handle(
         converted =
             MATFrost._ConvertToMATLAB.convert_matfrostarray(object)
 
-        @test converted isa MATFrost.MATFrostHandle
-        @test converted.typename == string(HandleTestType)
+        @test converted isa MATFrostArrayStruct
+        @test converted.fieldnames == Symbol[:dataType, :id, :typename]
+        @test converted.values[1].values[1] == "matfrost_handle"
+        @test converted.values[3].values[1] == string(HandleTestType)
 
         restored =
             MATFrost._ConvertToJulia.convert_matfrostarray(
@@ -78,35 +81,25 @@ MATFrost.use_matfrost_handle(
         @test restored === object
         @test restored.value == "Amsterdam"
 
-        @test MATFrost.release_handle(converted)
+        @test MATFrost.release_handle(
+            UUID(converted.values[2].values[1]),
+        )
     end
 
     @testset "reject incompatible handle target" begin
-    object = HandleTestType("Amsterdam")
-    handle = MATFrost.store_handle(object)
+        object = HandleTestType("Amsterdam")
+        converted =
+            MATFrost._ConvertToMATLAB.convert_matfrostarray(object)
 
-    @test_throws ArgumentError begin
-        MATFrost._ConvertToJulia.convert_matfrostarray(
-            String,
-            handle,
-        )
+        @test_throws MATFrostConversionException begin
+            MATFrost._ConvertToJulia.convert_matfrostarray(
+                String,
+                converted,
+            )
+        end
+
+        MATFrost.release_all_handles!()
     end
-
-    @test MATFrost.release_handle(handle)
-end
-@testset "reject incompatible handle target" begin
-    object = HandleTestType("Amsterdam")
-    handle = MATFrost.store_handle(object)
-
-    @test_throws ArgumentError begin
-        MATFrost._ConvertToJulia.convert_matfrostarray(
-            String,
-            handle,
-        )
-    end
-
-    @test MATFrost.release_handle(handle)
-end
 end
 
 if VERSION >= v"1.11"
@@ -122,10 +115,16 @@ if VERSION >= v"1.11"
     @test MATFrost.use_matfrost_handle(Geometry.Point)
 
     point = Geometry.Point("Amsterdam")
-    handle = MATFrost._ConvertToMATLAB.convert_matfrostarray(point)
-    @test handle isa MATFrost.MATFrostHandle
-    @test MATFrost.resolve_handle(handle) === point
-    @test Geometry.get_label(MATFrost.resolve_handle(handle)) == "Amsterdam"
+    converted = MATFrost._ConvertToMATLAB.convert_matfrostarray(point)
+    @test converted isa MATFrostArrayStruct
+    @test converted.values[3].values[1] == string(Geometry.Point)
+
+    restored = MATFrost._ConvertToJulia.convert_matfrostarray(
+        Geometry.Point,
+        converted,
+    )
+    @test restored === point
+    @test Geometry.get_label(restored) == "Amsterdam"
 
     try
         nothing

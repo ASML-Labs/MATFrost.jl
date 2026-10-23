@@ -1,10 +1,13 @@
 
 module _ConvertToMATLAB
 
+using UUIDs
+
 using .._Types
 using .._Constants
 
-import ..MATFrost: store_handle, use_matfrost_handle
+import ..MATFrost: MATFrostHandle, store_handle, use_matfrost_handle,
+    HANDLE_MARKER_FIELD, HANDLE_MARKER_VALUE, HANDLE_ID_FIELD, HANDLE_TYPENAME_FIELD
 
 supported_number_type(::Type{T}) where T = isprimitivetype(T)
 supported_number_type(::Type{Complex{T}}) where T = isprimitivetype(T)
@@ -42,9 +45,25 @@ end
 end
 
 
+@noinline function convert_matfrostarray(id::UUID)
+    MATFrostArrayString(Int64[1], String[string(id)])
+end
+
+@noinline function convert_matfrostarray(handle::MATFrostHandle)
+    MATFrostArrayStruct(
+        Int64[1],
+        Symbol[HANDLE_MARKER_FIELD, HANDLE_ID_FIELD, HANDLE_TYPENAME_FIELD],
+        MATFrostArrayAbstract[
+            convert_matfrostarray(HANDLE_MARKER_VALUE),
+            convert_matfrostarray(handle.id),
+            convert_matfrostarray(handle.typename),
+        ],
+    )
+end
+
 @noinline function convert_matfrostarray(structval::T) where {T}
     if use_matfrost_handle(T)
-        return store_handle(structval)
+        return convert_matfrostarray(store_handle(structval))
     end
 
     return convert_struct_matfrostarray(structval)
