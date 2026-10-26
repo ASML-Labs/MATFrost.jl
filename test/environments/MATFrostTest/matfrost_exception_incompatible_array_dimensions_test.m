@@ -1,6 +1,5 @@
 classdef matfrost_exception_incompatible_array_dimensions_test < matfrost_abstract_test
 
-
     properties (TestParameter)
         jltype = {
             "bool"; 
