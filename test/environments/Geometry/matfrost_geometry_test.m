@@ -1,9 +1,5 @@
 classdef matfrost_geometry_test < matfrost_abstract_test
-
-    properties (Constant)
-        environment = "Geometry"
-    end
-   
+  
     methods(Test, TestTags="dispatch")
         function point_handle_roundtrip(tc)
             % Geometry.Point handle support comes from a package extension (Julia >= 1.11).

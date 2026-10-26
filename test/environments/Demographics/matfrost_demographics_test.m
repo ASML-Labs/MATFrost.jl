@@ -1,9 +1,5 @@
 classdef matfrost_demographics_test < matfrost_abstract_test
     
-    properties (Constant)
-        environment = fileparts(fileparts(mfilename('fullpath')));
-    end
-
     methods(TestMethodSetup)
         function load_geometry_integration(tc)
             tc.mjl.MATFrostTest.release_handle_test_objects();

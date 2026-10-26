@@ -90,3 +90,23 @@ classdef matfrost_abstract_test < matlab.unittest.TestCase
     end
 
 end
+function version = get_julia_version()
+    if strcmp(getenv('GITHUB_ACTIONS'), 'true')
+        version = strsplit(getenv('JULIA_VERSIONS'), ',');
+    else
+        version={'1.12'};
+    end
+end
+function tf = julia_version_older_than(julia_version, reference)
+    % Compares version components; str2double would rank "1.7" above "1.11".
+    parts = str2double(strsplit(string(julia_version), "."));
+    parts(isnan(parts)) = 0;
+    parts(end+1:numel(reference)) = 0;
+    tf = false;
+    for k = 1:numel(reference)
+        if parts(k) ~= reference(k)
+            tf = parts(k) < reference(k);
+            return
+        end
+    end
+end
