@@ -34,7 +34,7 @@ classdef matfrost_abstract_test < matlab.unittest.TestCase
                 end
             end
             
-            tc.mjl = matfrostjulia(version=julia_version, project=tc.environment);
+            tc.mjl = matfrostjulia(version=julia_version, project=fullfile(tc.test_root, "environments", tc.environment));
         end
     end
 end

@@ -56,9 +56,9 @@ function configure_packages(environment::AbstractString)
     Pkg.activate(dirname(project_file))
     if VERSION < v"1.11"
         develop_sources!(project_file, Set{String}())
+        Pkg.resolve()
     end
 
-    Pkg.resolve()
     Pkg.instantiate()
 
     return nothing
