@@ -54,8 +54,9 @@ function configure_packages(environment::AbstractString)
         error("Project.toml not found at $project_file")
 
     Pkg.activate(dirname(project_file))
-
-    develop_sources!(project_file, Set{String}())
+    if VERSION < v"1.11"
+        develop_sources!(project_file, Set{String}())
+    end
 
     Pkg.resolve()
     Pkg.instantiate()
