@@ -24,7 +24,7 @@ function test_extension(environment)
             )
 
             run(
-                `$(Base.julia_cmd()) --project=$env $(joinpath(env, "runtest.jl"))`,
+                `$(Base.julia_cmd()) --project=$env $(joinpath(env, "runtests.jl"))`,
             )
         end
     end
