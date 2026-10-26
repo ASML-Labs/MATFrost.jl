@@ -1,9 +1,9 @@
 classdef matfrost_abstract_test < matlab.unittest.TestCase
     
-    properties 
-        environment (1,1) string = fullfile(fileparts(fileparts(mfilename('fullpath'))), 'MATFrostTest');
+    properties(Constant)
+        test_root = fileparts(fileparts(mfilename('fullpath')));
+        environment = "MATFrostTest"
     end
-
     properties (ClassSetupParameter)
         julia_version = get_julia_version();
     end    
@@ -17,12 +17,10 @@ classdef matfrost_abstract_test < matlab.unittest.TestCase
         function setup_matfrost(tc, julia_version)
             needs_explicit_develop = julia_version_older_than(julia_version, [1 11]);
             tc.supports_package_extensions = ~needs_explicit_develop;
-            test_root = fileparts(fileparts(mfilename('fullpath')));
-            project_path = fullfile(test_root, "MATFrostTest");
             if needs_explicit_develop
-                configuration_packages_path = fullfile(test_root, "configure_packages.jl");
-                cmdline = sprintf('julia %s%s --project="%s" "%s"', '+', julia_version, project_path, configuration_packages_path);
-
+                configure_packages_path = fullfile( tc.test_root, "configure_packages.jl");
+                cmdline = sprintf( 'julia +%s --startup-file=no "%s" "%s"', ...
+                    julia_version, configure_packages_path, fullfile(tc.test_root, "environments", tc.environment));
                 if ispc
                     [resolve_julia_project_status, resolve_julia_project_log] = ...
                         shell('cmd.exe', '/c', cmdline)
@@ -36,7 +34,7 @@ classdef matfrost_abstract_test < matlab.unittest.TestCase
                 end
             end
             
-            tc.mjl = matfrostjulia(version=julia_version, project=project_path);
+            tc.mjl = matfrostjulia(version=julia_version, project=tc.environment);
         end
     end
 end

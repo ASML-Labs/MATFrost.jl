@@ -1,5 +1,8 @@
 classdef matfrost_demographics_test < matfrost_abstract_test
 
+    properties (Constant)
+        environment = "Demographics"
+    end
     methods(Test, TestTags="dispatch")
 
         function country_handle_roundtrip(tc)

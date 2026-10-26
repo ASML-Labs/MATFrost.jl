@@ -1,7 +1,6 @@
 classdef matfrost_test < matfrost_abstract_test
 % Unit test for matfrostjulia testing the translations of the base types from MATLAB to Julia and back.
-
-    
+   
     methods(Test)
         % Test methods
         

@@ -1,12 +1,6 @@
 [deps]
-DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-Demographics = "d436b072-ee80-4a3b-8b2e-fdf4e33f3236"
-Geometry = "2fcba198-df7c-4c9e-ae5d-289e03a66e9b"
 JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
 MATFrost = "406cae98-a0f7-4766-b83f-8510a556e0e7"
-MATFrostDemographicsExt = "fccc8646-aec4-4b83-9b60-84bdce7f549a"
-MATFrostGeometryExt = "7ecbcfdc-3d01-4b25-aa0a-621b7438b95f"
-MATFrostTest = "13500e4e-9d63-4f78-ab54-2a107fc91083"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
 TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
@@ -14,9 +8,4 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [sources]
-Demographics = {path = "Demographics"}
-Geometry = {path = "Geometry"}
 MATFrost = {path = ".."}
-MATFrostDemographicsExt = {path = "MATFrostDemographicsExt"}
-MATFrostGeometryExt = {path = "MATFrostGeometryExt"}
-MATFrostTest = {path = "MATFrostTest"}

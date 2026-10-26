@@ -6,7 +6,7 @@ using UUIDs
 using .._Types
 using .._Constants
 
-import ..MATFrost: MATFrostHandle, store_handle, use_matfrost_handle,
+import ..MATFrost: MATFrostHandle, store_handle, use_matfrost_handle, convert_to_matlab,
     HANDLE_MARKER_FIELD, HANDLE_MARKER_VALUE, HANDLE_ID_FIELD, HANDLE_TYPENAME_FIELD
 
 supported_number_type(::Type{T}) where T = isprimitivetype(T)

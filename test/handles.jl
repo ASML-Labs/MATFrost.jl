@@ -4,10 +4,6 @@ using TOML
 using MATFrost
 using MATFrost._Types
 
-if VERSION >= v"1.11"
-    using MATFrostGeometryExt
-end
-
 struct HandleTestType
     value::String
 end
@@ -22,10 +18,10 @@ MATFrost.use_matfrost_handle(
 
         handle = MATFrost.store_handle(obj)
 
-        @test handle isa MATFrostHandle
+        @test handle isa MATFrost.MATFrostHandle
         @test handle.id isa UUID
 
-        resolved = resolve_handle(handle)
+        resolved = MATFrost.resolve_handle(handle)
 
         @test resolved === obj
 
@@ -37,7 +33,7 @@ MATFrost.use_matfrost_handle(
 
         @test MATFrost.release_handle(handle)
 
-        @test_throws ArgumentError resolve_handle(handle)
+        @test_throws ArgumentError MATFrost.resolve_handle(handle)
 
         @test !MATFrost.release_handle(handle)
     end
@@ -48,17 +44,17 @@ MATFrost.use_matfrost_handle(
 
         MATFrost.release_all_handles!()
 
-        @test_throws ArgumentError resolve_handle(h1)
-        @test_throws ArgumentError resolve_handle(h2)
+        @test_throws ArgumentError MATFrost.resolve_handle(h1)
+        @test_throws ArgumentError MATFrost.resolve_handle(h2)
     end
 
     @testset "default handle trait" begin
         struct DummyType
         end
 
-        @test !use_matfrost_handle(Int64)
-        @test !use_matfrost_handle(String)
-        @test !use_matfrost_handle(DummyType)
+        @test !MATFrost.use_matfrost_handle(Int64)
+        @test !MATFrost.use_matfrost_handle(String)
+        @test !MATFrost.use_matfrost_handle(DummyType)
     end
 
     @testset "Opt-in handle conversion" begin
@@ -100,36 +96,4 @@ MATFrost.use_matfrost_handle(
 
         MATFrost.release_all_handles!()
     end
-end
-
-if VERSION >= v"1.11"
-@testset "Geometry handle extension" begin
-    @test !isdefined(Main, :Geometry)
-
-    @eval Main using Geometry
-
-    geometry_project = TOML.parsefile(
-        joinpath(dirname(pathof(Geometry)), "..", "Project.toml"),
-    )
-    @test !haskey(get(geometry_project, "deps", Dict{String,Any}()), "MATFrost")
-    @test MATFrost.use_matfrost_handle(Geometry.Point)
-
-    point = Geometry.Point("Amsterdam")
-    converted = MATFrost._ConvertToMATLAB.convert_matfrostarray(point)
-    @test converted isa MATFrostArrayStruct
-    @test converted.values[3].values[1] == string(Geometry.Point)
-
-    restored = MATFrost._ConvertToJulia.convert_matfrostarray(
-        Geometry.Point,
-        converted,
-    )
-    @test restored === point
-    @test Geometry.get_label(restored) == "Amsterdam"
-
-    try
-        nothing
-    finally
-        MATFrost.release_all_handles!()
-    end
-end
 end

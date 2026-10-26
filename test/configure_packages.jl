@@ -1,14 +1,45 @@
-import Pkg
+using Pkg
 
-test_root = @__DIR__
+length(ARGS) == 1 || error(
+    "Usage: julia configure_packages.jl <environment>"
+)
 
+environment = abspath(only(ARGS))
 if VERSION < v"1.11"
-	Pkg.develop([
-		Pkg.PackageSpec(path=joinpath(test_root, "Geometry")),
-		Pkg.PackageSpec(path=joinpath(test_root, "..")),
-		Pkg.PackageSpec(path=joinpath(test_root, "MATFrostGeometryExt")),
-	])
+project_file = joinpath(environment, "Project.toml")
+
+isfile(project_file) || error(
+    "Project.toml not found at: $project_file"
+)
+
+using TOML
+project = TOML.parsefile(project_file)
+sources = get(project, "sources", Dict{String,Any}())
+
+packages = Pkg.PackageSpec[]
+
+for (name, source) in sources
+    source isa AbstractDict || continue
+
+    path = get(source, "path", nothing)
+    path isa AbstractString || continue
+
+    package_path = normpath(environment, path)
+    @info "Developing package" name package_path
+    push!(
+        packages,
+        Pkg.PackageSpec(
+            name=name,
+            path=normpath(environment, path),
+        ),
+    )
+end
+Pkg.activate(environment)
+
+isempty(packages) || Pkg.develop(packages)
+Pkg.resolve()
+else 
+    Pkg.activate(environment)
 end
 
-Pkg.resolve()
 Pkg.instantiate()
