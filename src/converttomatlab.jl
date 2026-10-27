@@ -94,7 +94,7 @@ end
 
 end
 
-@generated function convert_matfrostarray(arr::Array{T,N}) where {T<:Union{Array, Tuple}, N}
+@generated function convert_matfrostarray(arr::Array{T,N}) where {T<:Union{AbstractArray, Tuple}, N}
     quote
         if length(arr) == 0
             return MATFrostArrayEmpty()

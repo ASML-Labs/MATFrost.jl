@@ -198,9 +198,9 @@ end
 
 
 """
-Convert to arrays of arrays/tuples
+Convert to arrays of arrays/BitArrays/tuples
 """
-@generated function convert_matfrostarray(::Type{Array{T,N}}, @nospecialize(marr::MATFrostArrayAbstract))::Array{T,N} where {T<:Union{Array, Tuple},N}
+@generated function convert_matfrostarray(::Type{Array{T,N}}, @nospecialize(marr::MATFrostArrayAbstract))::Array{T,N} where {T<:Union{Array, BitArray, Tuple},N}
     quote
         if marr isa MATFrostArrayCell
             validate_array_dimensions(Array{T,N}, marr)

@@ -71,6 +71,17 @@ _same(a, b) = false
         @test c.values[1] isa MATFrostArrayPrimitive{Int64}
         @test c.values[2] isa MATFrostArrayPrimitive{Bool}
     end
+
+    @testset "arrays whose elements are BitArrays, ranges or views become cells" begin
+        for v in Any[[trues(2), falses(3)], [1:2, 3:5], [view([1.0, 2.0, 3.0], 1:2)]]
+            m = _toMATLAB(v)
+            @test m isa MATFrostArrayCell
+            @test length(m.values) == length(v)
+            for (el, mel) in zip(v, m.values)
+                @test _same(mel, _toMATLAB(Array(el)))
+            end
+        end
+    end
 end
 
 @testset "MATLAB -> Julia: logical arrays to BitArray" begin
@@ -107,5 +118,24 @@ end
     @testset "round trip Julia -> MATLAB -> Julia" begin
         b = rand(Bool, 4, 5) |> BitMatrix
         @test _toJulia(BitMatrix, _wire_roundtrip(_toMATLAB(b))) == b
+    end
+
+    @testset "MATLAB-shaped dims (row and column vectors)" begin
+        for dims in ([3, 1], [1, 3])
+            marr = MATFrostArrayPrimitive{Bool}(Int64[dims...], Bool[true, false, true])
+            @test _toJulia(BitVector, marr) == BitVector([true, false, true])
+        end
+    end
+
+    @testset "cell of logicals to Vector{BitVector}" begin
+        cell = MATFrostArrayCell(Int64[1, 2], MATFrostArrayAbstract[
+            MATFrostArrayPrimitive{Bool}(Int64[1, 2], Bool[true, false]),
+            MATFrostArrayPrimitive{Bool}(Int64[1, 1], Bool[true])])
+        v = _toJulia(Vector{BitVector}, _wire_roundtrip(cell))
+        @test v isa Vector{BitVector}
+        @test v == [BitVector([true, false]), BitVector([true])]
+
+        vv = [trues(2), falses(3)]
+        @test _toJulia(Vector{BitVector}, _wire_roundtrip(_toMATLAB(vv))) == vv
     end
 end
