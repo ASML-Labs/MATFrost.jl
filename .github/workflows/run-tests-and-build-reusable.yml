@@ -140,9 +140,13 @@ jobs:
         env:
           JULIA_VERSIONS: ${{ inputs.julia-version }}
         with:
-          source-folder: 'src/matlab'
-          select-by-folder: 'test/matlab'
-          strict: false
+        source-folder: |
+          src/matlab
+          test/matlab
+        select-by-folder: |
+          test/matlab
+          test/environments
+        strict: false
           test-results-junit: test-results/results.xml
           code-coverage-cobertura: test-results/coverage.xml
       

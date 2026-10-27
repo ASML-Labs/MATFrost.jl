@@ -16,7 +16,7 @@ classdef matfrost_sysimage_test < matfrost_abstract_test
     methods(Test, TestTags="Sysimage")
         function start_with_custom_sysimage(tc)
             [sysimage_dir, sysimage_name] = tc.copy_default_sysimage();
-            project_path = fullfile(fileparts(fileparts(mfilename('fullpath'))), "MATFrostTest");
+            project_path = fullfile(tc.test_root,"environments",tc.environment);
 
             jl = matfrostjulia(version=tc.tested_julia_version, project=project_path, ...
                 sysimage=fullfile(sysimage_dir, sysimage_name));
@@ -29,7 +29,7 @@ classdef matfrost_sysimage_test < matfrost_abstract_test
 
         function start_with_relative_sysimage_path(tc)
             [sysimage_dir, sysimage_name] = tc.copy_default_sysimage();
-            project_path = fullfile(fileparts(fileparts(mfilename('fullpath'))), "MATFrostTest");
+            project_path = fullfile(tc.test_root,"environments",tc.environment);
 
             old_dir = cd(sysimage_dir);
             tc.addTeardown(@cd, old_dir);
