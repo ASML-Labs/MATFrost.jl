@@ -153,7 +153,7 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
             end
             
             if jlo.status == "SUCCESFUL"
-                varargout{1} = jlo.value;
+                varargout{1} = matfrost_materialize(jlo.value);
             elseif jlo.status =="ERROR"
                 v = jlo.value;
 

@@ -1,0 +1,7 @@
+name = "Demographics"
+uuid = "d436b072-ee80-4a3b-8b2e-fdf4e33f3236"
+version = "0.1.0"
+authors = ["Lennard Mulder <lennard.mulder@asml.com>"]
+
+[deps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"

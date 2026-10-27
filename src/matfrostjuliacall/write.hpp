@@ -14,7 +14,6 @@
 
 namespace MATFrost::Write {
 
-
     void write(const std::shared_ptr<Socket::BufferedTCPSocket> socket, const matlab::data::Array arr);
 
     template<typename T>
@@ -35,6 +34,12 @@ namespace MATFrost::Write {
 
     }
 
+    void write_utf8_string(const std::shared_ptr<Socket::BufferedTCPSocket> socket, const std::string& str) {
+        size_t strlen = str.size();
+        socket->write(reinterpret_cast<const uint8_t *>(&strlen), sizeof(size_t));
+        socket->write(reinterpret_cast<const uint8_t *>(str.data()), str.size());
+    }
+
     void write_string(const std::shared_ptr<Socket::BufferedTCPSocket> socket, const matlab::data::StringArray strarr) {
         int32_t mattype = static_cast<int32_t>(strarr.getType());
         auto dims = strarr.getDimensions();
@@ -46,13 +51,10 @@ namespace MATFrost::Write {
 
         for (const matlab::data::MATLABString matstr: strarr) {
             std::string str(matlab::engine::convertUTF16StringToUTF8String(matstr));
-            size_t strlen = str.size();
-            socket->write(reinterpret_cast<const uint8_t *>(&strlen), sizeof(size_t));
-            socket->write(reinterpret_cast<const uint8_t *>(str.data()), str.size());
+            write_utf8_string(socket, str);
         }
 
     }
-
 
     void write_cell(const std::shared_ptr<Socket::BufferedTCPSocket> socket, const matlab::data::CellArray mcarr) {
         int32_t mattype = static_cast<int32_t>(mcarr.getType());

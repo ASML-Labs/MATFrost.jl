@@ -1,12 +1,14 @@
 module _ConvertToJulia
 
+using UUIDs
+
 using .._Types
 using .._Constants
 
+import ..MATFrost: MATFrostHandle, resolve_handle, use_matfrost_handle
 
 supported_number_type(::Type{T}) where T = isprimitivetype(T)
 supported_number_type(::Type{Complex{T}}) where T = isprimitivetype(T)
-
 
 @noinline function convert_matfrostarray(::Type{T}, @nospecialize(marr::MATFrostArrayAbstract))::T where {T<:Number}
     if !supported_number_type(T)
@@ -54,6 +56,13 @@ Convert to String
     else
         throw(incompatible_datatypes_exception(String, marr))
     end
+end
+
+"""
+Convert to UUID
+"""
+@noinline function convert_matfrostarray(::Type{UUID}, @nospecialize(marr::MATFrostArrayAbstract))::UUID
+    UUID(convert_matfrostarray(String, marr))
 end
 
 """
@@ -123,21 +132,56 @@ Convert to Tuples
 end
 
 """
+Convert a MATFrost handle back to the object it references.
+"""
+@noinline function convert_matfrosthandle(::Type{T}, @nospecialize(marr::MATFrostArrayAbstract))::T where {T}
+    value = resolve_handle(convert_matfrostarray(MATFrostHandle, marr))
+
+    value isa T ||
+        throw(
+            ArgumentError(
+                "Handle contains $(typeof(value)), expected $T",
+            ),
+        )
+
+    return value::T
+end
+
+"""
 Convert to structs/namedtuples
 """
-@generated function convert_matfrostarray(::Type{T}, @nospecialize(marr::MATFrostArrayAbstract))::T where T
+@generated function convert_matfrostarray(
+    ::Type{T},
+    @nospecialize(marr::MATFrostArrayAbstract),
+)::T where {T}
     if isstructtype(T)
         quote
-            if marr isa MATFrostArrayStruct
+            if use_matfrost_handle(T)
+                return convert_matfrosthandle(T, marr)
+            elseif marr isa MATFrostArrayStruct
                 validate_array_dimensions(T, marr)
-                validate_fieldnames(T, marr)     
-                convert_matfrostarray_struct_object(T, marr, 1)
-            elseif marr isa MATFrostArrayEmpty
-                throw(not_scalar_value_exception(T, Int64[0]))
-            else
-                throw(incompatible_datatypes_exception(T, marr))
-            end
+                validate_fieldnames(T, marr)
 
+                return convert_matfrostarray_struct_object(
+                    T,
+                    marr,
+                    1,
+                )
+            elseif marr isa MATFrostArrayEmpty
+                throw(
+                    not_scalar_value_exception(
+                        T,
+                        Int64[0],
+                    ),
+                )
+            else
+                throw(
+                    incompatible_datatypes_exception(
+                        T,
+                        marr,
+                    ),
+                )
+            end
         end
     else
         quote
@@ -584,10 +628,5 @@ end
     
     unsupported_datatype_exception(typename)
 end
-
-
-
-
-
 
 end
