@@ -8,23 +8,30 @@ classdef matfrost_demographics_test < matfrost_abstract_test
         function activateExtension(tc)
             tc.mjl.MATFrostDemographicsExt.activate();
         end
+    end
 
+    methods(TestMethodSetup)
         function createCountry(tc)
             tc.country = tc.mjl.Demographics.Country( ...
                 "Netherlands", 33481.0, ...
                 signature=["String", "Float64"]);
-            tc.mjl.Demographics.("add_city!")(tc.country, "Amsterdam", int64(934526));
-            tc.mjl.Demographics.("add_city!")(tc.country, "Rotterdam", int64(672960));
+
+            tc.mjl.Demographics.("add_city!")( ...
+                tc.country, "Amsterdam", int64(934526));
+
+            tc.mjl.Demographics.("add_city!")( ...
+                tc.country, "Rotterdam", int64(672960));
         end
     end
 
     methods(Test, TestTags="dispatch")
+
         function country_handle_roundtrip(tc)
             expected = ["dataType"; "id"; "typename"];
 
-            tc.verifyTrue(all(strcmp( ...
+            tc.verifyEqual( ...
                 string(fieldnames(tc.country)), ...
-                expected)));
+                expected);
         end
 
         function country_population(tc)
@@ -54,22 +61,31 @@ classdef matfrost_demographics_test < matfrost_abstract_test
         end
 
         function update_city(tc)
-            tc.mjl.Demographics.("update_city!")(tc.country, "Amsterdam", int64(950000));
+            tc.mjl.Demographics.("update_city!")( ...
+                tc.country, "Amsterdam", int64(950000));
 
-            actual = tc.mjl.Demographics.population(tc.country,signature=tc.country.typename);
+            actual = tc.mjl.Demographics.population( ...
+                tc.country, ...
+                signature=tc.country.typename);
 
             tc.verifyEqual(actual, int64(1622960));
         end
 
         function remove_city(tc)
-            tc.mjl.Demographics.("remove_city!")(tc.country, "Rotterdam");
-            actual = tc.mjl.Demographics.population(tc.country, signature=tc.country.typename);
+            tc.mjl.Demographics.("remove_city!")( ...
+                tc.country, "Rotterdam");
+
+            actual = tc.mjl.Demographics.population( ...
+                tc.country, ...
+                signature=tc.country.typename);
 
             tc.verifyEqual(actual, int64(934526));
         end
 
         function dataframe(tc)
-            actual = tc.mjl.Demographics.dataframe(tc.country,signature=tc.country.typename);
+            actual = tc.mjl.Demographics.dataframe( ...
+                tc.country, ...
+                signature=tc.country.typename);
 
             expected = table( ...
                 ["Amsterdam"; "Rotterdam"], ...
