@@ -94,7 +94,7 @@ end
 
 end
 
-@generated function convert_matfrostarray(arr::Array{T,N}) where {T<:Union{Array, Tuple}, N}
+@generated function convert_matfrostarray(arr::Array{T,N}) where {T<:Union{AbstractArray, Tuple}, N}
     quote
         if length(arr) == 0
             return MATFrostArrayEmpty()
@@ -105,6 +105,20 @@ end
         end
         MATFrostArrayCell(Int64[size(arr)...], values)
     end
+end
+
+"""
+Convert any non-`Array` `AbstractArray` (e.g. `BitArray`, ranges, `SubArray` views,
+`Adjoint`/`Transpose`, `ReshapedArray`) by first materializing it into a dense `Array`.
+
+Without this method these values fall through to the generic struct conversion and MATLAB
+receives a struct of the wrapper's internal fields (e.g. `chunks`/`len`/`dims` for a
+`BitVector`, or `start`/`stop` for `1:5`) instead of the array values.
+
+The `Array` methods above are more specific, so they are unaffected.
+"""
+@noinline function convert_matfrostarray(arr::AbstractArray)
+    convert_matfrostarray(Array(arr))
 end
 
 """

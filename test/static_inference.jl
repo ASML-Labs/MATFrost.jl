@@ -79,6 +79,14 @@ end
         @test_opt target_modules=(MATFrost,) toMATLAB(val)
         @test_opt target_modules=(MATFrost,) toMATLAB(("a", 1, 2.0, Inner(1.0, 2, "z")))
     end
+
+    @testset "AbstractArray wrappers (BitArray, ranges, views)" begin
+        @test_opt target_modules=(MATFrost,) toMATLAB(trues(3))
+        @test_opt target_modules=(MATFrost,) toMATLAB(1:5)
+        @test_opt target_modules=(MATFrost,) toMATLAB(view([1.0, 2.0, 3.0], 1:2))
+        @test_opt target_modules=(MATFrost,) toMATLAB((mask = trues(2), idx = 1:2))
+        @test_opt target_modules=(MATFrost,) toJulia(BitMatrix, MATFrostArrayPrimitive{Bool}(Int64[1, 1], Bool[true]))
+    end
 end
 
 end

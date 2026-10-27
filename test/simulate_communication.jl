@@ -82,7 +82,49 @@ using Sockets
             result = _ConvertToJulia.convert_matfrostarray(Float64, response.values[3])
             @test result ≈ 8.0
         end
-        
+
+        # Helper: send one call and return the decoded response struct.
+        function call_server(fqn::String, signature::String, args::Vector{MATFrostArrayAbstract})
+            callmeta = MATFrostArrayStruct(Int64[1], Symbol[:fully_qualified_name, :signature],
+                MATFrostArrayAbstract[MATFrostArrayString(Int64[1], String[fqn]),
+                                      MATFrostArrayString(Int64[1], String[signature])])
+            call = MATFrostArrayCell(Int64[2],
+                MATFrostArrayAbstract[callmeta, MATFrostArrayCell(Int64[length(args)], args)])
+            write_matfrostarray!(client, call)
+            flush(client)
+            read_matfrostarray!(client)
+        end
+
+        @testset "BitVector return value arrives as logical array" begin
+            # `Base.trues(3)` returns a BitVector; previously this reached MATLAB as a struct
+            # with fields chunks/len/dims.
+            response = call_server("Base.trues", "Int64",
+                MATFrostArrayAbstract[MATFrostArrayPrimitive{Int64}(Int64[1], Int64[3])])
+            @test _ConvertToJulia.convert_matfrostarray(String, response.values[1]) == "SUCCESFUL"
+            value = response.values[3]
+            @test value isa MATFrostArrayPrimitive{Bool}
+            @test value.dims == [3]
+            @test value.values == [true, true, true]
+        end
+
+        @testset "Range return value arrives as numeric array" begin
+            # `Base.range(2, 5)` returns a UnitRange; previously a struct with fields start/stop.
+            response = call_server("Base.range", "Int64, Int64",
+                MATFrostArrayAbstract[MATFrostArrayPrimitive{Int64}(Int64[1], Int64[2]),
+                                      MATFrostArrayPrimitive{Int64}(Int64[1], Int64[5])])
+            @test _ConvertToJulia.convert_matfrostarray(String, response.values[1]) == "SUCCESFUL"
+            value = response.values[3]
+            @test value isa MATFrostArrayPrimitive{Int64}
+            @test value.values == [2, 3, 4, 5]
+        end
+
+        @testset "MATLAB logical array accepted as BitVector argument" begin
+            response = call_server("Base.count", "BitVector",
+                MATFrostArrayAbstract[MATFrostArrayPrimitive{Bool}(Int64[4], Bool[true, false, true, true])])
+            @test _ConvertToJulia.convert_matfrostarray(String, response.values[1]) == "SUCCESFUL"
+            @test _ConvertToJulia.convert_matfrostarray(Int64, response.values[3]) == 3
+        end
+
     finally
         close(client)
         # Stop the server

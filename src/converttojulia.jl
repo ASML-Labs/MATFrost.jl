@@ -75,6 +75,16 @@ Convert to Arrays of Strings
     end
 end
 
+"""
+Convert MATLAB logical arrays to `BitArray` (e.g. `BitVector`, `BitMatrix`).
+
+MATLAB stores logicals one byte per element; these are first read as `Array{Bool,N}` (reusing
+all dimension and datatype validation) and then packed into a `BitArray{N}`.
+"""
+@noinline function convert_matfrostarray(::Type{BitArray{N}}, @nospecialize(marr::MATFrostArrayAbstract))::BitArray{N} where {N}
+    BitArray{N}(convert_matfrostarray(Array{Bool,N}, marr))
+end
+
 
 """
 Convert to 0-size Tuples
@@ -188,9 +198,9 @@ end
 
 
 """
-Convert to arrays of arrays/tuples
+Convert to arrays of arrays/BitArrays/tuples
 """
-@generated function convert_matfrostarray(::Type{Array{T,N}}, @nospecialize(marr::MATFrostArrayAbstract))::Array{T,N} where {T<:Union{Array, Tuple},N}
+@generated function convert_matfrostarray(::Type{Array{T,N}}, @nospecialize(marr::MATFrostArrayAbstract))::Array{T,N} where {T<:Union{Array, BitArray, Tuple},N}
     quote
         if marr isa MATFrostArrayCell
             validate_array_dimensions(Array{T,N}, marr)
