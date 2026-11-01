@@ -82,8 +82,6 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
 
         function obj = start_server(obj)
 
-            obj.mh = mexhost();
-
             if ~isempty(obj.project)
                 project_cmdline = sprintf("--project=""%s""", obj.project);
             else
@@ -107,6 +105,7 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
             createstruct.cmdline = sprintf("%s %s %s ""%s""", obj.julia, sysimage_cmdline, project_cmdline, bootstrap);
             
             if obj.USE_MEXHOST
+                obj.mh = mexhost();
                 obj.mh.feval("matfrostjuliacall", createstruct);
             else
                 matfrostjuliacall(createstruct);
