@@ -6,6 +6,7 @@ classdef matfrost_demographics_test < matfrost_abstract_test
 
     methods(TestClassSetup)
         function activateExtension(tc)
+            tc.assumeTrue(tc.supports_package_extensions)
             tc.mjl.MATFrostDemographicsExt.activate();
         end
     end
