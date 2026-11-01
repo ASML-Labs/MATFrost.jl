@@ -27,12 +27,22 @@ classdef matfrost_abstract_test < matlab.unittest.TestCase
         end
     end
 
+    methods (Access = protected)
+        function required = requires_package_extensions(~)
+            required = false;
+        end
+    end
+
     methods (TestClassSetup)
         function setup_matfrost(tc, julia_version)
             needs_explicit_develop = ...
                 julia_version_older_than(julia_version, [1 11]);
 
             tc.supports_package_extensions = ~needs_explicit_develop;
+
+            if tc.requires_package_extensions()
+                tc.assumeTrue(tc.supports_package_extensions);
+            end
 
             environment_path = fullfile( ...
                 tc.test_root, ...

@@ -19,6 +19,11 @@ function test_extension(environment)
         end
 
         @testset "MATFrost Integration" begin
+            if VERSION < v"1.11"
+                @test_skip VERSION >= v"1.11"
+                return
+            end
+
             cmd = `$(Base.julia_cmd()) $configure_packages $env`
 
             try

@@ -4,6 +4,12 @@ classdef matfrost_demographics_test < matfrost_abstract_test
         country
     end
 
+    methods (Access = protected)
+        function required = requires_package_extensions(~)
+            required = true;
+        end
+    end
+
     methods(TestClassSetup)
         function activateExtension(tc)
             tc.assumeTrue(tc.supports_package_extensions)

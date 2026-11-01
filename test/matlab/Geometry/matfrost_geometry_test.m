@@ -1,7 +1,14 @@
 classdef matfrost_geometry_test < matfrost_abstract_test
   
+    methods (Access = protected)
+        function required = requires_package_extensions(~)
+            required = true;
+        end
+    end
+
     methods(TestClassSetup)
         function activateExtension(tc)
+            tc.assumeTrue(tc.supports_package_extensions);
             tc.mjl.MATFrostGeometryExt.activate();
         end
     end
