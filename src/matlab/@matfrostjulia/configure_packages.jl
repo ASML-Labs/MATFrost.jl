@@ -5,9 +5,10 @@ using TOML
 
 export configure_packages
 
-function develop_sources!(
+function collect_sources!(
     project_file::AbstractString,
     visited::Set{String},
+    packages::Vector{Pkg.PackageSpec},
 )
     project_file = abspath(project_file)
     project_file in visited && return
@@ -33,11 +34,10 @@ function develop_sources!(
             "No Project.toml found for source package at $package_dir",
         )
 
-        # First discover nested local sources.
-        develop_sources!(package_project, visited)
-
-        # Then make the package available to the active environment.
-        Pkg.develop(Pkg.PackageSpec(path = package_dir))
+        if !(abspath(package_project) in visited)
+            push!(packages, Pkg.PackageSpec(path = package_dir))
+            collect_sources!(package_project, visited, packages)
+        end
     end
 
     return nothing
@@ -55,7 +55,9 @@ function configure_packages(environment::AbstractString)
 
     Pkg.activate(dirname(project_file))
     if VERSION < v"1.11"
-        develop_sources!(project_file, Set{String}())
+        packages = Pkg.PackageSpec[]
+        collect_sources!(project_file, Set{String}(), packages)
+        isempty(packages) || Pkg.develop(packages)
         Pkg.resolve()
     end
 
