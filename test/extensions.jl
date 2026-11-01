@@ -14,11 +14,7 @@ function test_extension(environment)
     @testset "$environment Extension" begin
         @testset "Package" begin
             run(
-                pipeline(
-                    `$(Base.julia_cmd()) --project=$package_dir -e "using Pkg; Pkg.test()"`,
-                    stdout = devnull,
-                    stderr = devnull,
-                ),
+                `$(Base.julia_cmd()) --project=$package_dir -e "using Pkg; Pkg.test()"`,
             )
         end
 
