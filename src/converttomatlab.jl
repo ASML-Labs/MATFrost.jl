@@ -1,8 +1,13 @@
 
 module _ConvertToMATLAB
 
+using UUIDs
+
 using .._Types
 using .._Constants
+
+import ..MATFrost: MATFrostHandle, store_handle, use_matfrost_handle, convert_to_matlab,
+    HANDLE_MARKER_FIELD, HANDLE_MARKER_VALUE, HANDLE_ID_FIELD, HANDLE_TYPENAME_FIELD
 
 supported_number_type(::Type{T}) where T = isprimitivetype(T)
 supported_number_type(::Type{Complex{T}}) where T = isprimitivetype(T)
@@ -40,17 +45,53 @@ end
 end
 
 
-@generated function convert_matfrostarray(structval::T) where {T}
-    quote
-        
-        values=MATFrostArrayAbstract[$((
-            :(convert_matfrostarray(structval.$fn)) for fn in fieldnames(T)
-        )...)]
-        MATFrostArrayStruct(Int64[1], Symbol[fieldnames(T)...], values)
-
-    end
+@noinline function convert_matfrostarray(id::UUID)
+    MATFrostArrayString(Int64[1], String[string(id)])
 end
 
+@noinline function convert_matfrostarray(handle::MATFrostHandle)
+    MATFrostArrayStruct(
+        Int64[1],
+        Symbol[HANDLE_MARKER_FIELD, HANDLE_ID_FIELD, HANDLE_TYPENAME_FIELD],
+        MATFrostArrayAbstract[
+            convert_matfrostarray(HANDLE_MARKER_VALUE),
+            convert_matfrostarray(handle.id),
+            convert_matfrostarray(handle.typename),
+        ],
+    )
+end
+
+@noinline function convert_matfrostarray(structval::T) where {T}
+    if use_matfrost_handle(T)
+        return convert_matfrostarray(store_handle(structval))
+    end
+
+    surrogate = convert_to_matlab(structval)
+    if !isa(surrogate, T)
+        return convert_matfrostarray(surrogate)
+    end
+
+    return convert_struct_matfrostarray(structval)
+end
+
+@generated function convert_struct_matfrostarray(
+    structval::T,
+) where {T}
+    quote
+        values = MATFrostArrayAbstract[
+            $((
+                :(convert_matfrostarray(structval.$fn))
+                for fn in fieldnames(T)
+            )...)
+        ]
+
+        MATFrostArrayStruct(
+            Int64[1],
+            Symbol[fieldnames(T)...],
+            values,
+        )
+    end
+end
 
 @generated function convert_matfrostarray(arr::Array{T,N}) where {T,N}
     if isstructtype(T) && isconcretetype(T)
