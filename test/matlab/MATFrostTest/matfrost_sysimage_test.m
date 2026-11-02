@@ -14,6 +14,19 @@ classdef matfrost_sysimage_test < matfrost_abstract_test
     end
 
     methods(Test, TestTags="Sysimage")
+        function start_with_default_project(tc)
+            project_path = fullfile(tc.test_root, "environments", tc.environment);
+            previous_project = getenv('JULIA_PROJECT');
+            tc.addTeardown(@setenv, 'JULIA_PROJECT', previous_project);
+            setenv('JULIA_PROJECT', project_path);
+
+            jl = matfrostjulia(version=tc.tested_julia_version);
+            tc.servers('default_project') = jl;
+
+            tc.verifyEqual(string(jl.Base.active_project(true, signature="Bool")), fullfile(project_path, "Project.toml"));
+            tc.verifyEqual(jl.MATFrostTest.elementwise_addition_f64(2.0, [1.0; 2.0; 3.0]), [3.0; 4.0; 5.0]);
+        end
+
         function start_with_custom_sysimage(tc)
             [sysimage_dir, sysimage_name] = tc.copy_default_sysimage();
             project_path = fullfile(tc.test_root,"environments",tc.environment);

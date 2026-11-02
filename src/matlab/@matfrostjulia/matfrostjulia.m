@@ -82,7 +82,7 @@ classdef matfrostjulia < handle & matlab.mixin.indexing.RedefinesDot
 
         function obj = start_server(obj)
 
-            if ~isempty(obj.project)
+            if strlength(obj.project) > 0
                 project_cmdline = sprintf("--project=""%s""", obj.project);
             else
                 project_cmdline = "";
