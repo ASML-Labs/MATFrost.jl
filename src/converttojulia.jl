@@ -1,7 +1,12 @@
 module _ConvertToJulia
 
+using UUIDs
+
 using .._Types
 using .._Constants
+
+import ..MATFrost: MATFrostHandle, resolve_handle, use_matfrost_handle,
+    HANDLE_MARKER_FIELD, HANDLE_MARKER_VALUE
 
 
 supported_number_type(::Type{T}) where T = isprimitivetype(T)
@@ -54,6 +59,13 @@ Convert to String
     else
         throw(incompatible_datatypes_exception(String, marr))
     end
+end
+
+"""
+Convert to UUID
+"""
+@noinline function convert_matfrostarray(::Type{UUID}, @nospecialize(marr::MATFrostArrayAbstract))::UUID
+    UUID(convert_matfrostarray(String, marr))
 end
 
 """
@@ -122,13 +134,27 @@ Convert to Tuples
     end
 end
 
+@noinline function convert_matfrosthandle(::Type{T}, @nospecialize(marr::MATFrostArrayAbstract))::T where {T}
+    marr isa MATFrostArrayStruct || throw(incompatible_datatypes_exception(T, marr))
+    validate_array_dimensions(T, marr)
+    HANDLE_MARKER_FIELD in marr.fieldnames || throw(ArgumentError("Missing MATFrost handle marker"))
+    marker = convert_matfrostarray(String, get_matfrostarray_element(marr, HANDLE_MARKER_FIELD, 1))
+    marker == HANDLE_MARKER_VALUE || throw(ArgumentError("Invalid MATFrost handle marker"))
+
+    value = resolve_handle(convert_matfrostarray(MATFrostHandle, marr))
+    value isa T || throw(ArgumentError("Handle contains $(typeof(value)), expected $T"))
+    return value::T
+end
+
 """
 Convert to structs/namedtuples
 """
 @generated function convert_matfrostarray(::Type{T}, @nospecialize(marr::MATFrostArrayAbstract))::T where T
     if isstructtype(T)
         quote
-            if marr isa MATFrostArrayStruct
+            if use_matfrost_handle(T)
+                return convert_matfrosthandle(T, marr)
+            elseif marr isa MATFrostArrayStruct
                 validate_array_dimensions(T, marr)
                 validate_fieldnames(T, marr)     
                 convert_matfrostarray_struct_object(T, marr, 1)

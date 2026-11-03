@@ -1,5 +1,23 @@
 module MATFrostTest
 
+using MATFrost
+
+mutable struct HandleTestType
+    value::Int64
+end
+
+MATFrost.use_matfrost_handle(::Type{HandleTestType}) = true
+
+make_handle_test_type(value::Int64) = HandleTestType(value)
+get_handle_test_value(object::HandleTestType) = object.value
+
+function increment_handle_test_value!(object::HandleTestType, amount::Int64)
+    object.value += amount
+    return object.value
+end
+
+release_handle_test_objects() = MATFrost.release_all_handles!()
+
 
 export compute_measure
 elementwise_addition_f64(c::Float64, x::Vector{Float64}) = c .+ x
