@@ -1,16 +1,7 @@
 using Test
 using UUIDs
-using TOML
 using MATFrost
-using MATFrost._Types
 
-struct HandleTestType
-    value::String
-end
-
-MATFrost.use_matfrost_handle(
-    ::Type{HandleTestType},
-) = true
 @testset "MATFrost handles" begin
 
     @testset "store and resolve" begin
@@ -38,6 +29,17 @@ MATFrost.use_matfrost_handle(
         @test !MATFrost.release_handle(handle)
     end
 
+    @testset "release stored nothing" begin
+        previous_count = MATFrost.handle_count()
+        handle = MATFrost.store_handle(nothing)
+
+        @test MATFrost.resolve_handle(handle) === nothing
+        @test MATFrost.release_handle(handle.id)
+        @test MATFrost.handle_count() == previous_count
+        @test !MATFrost.release_handle(handle)
+        @test_throws ArgumentError MATFrost.resolve_handle(handle)
+    end
+
     @testset "release all" begin
         h1 = MATFrost.store_handle(Ref(1))
         h2 = MATFrost.store_handle(Ref(2))
@@ -57,43 +59,4 @@ MATFrost.use_matfrost_handle(
         @test !MATFrost.use_matfrost_handle(DummyType)
     end
 
-    @testset "Opt-in handle conversion" begin
-        object = HandleTestType("Amsterdam")
-
-        converted =
-            MATFrost._ConvertToMATLAB.convert_matfrostarray(object)
-
-        @test converted isa MATFrostArrayStruct
-        @test converted.fieldnames == Symbol[:dataType, :id, :typename]
-        @test converted.values[1].values[1] == "matfrost_handle"
-        @test converted.values[3].values[1] == string(HandleTestType)
-
-        restored =
-            MATFrost._ConvertToJulia.convert_matfrostarray(
-                HandleTestType,
-                converted,
-            )
-
-        @test restored === object
-        @test restored.value == "Amsterdam"
-
-        @test MATFrost.release_handle(
-            UUID(converted.values[2].values[1]),
-        )
-    end
-
-    @testset "reject incompatible handle target" begin
-        object = HandleTestType("Amsterdam")
-        converted =
-            MATFrost._ConvertToMATLAB.convert_matfrostarray(object)
-
-        @test_throws MATFrostConversionException begin
-            MATFrost._ConvertToJulia.convert_matfrostarray(
-                String,
-                converted,
-            )
-        end
-
-        MATFrost.release_all_handles!()
-    end
 end

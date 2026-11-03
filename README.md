@@ -142,67 +142,33 @@ Here, `signature=["MyGeometry.Point", "MyGeometry.Point"]` ensures the correct m
 
 This feature allows you to disambiguate overloaded Julia functions directly from MATLAB.
 
-## Keep Julia objects in Julia with handles
+## Julia object handle registry
 
-By default, MATFrost marshals Julia objects into MATLAB values. For large or
-stateful objects, repeatedly transferring their contents can be expensive. Opt a
-Julia type into handle conversion to keep the object in Julia: MATLAB receives
-only a small struct containing `dataType`, `id`, and `typename`. Passing this
-handle back to Julia resolves the original object rather than reconstructing it
-from its fields.
-
-For example, define the following in a Julia package available in your MATFrost
-project:
+MATFrost provides a Julia-side registry that retains objects behind opaque
+`MATFrostHandle` references. Resolving a handle returns the original object,
+preserving its identity and mutable state.
 
 ```julia
-module MySimulation
+using MATFrost
 
-import MATFrost
+state = Ref(0)
+handle = MATFrost.store_handle(state)
+MATFrost.resolve_handle(handle)[] = 42
+@assert state[] == 42
 
-mutable struct State
-   values::Vector{Float64}
-end
-
-MATFrost.use_matfrost_handle(::Type{State}) = true
-
-create_state(count::Int64) = State(zeros(count))
-
-function add!(state::State, amount::Float64)
-   state.values .+= amount
-   return sum(state.values)
-end
-
-snapshot(state::State) = copy(state.values)
-
-end
+@assert MATFrost.release_handle(handle)
+@assert !MATFrost.release_handle(handle)
 ```
 
-Use the object from MATLAB without transferring its vector on each call:
+Handles contain a UUID and a type name. Objects remain referenced until their
+handles are explicitly released or the Julia process exits.
+`MATFrost.release_all_handles!()` releases all registered objects and invalidates
+their handles.
 
-```matlab
-jl = matfrostjulia(project="<projectdir>");
-state = jl.MySimulation.create_state(int64(1000000), signature="Int64");
-total = jl.MySimulation.("add!")(state, 2.0, ...
-   signature=[state.typename, "Float64"]); % 2000000
-values = jl.MySimulation.snapshot(state, signature=state.typename);
-   % Explicitly transfer the vector to MATLAB when needed.
-jl.MATFrost.("release_all_handles!")();
-   % Release all stored objects when no handles are needed anymore.
-```
-
-The vector is allocated and updated in Julia; only the handle and scalar result
-are marshalled during the update. Mutations affect the original Julia object,
-and copies of the MATLAB handle refer to that same object. The handle is an
-opaque reference, not a MATLAB handle-class object; access its data through Julia
-functions rather than MATLAB field indexing.
-
-Handles belong to the Julia server process that created them and cannot be
-reused after it exits. Stored objects remain referenced until explicitly
-released or the process exits: clearing a MATLAB variable does not release them.
-Julia code can release an individual reference with
-`MATFrost.release_handle(handle::MATFrost.MATFrostHandle)` or
-`MATFrost.release_handle(id::UUID)`. `MATFrost.release_all_handles!()` invalidates
-all outstanding handles in that server process.
+The registry is the foundation for future handle conversion and transport.
+It does not change existing MATLAB/Julia conversion behavior. The
+`MATFrost.use_matfrost_handle(::Type)` trait defaults to `false` and is not yet
+used by the conversion code.
 
 ## Type mapping
 

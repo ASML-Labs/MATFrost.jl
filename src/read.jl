@@ -1,6 +1,5 @@
 module _Read
 
-using UUIDs
 using .._Types
 using .._Constants
 
@@ -99,7 +98,7 @@ end
 
     elseif header.type == MATLAB_STRING
         read_matfrostarray_string!(io, header)
-
+        
     elseif header.type == LOGICAL
         read_matfrostarray_primitive!(io, header, Bool)
     elseif header.type == DOUBLE

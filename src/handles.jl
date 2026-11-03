@@ -5,12 +5,6 @@ struct MATFrostHandle
     typename::String
 end
 
-# Field layout of the plain MATLAB struct that represents a handle on the wire.
-const HANDLE_MARKER_FIELD = :dataType
-const HANDLE_MARKER_VALUE = "matfrost_handle"
-const HANDLE_ID_FIELD = :id
-const HANDLE_TYPENAME_FIELD = :typename
-
 use_matfrost_handle(::Type) = false
 
 const HANDLE_STORE = Dict{UUID,Any}()
@@ -46,7 +40,9 @@ resolve_handle(handle::MATFrostHandle) = resolve_handle(handle.id)
 
 function release_handle(id::UUID)::Bool
     return lock(HANDLE_STORE_LOCK) do
-        pop!(HANDLE_STORE, id, nothing) !== nothing
+        haskey(HANDLE_STORE, id) || return false
+        delete!(HANDLE_STORE, id)
+        return true
     end
 end
 
