@@ -142,6 +142,34 @@ Here, `signature=["MyGeometry.Point", "MyGeometry.Point"]` ensures the correct m
 
 This feature allows you to disambiguate overloaded Julia functions directly from MATLAB.
 
+## Julia object handle registry
+
+MATFrost provides a Julia-side registry that retains objects behind opaque
+`MATFrostHandle` references. Resolving a handle returns the original object,
+preserving its identity and mutable state.
+
+```julia
+using MATFrost
+
+state = Ref(0)
+handle = MATFrost.store_handle(state)
+MATFrost.resolve_handle(handle)[] = 42
+@assert state[] == 42
+
+@assert MATFrost.release_handle(handle)
+@assert !MATFrost.release_handle(handle)
+```
+
+Handles contain a UUID and a type name. Objects remain referenced until their
+handles are explicitly released or the Julia process exits.
+`MATFrost.release_all_handles!()` releases all registered objects and invalidates
+their handles.
+
+The registry is the foundation for future handle conversion and transport.
+It does not change existing MATLAB/Julia conversion behavior. The
+`MATFrost.use_matfrost_handle(::Type)` trait defaults to `false` and is not yet
+used by the conversion code.
+
 ## Type mapping
 
 ### Scalars and Arrays conversions
