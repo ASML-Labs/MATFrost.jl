@@ -33,7 +33,7 @@ permissions:
   contents: read
 
 env:
-  GCC_VERSION: 10
+  GCC_VERSION: 12
 
 jobs:
   test:
@@ -74,17 +74,18 @@ jobs:
       - name: Install GCC on Linux
         if: ${{ startsWith(inputs.os , 'ubuntu') }}
         run: |
-          sudo apt-get install g++-${{ env.GCC_VERSION }}
+          sudo apt-get install g++-${{ env.GCC_VERSION }} gcc-${{ env.GCC_VERSION }}
 
       - name: Configure compatible linux GCC compiler on Linux
         if: ${{ startsWith(inputs.os , 'ubuntu') }}
         run: |
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${GCC_VERSION} 100
-          sudo update-alternatives --config g++
+          sudo update-alternatives --set g++ /usr/bin/g++-${GCC_VERSION}
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_VERSION} 100
-          sudo update-alternatives --config gcc
+          sudo update-alternatives --set gcc /usr/bin/gcc-${GCC_VERSION}
           g++ --version
           gcc --version
+          echo "GCC version set to ${GCC_VERSION}"
       
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@f9e43010f1ae678f7cfa0542fe2a4f60f7d1ad8d # v3.1.0
