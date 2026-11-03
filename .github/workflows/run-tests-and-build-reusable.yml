@@ -108,10 +108,19 @@ jobs:
         with:
           command: addpath(genpath("src")) ; matfrostmake() ;
         
+      - name: Select C++ runtime for MATLAB R2021b on Linux
+        if: ${{ startsWith(inputs.os, 'ubuntu') && inputs.matlab-version == 'R2021b' }}
+        id: matlab-runtime
+        run: |
+          runtime="$(g++-${GCC_VERSION} -print-file-name=libstdc++.so.6)"
+          test -f "$runtime"
+          echo "preload=$runtime" >> "$GITHUB_OUTPUT"
+
       - name: Run tests
         uses: matlab-actions/run-tests@214a16e600ef2c705a4b2dd6c0794dc6957682a9 # v3.3.0
         env:
           JULIA_VERSIONS: ${{ inputs.julia-version }}
+          LD_PRELOAD: ${{ steps.matlab-runtime.outputs.preload }}
         with:
           source-folder: 'src/matlab'
           select-by-folder: 'test'
