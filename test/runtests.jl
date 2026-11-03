@@ -13,6 +13,7 @@ end
 include("simulate_communication.jl")
 
 include("handles.jl")
+include("package_configuration.jl")
 # include("primitives.jl")
 # include("incompatible_datatypes.jl")
 
