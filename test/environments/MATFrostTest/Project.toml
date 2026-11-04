@@ -1,0 +1,7 @@
+[deps]
+MATFrost = "406cae98-a0f7-4766-b83f-8510a556e0e7"
+MATFrostTest = "13500e4e-9d63-4f78-ab54-2a107fc91083"
+
+[sources]
+MATFrost = {path = "../../.."}
+MATFrostTest = {path = "MATFrostTest"}
