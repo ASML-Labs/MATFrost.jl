@@ -5,7 +5,7 @@ classdef matfrost_demographics_test < matfrost_abstract_test
 
     methods(Access=protected)
         function project_path = julia_project_path(~)
-            project_path = fullfile(fileparts(mfilename('fullpath')), ...
+            project_path = fullfile(fileparts(fileparts(fileparts(mfilename('fullpath')))), ...
                 "environments", "Demographics");
         end
     end
