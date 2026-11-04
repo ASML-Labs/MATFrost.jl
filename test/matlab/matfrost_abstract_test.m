@@ -1,7 +1,9 @@
 classdef matfrost_abstract_test < matlab.unittest.TestCase
     
     properties 
-        environment (1,1) string = fullfile(fileparts(mfilename('fullpath')), 'MATFrostTest');
+        environment (1,1) string = fullfile( ...
+            fileparts(fileparts(mfilename('fullpath'))), ...
+            "environments", "MATFrostTest");
     end
 
     properties (ClassSetupParameter)
@@ -20,7 +22,7 @@ classdef matfrost_abstract_test < matlab.unittest.TestCase
 
     methods(TestClassSetup)
         function setup_matfrost(tc, julia_version)
-            matfrost_path = fileparts(fileparts(mfilename('fullpath')));
+            matfrost_path = fileparts(fileparts(fileparts(mfilename('fullpath'))));
             project_path = tc.julia_project_path();
             configuration_packages_path = fullfile(matfrost_path, ...
                 "src", "matlab", "@matfrostjulia", "configure_packages.jl");

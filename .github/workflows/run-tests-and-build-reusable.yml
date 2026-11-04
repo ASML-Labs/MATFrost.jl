@@ -122,9 +122,10 @@ jobs:
         env:
           JULIA_VERSIONS: ${{ inputs.julia-version }}
           LD_PRELOAD: ${{ steps.matlab-runtime.outputs.preload }}
+          MATLABPATH: ${{ github.workspace }}/test/matlab
         with:
           source-folder: 'src/matlab'
-          select-by-folder: 'test'
+          select-by-folder: 'test/matlab'
           strict: false
           test-results-junit: test-results/results.xml
           code-coverage-cobertura: test-results/coverage.xml
