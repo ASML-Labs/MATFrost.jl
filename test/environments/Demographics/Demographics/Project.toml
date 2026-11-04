@@ -1,0 +1,9 @@
+name = "Demographics"
+uuid = "d436b072-ee80-4a3b-8b2e-fdf4e33f3236"
+version = "0.1.0"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
