@@ -108,8 +108,8 @@ jobs:
         with:
           command: addpath(genpath("src")) ; matfrostmake() ;
         
-      - name: Select C++ runtime for MATLAB R2021b on Linux
-        if: ${{ startsWith(inputs.os, 'ubuntu') && inputs.matlab-version == 'R2021b' }}
+      - name: Select C++ runtime for older MATLAB releases on Linux
+        if: ${{ startsWith(inputs.os, 'ubuntu') && contains(fromJSON('["R2021b","R2022b","R2023b"]'), inputs.matlab-version) }}
         id: matlab-runtime
         run: |
           runtime="$(g++-${GCC_VERSION} -print-file-name=libstdc++.so.6)"
