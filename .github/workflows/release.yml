@@ -29,7 +29,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
       - name: Get semantic version
-        uses: RonaldPhilipsen/semVersie@41233349edfb40f4e6da4251fea7684026182dc9 # v2.3.4
+        uses: RonaldPhilipsen/semVersie@61a735e7d9e3d6e258d3288d09c1289a5a23ca69 # v2.3.5
         id: get-version
         with:
           add-pr-label: true
