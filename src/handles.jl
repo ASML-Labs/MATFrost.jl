@@ -5,6 +5,11 @@ struct MATFrostHandle
     typename::String
 end
 
+const HANDLE_MARKER_FIELD = :dataType
+const HANDLE_MARKER_VALUE = "matfrost_handle"
+const HANDLE_ID_FIELD = :id
+const HANDLE_TYPENAME_FIELD = :typename
+
 use_matfrost_handle(::Type) = false
 
 const HANDLE_STORE = Dict{UUID,Any}()

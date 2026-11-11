@@ -165,10 +165,55 @@ handles are explicitly released or the Julia process exits.
 `MATFrost.release_all_handles!()` releases all registered objects and invalidates
 their handles.
 
-The registry is the foundation for future handle conversion and transport.
-It does not change existing MATLAB/Julia conversion behavior. The
-`MATFrost.use_matfrost_handle(::Type)` trait defaults to `false` and is not yet
-used by the conversion code.
+### Opt-in handle transport
+
+Scalar Julia objects can opt into handle conversion instead of being marshalled
+field by field. MATLAB receives an opaque struct containing `dataType`, `id`,
+and `typename`. Passing it back resolves the original Julia object, so mutable
+state stays in Julia and repeated calls do not transfer the object's contents.
+Types that do not opt in retain the existing conversion behavior.
+
+For example, define this in a Julia package available in your MATFrost project:
+
+```julia
+module MySimulation
+
+import MATFrost
+
+mutable struct State
+   values::Vector{Float64}
+end
+
+MATFrost.use_matfrost_handle(::Type{State}) = true
+create_state(count::Int64) = State(zeros(count))
+
+function add!(state::State, amount::Float64)
+   state.values .+= amount
+   return sum(state.values)
+end
+
+snapshot(state::State) = copy(state.values)
+
+end
+```
+
+```matlab
+jl = matfrostjulia(project="<projectdir>");
+state = jl.MySimulation.create_state(int64(1000000), signature="Int64");
+total = jl.MySimulation.("add!")(state, 2.0, ...
+   signature=[state.typename, "Float64"]); % 2000000
+
+values = jl.MySimulation.snapshot(state, signature=state.typename);
+   % Transfer the vector only when MATLAB needs it.
+
+released = jl.MATFrost.release_handle( ...
+   state, signature="MATFrost.MATFrostHandle");
+```
+
+Copies of the MATLAB struct refer to the same Julia object. Clearing the MATLAB
+variable does not release the registry entry. Release it explicitly as above,
+or call `jl.MATFrost.("release_all_handles!")()` when no stored handles are needed.
+Handles cannot be reused after release or in a different Julia server process.
 
 ## Type mapping
 

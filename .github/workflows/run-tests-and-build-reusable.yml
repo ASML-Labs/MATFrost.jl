@@ -117,6 +117,7 @@ jobs:
           echo "preload=$runtime" >> "$GITHUB_OUTPUT"
 
       - name: Run tests
+        timeout-minutes: 30
         uses: matlab-actions/run-tests@214a16e600ef2c705a4b2dd6c0794dc6957682a9 # v3.3.0
         env:
           JULIA_VERSIONS: ${{ inputs.julia-version }}
