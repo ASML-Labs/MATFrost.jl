@@ -57,6 +57,7 @@ jobs:
       - name: Test Julia
         if: ${{ inputs.julia-tests }}
         uses: julia-actions/julia-runtest@6e050c8013b833b1195105ff2fce9cd802f53271 # v1.12.0
+        timeout-minutes: 30
           
       - name: Determine MATLAB product
         if: startsWith(inputs.os , 'windows')
@@ -75,7 +76,8 @@ jobs:
         if: ${{ startsWith(inputs.os , 'ubuntu') }}
         run: |
           sudo apt-get install g++-${{ env.GCC_VERSION }} gcc-${{ env.GCC_VERSION }}
-
+        timeout-minutes: 10
+        
       - name: Configure compatible linux GCC compiler on Linux
         if: ${{ startsWith(inputs.os , 'ubuntu') }}
         run: |
@@ -86,7 +88,7 @@ jobs:
           g++ --version
           gcc --version
           echo "GCC version set to ${GCC_VERSION}"
-      
+
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@f9e43010f1ae678f7cfa0542fe2a4f60f7d1ad8d # v3.1.0
         with:
@@ -116,15 +118,16 @@ jobs:
           test -f "$runtime"
           echo "preload=$runtime" >> "$GITHUB_OUTPUT"
 
-      - name: Run tests
+      - name: Test MATLAB
         timeout-minutes: 30
         uses: matlab-actions/run-tests@214a16e600ef2c705a4b2dd6c0794dc6957682a9 # v3.3.0
         env:
           JULIA_VERSIONS: ${{ inputs.julia-version }}
           LD_PRELOAD: ${{ steps.matlab-runtime.outputs.preload }}
+          MATLABPATH: ${{ github.workspace }}/test/matlab
         with:
           source-folder: 'src/matlab'
-          select-by-folder: 'test'
+          select-by-folder: 'test/matlab'
           strict: false
           test-results-junit: test-results/results.xml
           code-coverage-cobertura: test-results/coverage.xml
