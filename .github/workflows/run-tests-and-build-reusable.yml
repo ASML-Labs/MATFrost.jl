@@ -119,7 +119,8 @@ jobs:
           test -f "$runtime"
           echo "preload=$runtime" >> "$GITHUB_OUTPUT"
 
-      - name: Run tests
+      - name: Test MATLAB
+        timeout-minutes: 30
         uses: matlab-actions/run-tests@214a16e600ef2c705a4b2dd6c0794dc6957682a9 # v3.3.0
         env:
           JULIA_VERSIONS: ${{ inputs.julia-version }}
@@ -131,7 +132,6 @@ jobs:
           strict: false
           test-results-junit: test-results/results.xml
           code-coverage-cobertura: test-results/coverage.xml
-        timeout-minutes: 30
       
       - name: Upload MEX binary
         if: ${{ inputs.mex-recompile }}
