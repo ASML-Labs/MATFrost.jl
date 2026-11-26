@@ -33,6 +33,17 @@ struct Outer
     nt::NamedTuple{(:x, :y), Tuple{Int64, Inner}}
 end
 
+struct CustomValue
+    value::String
+end
+
+struct CustomContainer
+    value::CustomValue
+end
+
+_ConvertToJulia.convert_matfrostarray(::Type{CustomValue}, value::MATFrostArrayString) =
+    CustomValue(only(value.values))
+
 scalar(v::T) where {T<:Number} = MATFrostArrayPrimitive{T}(Int64[1, 1], T[v])
 str(s::String) = MATFrostArrayString(Int64[1, 1], String[s])
 mstruct(fns::Vector{Symbol}, vals::Vector{MATFrostArrayAbstract}, dims=Int64[1, 1]) =
@@ -70,6 +81,14 @@ end
         @test out.nt.y.a == 1.5
         @test Base.return_types(toJulia, (Type{Outer}, MATFrostArrayAbstract)) == Any[Outer]
         @test_opt target_modules=(MATFrost,) toJulia(Outer, marr)
+    end
+
+    @testset "Nested custom conversion" begin
+        value = str("custom")
+        object = mstruct([:value], MATFrostArrayAbstract[value])
+        cell = MATFrostArrayCell(Int64[1], MATFrostArrayAbstract[value])
+        @test toJulia(CustomContainer, object).value.value == "custom"
+        @test only(toJulia(Tuple{CustomValue}, cell)).value == "custom"
     end
 
     @testset "Julia -> MATLAB, nested" begin
