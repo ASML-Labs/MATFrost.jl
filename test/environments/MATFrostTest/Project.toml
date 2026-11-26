@@ -1,4 +1,5 @@
 [deps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 MATFrost = "406cae98-a0f7-4766-b83f-8510a556e0e7"
 MATFrostTest = "13500e4e-9d63-4f78-ab54-2a107fc91083"
 

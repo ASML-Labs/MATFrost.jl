@@ -106,12 +106,22 @@ end
 """
 Convert to Tuples
 """
-@generated function convert_matfrostarray(::Type{T}, @nospecialize(marr::MATFrostArrayAbstract))::T where {T<:Tuple}
-    quote
-        if marr isa MATFrostArrayCell
-            validate_array_dimensions(T, marr)
+# Non-generated, non-inlined dispatch wrappers keep nested conversions analyzable by JET.
+@noinline function convert_matfrostarray(::Type{T}, @nospecialize(marr::MATFrostArrayAbstract))::T where {T<:Tuple}
+    if marr isa MATFrostArrayCell
+        validate_array_dimensions(T, marr)
+        return convert_matfrostarray_tuple(T, marr)
+    elseif marr isa MATFrostArrayEmpty
+        throw(not_scalar_value_exception(T, Int64[0]))
+    else
+        throw(incompatible_datatypes_exception(T, marr))
+    end
+end
 
-            T(($((
+@generated function convert_matfrostarray_tuple(::Type{T}, marr::MATFrostArrayCell) where {T<:Tuple}
+    quote
+        T((
+            $((
                 quote
                     try
                         convert_matfrostarray($(fieldtype(T, fi)), marr.values[$fi])
@@ -124,13 +134,8 @@ Convert to Tuples
                         end
                     end
                 end for fi in 1:fieldcount(T)
-            )...),))
-        elseif marr isa MATFrostArrayEmpty
-            throw(not_scalar_value_exception(T, Int64[0]))
-        else
-            throw(incompatible_datatypes_exception(T, marr))
-        end
-
+            )...),
+        ))
     end
 end
 
@@ -146,29 +151,31 @@ end
     return value::T
 end
 
+function is_matfrost_handle(@nospecialize(marr::MATFrostArrayAbstract))
+    marr isa MATFrostArrayStruct || return false
+    prod(marr.dims; init=1) == 1 || return false
+    HANDLE_MARKER_FIELD in marr.fieldnames || return false
+    marker = get_matfrostarray_element(marr, HANDLE_MARKER_FIELD, 1)
+    return marker isa MATFrostArrayString &&
+        length(marker.values) == 1 && only(marker.values) == HANDLE_MARKER_VALUE
+end
+
 """
 Convert to structs/namedtuples
 """
-@generated function convert_matfrostarray(::Type{T}, @nospecialize(marr::MATFrostArrayAbstract))::T where T
-    if isstructtype(T)
-        quote
-            if use_matfrost_handle(T)
-                return convert_matfrosthandle(T, marr)
-            elseif marr isa MATFrostArrayStruct
-                validate_array_dimensions(T, marr)
-                validate_fieldnames(T, marr)     
-                convert_matfrostarray_struct_object(T, marr, 1)
-            elseif marr isa MATFrostArrayEmpty
-                throw(not_scalar_value_exception(T, Int64[0]))
-            else
-                throw(incompatible_datatypes_exception(T, marr))
-            end
-
-        end
+@noinline function convert_matfrostarray(::Type{T}, @nospecialize(marr::MATFrostArrayAbstract))::T where T
+    if !isstructtype(T)
+        throw(unsupported_datatype_exception(T))
+    elseif use_matfrost_handle(T) || (T !== MATFrostHandle && is_matfrost_handle(marr))
+        return convert_matfrosthandle(T, marr)
+    elseif marr isa MATFrostArrayStruct
+        validate_array_dimensions(T, marr)
+        validate_fieldnames(T, marr)
+        return convert_matfrostarray_struct_object(T, marr, 1)
+    elseif marr isa MATFrostArrayEmpty
+        throw(not_scalar_value_exception(T, Int64[0]))
     else
-        quote
-            throw(unsupported_datatype_exception(T))
-        end
+        throw(incompatible_datatypes_exception(T, marr))
     end
 end
 
@@ -177,38 +184,32 @@ empty_array(::Type{Array{T,N}}) where {T,N} = Array{T,N}(undef, ntuple(_-> 0, Va
 """
 Convert to arrays of structs/namedtuples
 """
-@generated function convert_matfrostarray(::Type{Array{T,N}}, @nospecialize(marr::MATFrostArrayAbstract))::Array{T,N} where {T,N}
-    if isstructtype(T)
-        quote
-            if marr isa MATFrostArrayStruct
-                validate_array_dimensions(Array{T,N}, marr)
-                validate_fieldnames(T, marr)     
+@noinline function convert_matfrostarray(::Type{Array{T,N}}, @nospecialize(marr::MATFrostArrayAbstract))::Array{T,N} where {T,N}
+    if !isstructtype(T)
+        throw(unsupported_datatype_exception(T))
+    elseif marr isa MATFrostArrayStruct
+        validate_array_dimensions(Array{T,N}, marr)
+        validate_fieldnames(T, marr)
 
-                dims = array_dims(marr.dims, Val{N}())
-                arr = Array{T,N}(undef, dims)
-                for i in eachindex(arr)
-                    try
-                        arr[i] = convert_matfrostarray_struct_object(T, marr, i)
-                    catch e
-                        if e isa MATFrostConversionException
-                            push!(e.stacktrace, i)
-                            rethrow(e)
-                        else
-                            rethrow(e)
-                        end
-                    end
+        dims = array_dims(marr.dims, Val{N}())
+        arr = Array{T,N}(undef, dims)
+        for i in eachindex(arr)
+            try
+                arr[i] = convert_matfrostarray_struct_object(T, marr, i)
+            catch e
+                if e isa MATFrostConversionException
+                    push!(e.stacktrace, i)
+                    rethrow(e)
+                else
+                    rethrow(e)
                 end
-                return arr
-            elseif marr isa MATFrostArrayEmpty
-                return empty_array(Array{T,N})
-            else
-                throw(incompatible_datatypes_exception(Array{T,N}, marr))
             end
         end
+        return arr
+    elseif marr isa MATFrostArrayEmpty
+        return empty_array(Array{T,N})
     else
-        quote
-            throw(unsupported_datatype_exception(T))
-        end
+        throw(incompatible_datatypes_exception(Array{T,N}, marr))
     end
 end
 
@@ -216,31 +217,29 @@ end
 """
 Convert to arrays of arrays/tuples
 """
-@generated function convert_matfrostarray(::Type{Array{T,N}}, @nospecialize(marr::MATFrostArrayAbstract))::Array{T,N} where {T<:Union{Array, Tuple},N}
-    quote
-        if marr isa MATFrostArrayCell
-            validate_array_dimensions(Array{T,N}, marr)
+@noinline function convert_matfrostarray(::Type{Array{T,N}}, @nospecialize(marr::MATFrostArrayAbstract))::Array{T,N} where {T<:Union{Array, Tuple},N}
+    if marr isa MATFrostArrayCell
+        validate_array_dimensions(Array{T,N}, marr)
 
-            dims = array_dims(marr.dims, Val{N}())
-            arr = Array{T,N}(undef, dims)
-            for i in eachindex(arr)
-                try
-                    arr[i] = convert_matfrostarray(T, marr.values[i])
-                catch e
-                    if e isa MATFrostConversionException
-                        push!(e.stacktrace, i)
-                        rethrow(e)
-                    else
-                        rethrow(e)
-                    end
+        dims = array_dims(marr.dims, Val{N}())
+        arr = Array{T,N}(undef, dims)
+        for i in eachindex(arr)
+            try
+                arr[i] = convert_matfrostarray(T, marr.values[i])
+            catch e
+                if e isa MATFrostConversionException
+                    push!(e.stacktrace, i)
+                    rethrow(e)
+                else
+                    rethrow(e)
                 end
             end
-            return arr
-        elseif marr isa MATFrostArrayEmpty
-            return empty_array(Array{T,N})
-        else
-            throw(incompatible_datatypes_exception(Array{T,N}, marr))
         end
+        return arr
+    elseif marr isa MATFrostArrayEmpty
+        return empty_array(Array{T,N})
+    else
+        throw(incompatible_datatypes_exception(Array{T,N}, marr))
     end
 end
 
