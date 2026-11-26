@@ -17,6 +17,7 @@ include("read.jl")
 include("converttojulia.jl")
 include("converttomatlab.jl")
 include("write.jl")
+include("tables.jl")
 
 include("server.jl")
 

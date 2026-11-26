@@ -172,6 +172,8 @@ field by field. MATLAB receives an opaque struct containing `dataType`, `id`,
 and `typename`. Passing it back resolves the original Julia object, so mutable
 state stays in Julia and repeated calls do not transfer the object's contents.
 Types that do not opt in retain the existing conversion behavior.
+An explicitly stored handle can also be passed to a Julia function expecting
+its concrete object type without opting that type into automatic handle output.
 
 For example, define this in a Julia package available in your MATFrost project:
 
@@ -214,6 +216,35 @@ Copies of the MATLAB struct refer to the same Julia object. Clearing the MATLAB
 variable does not release the registry entry. Release it explicitly as above,
 or call `jl.MATFrost.("release_all_handles!")()` when no stored handles are needed.
 Handles cannot be reused after release or in a different Julia server process.
+
+## MATLAB tables and Julia DataFrames
+
+The optional table helpers transfer MATLAB tables to and from DataFrames.jl
+without requiring DataFrames as a MATFrost dependency. Install `DataFrames`
+in the Julia project used by the server, and run `MATFrost.install()` again
+to install the MATLAB helpers alongside `@matfrostjulia`.
+
+```matlab
+jl = matfrostjulia(project="<projectdir>");
+input = table(int64([1; 2]), ["a"; "b"], 'VariableNames', {'id', 'label'});
+frame = matfrost.tableToDataFrame(jl, input); % retained in Julia
+
+count = jl.DataFrames.nrow(frame, signature=frame.typename);
+output = matfrost.dataFrameToTable(jl, frame); % explicit transfer to MATLAB
+released = jl.MATFrost.release_handle(frame, signature="MATFrost.MATFrostHandle");
+```
+
+`dataFrameToTable` also accepts an existing MATFrost handle to a Julia
+DataFrame, including a result produced by another Julia package. Transferring
+a table creates a copy; materializing it does not release its handle.
+
+Supported single-column variables are logicals, strings, signed and unsigned
+8/16/32/64-bit integers, single and double precision numbers, and complex
+single/double numbers. Numeric `NaN` and infinities are transferred as numeric
+values. Missing strings, Julia `missing`-capable column types, sparse,
+multicolumn and other column types are rejected. Zero-row tables are supported;
+tables with rows but no variables are not. Row names are rejected. Other
+table and DataFrame metadata (such as descriptions and units) is not transferred.
 
 ## Type mapping
 

@@ -146,13 +146,22 @@ end
     return value::T
 end
 
+function is_matfrost_handle(@nospecialize(marr::MATFrostArrayAbstract))
+    marr isa MATFrostArrayStruct || return false
+    prod(marr.dims; init=1) == 1 || return false
+    HANDLE_MARKER_FIELD in marr.fieldnames || return false
+    marker = get_matfrostarray_element(marr, HANDLE_MARKER_FIELD, 1)
+    return marker isa MATFrostArrayString &&
+        length(marker.values) == 1 && only(marker.values) == HANDLE_MARKER_VALUE
+end
+
 """
 Convert to structs/namedtuples
 """
 @generated function convert_matfrostarray(::Type{T}, @nospecialize(marr::MATFrostArrayAbstract))::T where T
     if isstructtype(T)
         quote
-            if use_matfrost_handle(T)
+            if use_matfrost_handle(T) || (T !== MATFrostHandle && is_matfrost_handle(marr))
                 return convert_matfrosthandle(T, marr)
             elseif marr isa MATFrostArrayStruct
                 validate_array_dimensions(T, marr)

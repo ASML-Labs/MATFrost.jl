@@ -121,6 +121,13 @@ MATFrost.use_matfrost_handle(::Type{OtherTransportHandleValue}) = true
             plain_wire = to_matlab(plain)
             @test plain_wire.fieldnames == Symbol[:value]
             @test to_julia(PlainTransportValue, plain_wire) == plain
+            plain_handle = MATFrost.store_handle(plain)
+            try
+                @test to_julia(PlainTransportValue, to_matlab(plain_handle)) === plain
+                @test_throws ArgumentError to_julia(TransportHandleValue, to_matlab(plain_handle))
+            finally
+                @test MATFrost.release_handle(plain_handle)
+            end
         finally
             MATFrost.release_all_handles!()
         end
